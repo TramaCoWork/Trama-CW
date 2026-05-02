@@ -1,0 +1,68 @@
+services:
+  # ── Database ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: trama_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-trama}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trama_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-trama_cowork}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-trama} -d ${POSTGRES_DB:-trama_cowork}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── App dev (hot reload) ──────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    container_name: trama_app_dev
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-trama}:${POSTGRES_PASSWORD:-trama_secret}@db:5432/${POSTGRES_DB:-trama_cowork}
+      JWT_SECRET: ${JWT_SECRET:-change_me_in_production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      PORT: 3000
+      NODE_ENV: development
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run start:dev
+
+  # ── App production ────────────────────────────────────────────────────────
+  app-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: trama_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-trama}:${POSTGRES_PASSWORD:-trama_secret}@db:5432/${POSTGRES_DB:-trama_cowork}
+      JWT_SECRET: ${JWT_SECRET:-change_me_in_production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      PORT: 3000
+      NODE_ENV: production
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    profiles:
+      - prod
+
+volumes:
+  postgres_data:

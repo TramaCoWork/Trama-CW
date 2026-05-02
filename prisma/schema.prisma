@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  client
+  professional
+  admin
+}
+
+enum ProfileStatus {
+  incomplete
+  onboarding
+  active
+  suspended
+}
+
+enum PaymentStatus {
+  pending
+  completed
+  failed
+  refunded
+}
+
+enum ContactType {
+  whatsapp
+  email
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole @default(client)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  profile    ProfessionalProfile?
+  payments   Payment[]
+  posts      CommunityPost[]
+  comments   CommunityComment[]
+  jobApplies JobApplication[]
+
+  @@map("users")
+}
+
+model ProfessionalProfile {
+  id            String        @id @default(uuid())
+  userId        String        @unique @map("user_id")
+  name          String
+  bio           String?       @db.Text
+  photo         String?
+  services      String[]
+  priceMin      Decimal?      @map("price_min") @db.Decimal(10, 2)
+  priceMax      Decimal?      @map("price_max") @db.Decimal(10, 2)
+  city          String
+  categories    Category[]
+  whatsapp      String?
+  emailContact  String?       @map("email_contact")
+  isActive      Boolean       @default(false) @map("is_active")
+  profileStatus ProfileStatus @default(incomplete) @map("profile_status")
+  completionPct Int           @default(0) @map("completion_pct")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contacts ContactLog[]
+
+  @@index([city], name: "professionals_city")
+
+  @@index([isActive], name: "professionals_active")
+  @@map("professional_profiles")
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  userId          String        @map("user_id")
+  amount          Decimal       @db.Decimal(10, 2)
+  currency        String        @default("ARS")
+  status          PaymentStatus @default(pending)
+  paymentProvider String        @map("payment_provider")
+  externalId      String?       @map("external_id")
+  metadata        Json?
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("payments")
+}
+
+model Job {
+  id             String   @id @default(uuid())
+  title          String
+  description    String   @db.Text
+  createdByAdmin Boolean  @default(true) @map("created_by_admin")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  applications JobApplication[]
+
+  @@map("jobs")
+}
+
+model JobApplication {
+  id          String   @id @default(uuid())
+  jobId       String   @map("job_id")
+  userId      String   @map("user_id")
+  coverLetter String?  @map("cover_letter") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  job  Job  @relation(fields: [jobId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([jobId, userId])
+  @@map("job_applications")
+}
+
+model CommunityPost {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user     User               @relation(fields: [userId], references: [id])
+  comments CommunityComment[]
+
+  @@map("community_posts")
+}
+
+model CommunityComment {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User          @relation(fields: [userId], references: [id])
+
+  @@map("community_comments")
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  slug      String    @unique
+  name      String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  professionals ProfessionalProfile[]
+
+  @@map("categories")
+}
+
+model ContactLog {
+  id             String      @id @default(uuid())
+  professionalId String      @map("professional_id")
+  contactType    ContactType @map("contact_type")
+  estimated      Boolean     @default(false)
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id])
+
+  @@map("contact_logs")
+}
