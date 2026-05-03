@@ -17,8 +17,10 @@ enum UserRole {
 enum ProfileStatus {
   incomplete
   onboarding
+  pending_review
   active
   suspended
+  rejected
 }
 
 enum PaymentStatus {
@@ -31,6 +33,54 @@ enum PaymentStatus {
 enum ContactType {
   whatsapp
   email
+}
+
+enum WorkModality {
+  presencial
+  online
+  ambas
+}
+
+enum WorkType {
+  independiente
+  freelance
+  emprendedor
+  otro
+}
+
+enum EducationLevel {
+  secundario
+  terciario
+  universitario
+  posgrado
+  maestria
+  doctorado
+}
+
+enum DocumentType {
+  dni
+  cv
+  title
+  certificate
+}
+
+enum ValidationStatus {
+  pending_review
+  manual_approved
+  manual_rejected
+  ai_approved
+  ai_rejected
+}
+
+enum ValidationType {
+  manual
+  ai
+}
+
+enum UsageFrequency {
+  daily
+  three_four_weekly
+  occasional
 }
 
 // ─── Models ──────────────────────────────────────────────────────────────────
@@ -48,6 +98,7 @@ model User {
   posts      CommunityPost[]
   comments   CommunityComment[]
   jobApplies JobApplication[]
+  reviews    ProfileValidation[]
 
   @@map("users")
 }
@@ -71,12 +122,51 @@ model ProfessionalProfile {
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
-  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  contacts ContactLog[]
+  // ─── Datos personales (seccion 1) ──────────────────────────────────────────
+  dni              String?
+  birthDate        DateTime?     @map("birth_date")
+  linkedin         String?
+  pricePerHour     Decimal?      @map("price_per_hour") @db.Decimal(10, 2)
+  workModality     WorkModality? @map("work_modality")
+
+  // ─── Perfil profesional (seccion 2) ────────────────────────────────────────
+  mainProfession    String?       @map("main_profession")
+  currentOccupation String?      @map("current_occupation")
+  workType          WorkType?    @map("work_type")
+  workTypeOther     String?      @map("work_type_other")
+  industry          String?
+  yearsExperience   Int?         @map("years_experience")
+
+  // ─── Intereses y uso (secciones 6-7) ───────────────────────────────────────
+  interestsInTrama  String[]     @map("interests_in_trama")
+  usageFrequency    UsageFrequency? @map("usage_frequency")
+  spaceTypes        String[]     @map("space_types")
+
+  // ─── Pregunta filtro (seccion 8) ───────────────────────────────────────────
+  tramaMotivation   String?      @map("trama_motivation") @db.VarChar(300)
+
+  // ─── Consentimiento (seccion 9) ────────────────────────────────────────────
+  termsAccepted       Boolean   @default(false) @map("terms_accepted")
+  dataConsentAccepted Boolean   @default(false) @map("data_consent_accepted")
+
+  // ─── Control de onboarding ─────────────────────────────────────────────────
+  isFirstTime    Boolean   @default(true)  @map("is_first_time")
+  currentStep    Int       @default(1)     @map("current_step")
+  submittedAt    DateTime? @map("submitted_at")
+
+  // ─── Relaciones ────────────────────────────────────────────────────────────
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contacts            ContactLog[]
+  educations          Education[]
+  certifications      Certification[]
+  documents           Document[]
+  validations         ProfileValidation[]
+  professionCategories ProfessionCategory[]
 
   @@index([city], name: "professionals_city")
-
   @@index([isActive], name: "professionals_active")
+  @@index([city, workModality, isActive], name: "professionals_search")
+  @@index([mainProfession, isActive], name: "professionals_profession")
   @@map("professional_profiles")
 }
 
@@ -174,4 +264,102 @@ model ContactLog {
   professional ProfessionalProfile @relation(fields: [professionalId], references: [id])
 
   @@map("contact_logs")
+}
+
+// ─── Formacion academica (seccion 3) ──────────────────────────────────────────
+
+model Education {
+  id              String         @id @default(uuid())
+  professionalId  String         @map("professional_id")
+  level           EducationLevel
+  title           String
+  institution     String
+  year            Int?
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  documents    Document[]
+
+  @@map("educations")
+}
+
+// ─── Certificaciones (seccion 4) ──────────────────────────────────────────────
+
+model Certification {
+  id              String   @id @default(uuid())
+  professionalId  String   @map("professional_id")
+  name            String
+  institution     String
+  year            Int?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  documents    Document[]
+
+  @@map("certifications")
+}
+
+// ─── Documentos (archivos subidos) ────────────────────────────────────────────
+
+model Document {
+  id              String       @id @default(uuid())
+  professionalId  String       @map("professional_id")
+  type            DocumentType
+  fileUrl         String       @map("file_url")
+  originalName    String       @map("original_name")
+  mimeType        String       @map("mime_type")
+  sizeBytes       Int          @map("size_bytes")
+  uploadedAt      DateTime     @default(now()) @map("uploaded_at")
+
+  // Relacion opcional con Education o Certification
+  educationId     String?      @map("education_id")
+  certificationId String?      @map("certification_id")
+
+  professional  ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  education     Education?          @relation(fields: [educationId], references: [id], onDelete: SetNull)
+  certification Certification?      @relation(fields: [certificationId], references: [id], onDelete: SetNull)
+
+  @@map("documents")
+}
+
+// ─── Validacion de perfil ─────────────────────────────────────────────────────
+
+model ProfileValidation {
+  id                String           @id @default(uuid())
+  professionalId    String           @map("professional_id")
+  status            ValidationStatus
+  validationType    ValidationType   @map("validation_type")
+  reviewedBy        String?          @map("reviewed_by")
+  reviewNotes       String?          @map("review_notes") @db.Text
+  documentsReviewed String[]         @map("documents_reviewed")
+  confidenceScore   Float?           @map("confidence_score")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  reviewer     User?               @relation(fields: [reviewedBy], references: [id])
+
+  @@map("profile_validations")
+}
+
+// ─── Taxonomia de profesiones (jerarquica) ────────────────────────────────────
+
+model ProfessionCategory {
+  id        Int      @id @default(autoincrement())
+  slug      String   @unique
+  name      String
+  parentId  Int?     @map("parent_id")
+  order     Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  parent   ProfessionCategory?  @relation("ProfessionHierarchy", fields: [parentId], references: [id])
+  children ProfessionCategory[] @relation("ProfessionHierarchy")
+
+  professionals ProfessionalProfile[]
+
+  @@map("profession_categories")
 }

@@ -15,6 +15,9 @@ import { CommunityModule } from './community/community.module';
 import { JobsModule } from './jobs/jobs.module';
 import { AdminModule } from './admin/admin.module';
 import { CategoriesModule } from './categories/categories.module';
+import { ProfessionCategoriesModule } from './profession-categories/profession-categories.module';
+import { UploadsModule } from './uploads/uploads.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -26,6 +29,15 @@ import { CategoriesModule } from './categories/categories.module';
         JWT_EXPIRES_IN: Joi.string().default('7d'),
         PORT: Joi.number().default(3000),
         NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
+        MAIL_PROVIDER: Joi.string().valid('smtp', 'gmail').optional(),
+        MAIL_FROM: Joi.string().optional(),
+        SMTP_HOST: Joi.string().optional(),
+        SMTP_PORT: Joi.number().optional(),
+        SMTP_SECURE: Joi.string().optional(),
+        SMTP_USER: Joi.string().optional(),
+        SMTP_PASS: Joi.string().optional(),
+        GMAIL_USER: Joi.string().optional(),
+        GMAIL_APP_PASSWORD: Joi.string().optional(),
       }),
     }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
@@ -41,6 +53,9 @@ import { CategoriesModule } from './categories/categories.module';
     JobsModule,
     AdminModule,
     CategoriesModule,
+    ProfessionCategoriesModule,
+    UploadsModule,
+    MailModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

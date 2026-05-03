@@ -1,9 +1,46 @@
 import { PrismaClient, UserRole, ProfileStatus } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
+import { professionTaxonomy } from './profession-taxonomy';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL ?? 'postgresql://trama:trama_secret@localhost:5432/trama_cowork' });
 const prisma = new PrismaClient({ adapter } as never);
+
+async function seedProfessionCategories() {
+  console.log('Seeding profession categories...');
+  let order = 0;
+
+  for (const level1 of professionTaxonomy) {
+    const parent = await prisma.professionCategory.upsert({
+      where: { slug: level1.slug },
+      update: { name: level1.name, order: order++ },
+      create: { slug: level1.slug, name: level1.name, order: order },
+    });
+
+    if (level1.children) {
+      let subOrder = 0;
+      for (const level2 of level1.children) {
+        const sub = await prisma.professionCategory.upsert({
+          where: { slug: level2.slug },
+          update: { name: level2.name, parentId: parent.id, order: subOrder++ },
+          create: { slug: level2.slug, name: level2.name, parentId: parent.id, order: subOrder },
+        });
+
+        if (level2.children) {
+          let profOrder = 0;
+          for (const level3 of level2.children) {
+            await prisma.professionCategory.upsert({
+              where: { slug: level3.slug },
+              update: { name: level3.name, parentId: sub.id, order: profOrder++ },
+              create: { slug: level3.slug, name: level3.name, parentId: sub.id, order: profOrder },
+            });
+          }
+        }
+      }
+    }
+  }
+  console.log('Profession categories seeded ✓');
+}
 
 async function main() {
   console.log('Seeding...');
@@ -199,6 +236,9 @@ async function main() {
     },
   });
   console.log('Community posts created');
+
+  // ── Profession Categories ─────────────────────────────────────────────────
+  await seedProfessionCategories();
 
   console.log('Seed complete ✓');
 }

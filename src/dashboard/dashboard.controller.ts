@@ -1,4 +1,5 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { DashboardService } from './dashboard.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -7,12 +8,16 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
 
+@ApiTags('Dashboard')
+@ApiBearerAuth()
 @Controller('dashboard')
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
+  @ApiOperation({ summary: 'Obtener datos del usuario actual' })
+  @ApiResponse({ status: 200, description: 'Datos del usuario con perfil' })
   async getMe(@CurrentUser() user: CurrentUserType) {
     return this.dashboardService.getMe(user.userId);
   }
@@ -20,12 +25,16 @@ export class DashboardController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.professional)
   @Get('contacts')
+  @ApiOperation({ summary: 'Obtener contactos recibidos del profesional' })
+  @ApiResponse({ status: 200, description: 'Lista de contactos' })
   async getContacts(@CurrentUser() user: CurrentUserType) {
     return this.dashboardService.getContacts(user.userId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('jobs')
+  @ApiOperation({ summary: 'Obtener trabajos a los que aplico el usuario' })
+  @ApiResponse({ status: 200, description: 'Lista de aplicaciones a trabajos' })
   async getJobs(@CurrentUser() user: CurrentUserType) {
     return this.dashboardService.getJobs(user.userId);
   }

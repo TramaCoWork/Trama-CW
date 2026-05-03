@@ -2,19 +2,29 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { ProfessionalProfile, Category } from '@prisma/client';
 
-type ProfileWithCategories = ProfessionalProfile & { categories: Category[] };
+type ProfileWithRelations = ProfessionalProfile & {
+  categories: Category[];
+  educations: any[];
+  certifications: any[];
+  documents: any[];
+};
 
 const CHECKLIST: Array<{
   key: string;
+  section: number;
   label: string;
-  check: (p: ProfileWithCategories) => boolean;
+  check: (p: ProfileWithRelations) => boolean;
 }> = [
-  { key: 'photo',      label: 'Upload a profile photo',  check: (p) => Boolean(p.photo) },
-  { key: 'bio',        label: 'Write your bio',           check: (p) => Boolean(p.bio) },
-  { key: 'services',   label: 'Add your services',        check: (p) => p.services.length > 0 },
-  { key: 'price',      label: 'Set your price range',     check: (p) => p.priceMin !== null },
-  { key: 'contact',    label: 'Add contact info',         check: (p) => Boolean(p.whatsapp) || Boolean(p.emailContact) },
-  { key: 'categories', label: 'Select your categories',   check: (p) => p.categories.length > 0 },
+  { key: 'personal',       section: 1, label: 'Datos personales (nombre, DNI, ciudad)',     check: (p) => Boolean(p.name) && Boolean(p.dni) && Boolean(p.city) },
+  { key: 'dni_document',   section: 1, label: 'Subir DNI / Pasaporte',                     check: (p) => p.documents.some((d) => d.type === 'dni') },
+  { key: 'professional',   section: 2, label: 'Perfil profesional (profesion, bio)',         check: (p) => Boolean(p.mainProfession) && Boolean(p.bio) },
+  { key: 'education',      section: 3, label: 'Formacion academica',                        check: (p) => p.educations.length > 0 },
+  { key: 'certifications', section: 4, label: 'Cursos y certificaciones',                   check: () => true }, // Opcional
+  { key: 'cv',             section: 5, label: 'Subir CV (PDF)',                              check: (p) => p.documents.some((d) => d.type === 'cv') },
+  { key: 'interests',      section: 6, label: 'Intereses dentro de Trama',                  check: (p) => p.interestsInTrama.length > 0 },
+  { key: 'usage',          section: 7, label: 'Modalidad de uso',                            check: (p) => p.usageFrequency !== null },
+  { key: 'motivation',     section: 8, label: 'Pregunta filtro (por que Trama)',             check: (p) => Boolean(p.tramaMotivation) },
+  { key: 'consent',        section: 9, label: 'Consentimiento y envio',                      check: (p) => p.termsAccepted && p.dataConsentAccepted },
 ];
 
 @Injectable()
@@ -24,21 +34,35 @@ export class OnboardingService {
   async getChecklist(userId: string) {
     const profile = await this.prisma.professionalProfile.findFirst({
       where: { userId },
-      include: { categories: true },
+      include: {
+        categories: true,
+        educations: true,
+        certifications: true,
+        documents: true,
+      },
     });
 
     if (!profile) {
       throw new NotFoundException('Professional profile not found');
     }
 
+    const items = CHECKLIST.map((item) => ({
+      key: item.key,
+      section: item.section,
+      label: item.label,
+      completed: item.check(profile as ProfileWithRelations),
+    }));
+
+    const requiredItems = items.filter((i) => i.key !== 'certifications');
+    const completedCount = requiredItems.filter((i) => i.completed).length;
+    const completionPct = Math.round((completedCount / requiredItems.length) * 100);
+
     return {
       profileStatus: profile.profileStatus,
-      completionPct: profile.completionPct,
-      items: CHECKLIST.map((item) => ({
-        key: item.key,
-        label: item.label,
-        completed: item.check(profile),
-      })),
+      completionPct,
+      currentStep: profile.currentStep,
+      isFirstTime: profile.isFirstTime,
+      items,
     };
   }
 

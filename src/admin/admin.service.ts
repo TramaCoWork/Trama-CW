@@ -1,10 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 import { CreateJobDto } from './dto/create-job.dto';
+import { ValidateProfileDto } from './dto/validate-profile.dto';
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
+
+  // ─── Profesionales pendientes ────────────────────────────────────────────
 
   async getPendingProfessionals() {
     return this.prisma.professionalProfile.findMany({
@@ -20,14 +27,24 @@ export class AdminService {
     });
   }
 
-  async approveProfessional(id: string) {
-    const profile = await this.prisma.professionalProfile.findUnique({
-      where: { id },
+  async getPendingReview() {
+    return this.prisma.professionalProfile.findMany({
+      where: { profileStatus: 'pending_review' },
+      include: {
+        user: { select: { id: true, email: true } },
+        documents: true,
+        educations: { include: { documents: true } },
+        certifications: { include: { documents: true } },
+        validations: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
+      orderBy: { submittedAt: 'asc' },
     });
+  }
 
-    if (!profile) {
-      throw new NotFoundException('Professional profile not found');
-    }
+  // ─── Aprobacion simple (legacy) ──────────────────────────────────────────
+
+  async approveProfessional(id: string) {
+    const profile = await this.findProfileOrThrow(id);
 
     return this.prisma.professionalProfile.update({
       where: { id },
@@ -37,6 +54,74 @@ export class AdminService {
       },
     });
   }
+
+  // ─── Validacion con registro ─────────────────────────────────────────────
+
+  async validateProfile(adminUserId: string, profileId: string, dto: ValidateProfileDto) {
+    const profile = await this.findProfileOrThrow(profileId);
+
+    // Crear registro de validacion
+    const validation = await this.prisma.profileValidation.create({
+      data: {
+        professionalId: profile.id,
+        status: dto.status,
+        validationType: 'manual',
+        reviewedBy: adminUserId,
+        reviewNotes: dto.reviewNotes,
+        documentsReviewed: dto.documentsReviewed ?? [],
+      },
+    });
+
+    // Actualizar estado del perfil
+    const isApproved = dto.status === 'manual_approved';
+    await this.prisma.professionalProfile.update({
+      where: { id: profile.id },
+      data: {
+        profileStatus: isApproved ? 'active' : 'rejected',
+        isActive: isApproved,
+      },
+    });
+
+    // Enviar email de notificacion
+    const user = await this.prisma.user.findUnique({
+      where: { id: profile.userId },
+      select: { email: true },
+    });
+
+    if (user?.email) {
+      const name = profile.name || 'Profesional';
+      if (isApproved) {
+        await this.mailService.sendProfileApproved(user.email, name);
+      } else {
+        await this.mailService.sendProfileRejected(user.email, name, dto.reviewNotes);
+      }
+    }
+
+    return validation;
+  }
+
+  async getProfileDocuments(profileId: string) {
+    await this.findProfileOrThrow(profileId);
+
+    return this.prisma.document.findMany({
+      where: { professionalId: profileId },
+      orderBy: { uploadedAt: 'desc' },
+    });
+  }
+
+  async getValidationHistory(profileId: string) {
+    await this.findProfileOrThrow(profileId);
+
+    return this.prisma.profileValidation.findMany({
+      where: { professionalId: profileId },
+      include: {
+        reviewer: { select: { id: true, email: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // ─── Jobs ────────────────────────────────────────────────────────────────
 
   async createJob(dto: CreateJobDto) {
     return this.prisma.job.create({
@@ -49,6 +134,8 @@ export class AdminService {
     });
   }
 
+  // ─── Payments ────────────────────────────────────────────────────────────
+
   async getPayments() {
     return this.prisma.payment.findMany({
       orderBy: { createdAt: 'desc' },
@@ -56,5 +143,19 @@ export class AdminService {
         user: { select: { id: true, email: true } },
       },
     });
+  }
+
+  // ─── Helpers ─────────────────────────────────────────────────────────────
+
+  private async findProfileOrThrow(id: string) {
+    const profile = await this.prisma.professionalProfile.findUnique({
+      where: { id },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Professional profile not found');
+    }
+
+    return profile;
   }
 }
