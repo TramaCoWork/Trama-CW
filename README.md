@@ -169,6 +169,43 @@ Los templates disponibles son:
 - **Perfil aprobado**: email de bienvenida a la comunidad
 - **Perfil rechazado**: email con observaciones del revisor
 
+## Testing
+
+El proyecto incluye **55 tests E2E** que corren contra una base de datos real (sin mocks).
+
+### Ejecutar tests
+
+```bash
+docker compose --profile test run --rm test
+```
+
+Esto levanta una base de datos de test separada (`db-test` en puerto 5433, usa tmpfs para velocidad), aplica migraciones, ejecuta seeds, y corre todos los tests.
+
+### Cobertura de tests
+
+| Modulo | Tests | Que cubre |
+|--------|-------|-----------|
+| Auth | 5 | Register, login, JWT guard, roles |
+| Professionals | 15 | CRUD perfil, secciones, educacion, experiencia, submit |
+| Admin | 8 | Approve, reject, validate, list pending, stats |
+| Search | 4 | Busqueda por nombre, profesion, ciudad, modalidad |
+| Onboarding | 3 | Checklist completo |
+| Dashboard | 3 | Dashboard data |
+| Jobs | 3 | CRUD ofertas laborales |
+| Community | 4 | Posts y comentarios |
+| Payments | 3 | Pagos |
+| Contacts | 2 | Contactos entre profesionales |
+| Categories | 1 | Listar categorias |
+| Profession Categories | 2 | Taxonomia jerarquica |
+| Uploads | 3 | Subida de archivos |
+
+### Infraestructura de tests
+
+- `test/test-app.factory.ts` — Crea la app de test, helpers para register/login
+- `test/clean-database.ts` — Limpia todas las tablas entre tests (orden FK)
+- `test/jest-e2e.json` — Configuracion de Jest para E2E
+- DB de test usa `tmpfs` (RAM) y perfil Docker `test` para no afectar `docker compose up`
+
 ## Produccion
 
 Para levantar en modo produccion:
