@@ -1,98 +1,186 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Trama CoWork - Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend de la plataforma Trama CoWork: un sistema de gestion de perfiles profesionales para espacios de coworking. Permite registro de profesionales con formulario de 9 secciones, validacion manual (preparado para IA), carga de documentos, taxonomia jerarquica de profesiones, busqueda avanzada y notificaciones por email.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Tech Stack
 
-## Description
+- **NestJS 11** - Framework backend
+- **Prisma** - ORM + migraciones
+- **PostgreSQL 16** - Base de datos
+- **Docker / Docker Compose** - Contenedores
+- **nodemailer** - Envio de emails
+- **Swagger** - Documentacion de API en `/docs`
+- **JWT** - Autenticacion
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Estructura del proyecto
 
-## Project setup
+```
+src/
+├── admin/                  # Validacion de perfiles, gestion de jobs y pagos
+├── auth/                   # Registro, login, JWT
+├── categories/             # Categorias generales
+├── community/              # Funcionalidades de comunidad
+├── contacts/               # Contactos entre profesionales
+├── dashboard/              # Dashboard del usuario
+├── jobs/                   # Ofertas laborales
+├── mail/                   # Modulo de email (factory pattern)
+│   ├── templates/          # Templates HTML (aprobacion, rechazo)
+│   └── transports/         # Console, SMTP, Gmail
+├── onboarding/             # Checklist de onboarding (9 secciones)
+├── payments/               # Pagos
+├── prisma/                 # PrismaService (singleton)
+├── profession-categories/  # Taxonomia jerarquica de profesiones (3 niveles)
+├── professionals/          # Perfiles profesionales (CRUD por seccion)
+├── search/                 # Busqueda avanzada con 6 filtros
+└── uploads/                # Carga de documentos (StorageService interface)
 
-```bash
-$ npm install
+prisma/
+├── schema.prisma           # Schema de la base de datos
+├── migrations/             # Migraciones
+├── seed.ts                 # Script de seed
+└── profession-taxonomy.ts  # Datos de taxonomia (7 categorias, ~150 profesiones)
+
+sdd/                        # Documentacion de diseño y planes
 ```
 
-## Compile and run the project
+## Requisitos previos
+
+- [Docker](https://www.docker.com/) y Docker Compose
+
+## Instalacion y setup
+
+### 1. Clonar el repositorio
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+git clone <url-del-repo>
+cd trama-cowork/backend
 ```
 
-## Run tests
+### 2. Configurar variables de entorno
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+cp .env.example .env
 ```
 
-## Deployment
+Editar `.env` segun sea necesario. Para desarrollo, los valores por defecto funcionan sin cambios.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 3. Levantar el proyecto
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+docker compose up -d
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Esto levanta:
+- **db** (`trama_db`) - PostgreSQL 16 en puerto `5432`
+- **app** (`trama_app_dev`) - NestJS con hot reload en puerto `3000`
 
-## Resources
+### 4. Ejecutar migraciones
 
-Check out a few resources that may come in handy when working with NestJS:
+```bash
+docker compose exec app npx prisma migrate deploy
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### 5. Ejecutar seeds
 
-## Support
+```bash
+docker compose exec app npx prisma db seed
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### 6. Verificar
 
-## Stay in touch
+- App: http://localhost:3000
+- Swagger docs: http://localhost:3000/docs
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Comandos utiles
 
-## License
+### Docker
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+| Comando | Descripcion |
+|---------|-------------|
+| `docker compose up -d` | Levantar todos los servicios |
+| `docker compose down` | Detener todos los servicios |
+| `docker compose logs app -f` | Ver logs de la app en tiempo real |
+| `docker compose restart app` | Reiniciar la app (necesario si el watcher no detecta cambios) |
+| `docker compose exec app sh` | Abrir shell dentro del contenedor |
+
+### Prisma
+
+Todos los comandos de Prisma se ejecutan dentro del contenedor:
+
+| Comando | Descripcion |
+|---------|-------------|
+| `docker compose exec app npx prisma migrate dev --name <nombre>` | Crear nueva migracion |
+| `docker compose exec app npx prisma migrate deploy` | Aplicar migraciones pendientes |
+| `docker compose exec app npx prisma migrate status` | Ver estado de migraciones |
+| `docker compose exec app npx prisma migrate reset` | Reset completo (drop + migrate + seed) |
+| `docker compose exec app npx prisma db seed` | Ejecutar seeds |
+| `docker compose exec app npx prisma generate` | Regenerar Prisma Client |
+| `docker compose exec app npx prisma studio` | Abrir Prisma Studio (GUI de la DB) |
+
+### NestJS
+
+| Comando | Descripcion |
+|---------|-------------|
+| `docker compose exec app npm run build` | Compilar el proyecto |
+| `docker compose exec app npm run lint` | Ejecutar linter |
+| `docker compose exec app npm run test` | Ejecutar tests |
+
+### Base de datos directa
+
+```bash
+# Conectarse a psql
+docker compose exec db psql -U trama -d trama_cowork
+
+# Ver migraciones aplicadas
+docker compose exec db psql -U trama -d trama_cowork -c "SELECT migration_name, finished_at FROM _prisma_migrations ORDER BY finished_at;"
+```
+
+## Variables de entorno
+
+| Variable | Requerida | Default | Descripcion |
+|----------|-----------|---------|-------------|
+| `POSTGRES_USER` | No | `trama` | Usuario de PostgreSQL |
+| `POSTGRES_PASSWORD` | No | `trama_secret` | Password de PostgreSQL |
+| `POSTGRES_DB` | No | `trama_cowork` | Nombre de la base de datos |
+| `DATABASE_URL` | Si | - | Connection string de PostgreSQL |
+| `JWT_SECRET` | Si | - | Secreto para firmar tokens JWT |
+| `JWT_EXPIRES_IN` | No | `7d` | Duracion de los tokens |
+| `PORT` | No | `3000` | Puerto de la app |
+| `NODE_ENV` | No | `development` | Entorno de ejecucion |
+| `MAIL_PROVIDER` | No | - | Transporte de email: `smtp`, `gmail` o vacio (console) |
+| `MAIL_FROM` | No | `noreply@trama.com` | Direccion del remitente |
+| `SMTP_HOST` | Solo si smtp | - | Host del servidor SMTP |
+| `SMTP_PORT` | Solo si smtp | `587` | Puerto SMTP |
+| `SMTP_SECURE` | Solo si smtp | `false` | Usar TLS |
+| `SMTP_USER` | Solo si smtp | - | Usuario SMTP |
+| `SMTP_PASS` | Solo si smtp | - | Password SMTP |
+| `GMAIL_USER` | Solo si gmail | - | Cuenta de Gmail |
+| `GMAIL_APP_PASSWORD` | Solo si gmail | - | App Password de Gmail |
+
+## Sistema de email
+
+El modulo de email usa un patron **Abstract Factory** con inyeccion de dependencias:
+
+- **Sin `MAIL_PROVIDER`** (desarrollo): usa `ConsoleTransport`, que loguea los emails al stdout
+- **`MAIL_PROVIDER=smtp`**: usa nodemailer con configuracion SMTP generica
+- **`MAIL_PROVIDER=gmail`**: usa nodemailer con servicio Gmail + App Password
+
+Los templates disponibles son:
+- **Perfil aprobado**: email de bienvenida a la comunidad
+- **Perfil rechazado**: email con observaciones del revisor
+
+## Produccion
+
+Para levantar en modo produccion:
+
+```bash
+docker compose --profile prod up -d app-prod db
+```
+
+Esto usa el target `production` del Dockerfile (build optimizado, sin hot reload).
+
+## Notas importantes
+
+- El **file watcher** de NestJS dentro de Docker a veces no detecta cambios desde Windows. Si los cambios no se reflejan, ejecutar `docker compose restart app`.
+- Las dependencias se instalan con `--legacy-peer-deps` debido a conflictos de versiones entre `class-validator` y `@nestjs/mapped-types`.
+- Los uploads se almacenan en un volumen Docker (`uploads_data`). El sistema usa una interfaz `StorageService` preparada para migrar a S3.
