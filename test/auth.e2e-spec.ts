@@ -71,6 +71,13 @@ describe('Auth (e2e)', () => {
 
   describe('POST /auth/professional-register', () => {
     it('should register a professional with profile', async () => {
+      // Get a valid rubroId
+      const rubrosRes = await request(app.getHttpServer())
+        .get('/profession-categories/rubros')
+        .expect(200);
+
+      const rubroId = rubrosRes.body.length > 0 ? rubrosRes.body[0].id : 1;
+
       const res = await request(app.getHttpServer())
         .post('/auth/professional-register')
         .send({
@@ -78,7 +85,7 @@ describe('Auth (e2e)', () => {
           password: 'password123',
           name: 'Ana Garcia',
           city: 'Buenos Aires',
-          categories: [],
+          rubroId,
         })
         .expect(201);
 

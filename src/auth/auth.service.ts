@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -80,6 +81,15 @@ export class AuthService {
       throw new ConflictException('Email already in use');
     }
 
+    // Validate rubroId is a valid level-1 category
+    const rubro = await this.prisma.professionCategory.findFirst({
+      where: { id: dto.rubroId, level: 1, isActive: true },
+    });
+
+    if (!rubro) {
+      throw new BadRequestException('Rubro invalido. Debe ser un rubro de nivel 1');
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
     const user = await this.prisma.user.create({
@@ -93,23 +103,13 @@ export class AuthService {
             city: dto.city,
             whatsapp: dto.whatsapp,
             services: [],
+            rubroId: dto.rubroId,
             profileStatus: ProfileStatus.onboarding,
           },
         },
       },
       include: { profile: true },
     });
-
-    if (dto.categories?.length) {
-      await this.prisma.professionalProfile.update({
-        where: { id: user.profile!.id },
-        data: {
-          categories: {
-            connect: dto.categories.map((id) => ({ id })),
-          },
-        },
-      });
-    }
 
     return this.generateToken(user);
   }

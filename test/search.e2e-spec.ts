@@ -37,7 +37,7 @@ describe('Search (e2e)', () => {
 
   it('GET /search with multiple filters should work', async () => {
     const res = await request(app.getHttpServer())
-      .get('/search?profession=Designer&modality=online')
+      .get('/search?industry=Design&modality=online')
       .expect(200);
 
     expect(Array.isArray(res.body)).toBe(true);

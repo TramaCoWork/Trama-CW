@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsInt, IsArray, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsInt, IsArray, MaxLength, ArrayMaxSize } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { WorkType } from '@prisma/client';
 
@@ -8,11 +8,6 @@ export class UpdateProfessionalInfoDto {
   @IsString()
   @MaxLength(300)
   bio?: string;
-
-  @ApiPropertyOptional({ example: 'Diseñadora UX/UI', description: 'Profesion principal' })
-  @IsOptional()
-  @IsString()
-  mainProfession?: string;
 
   @ApiPropertyOptional({ example: 'Diseñadora freelance en agencia', description: 'Ocupacion actual' })
   @IsOptional()
@@ -45,9 +40,10 @@ export class UpdateProfessionalInfoDto {
   @IsString({ each: true })
   services?: string[];
 
-  @ApiPropertyOptional({ example: [1, 2], type: [Number], description: 'IDs de categorias de profesion' })
+  @ApiPropertyOptional({ example: [14, 17], type: [Number], description: 'IDs de profesiones (nivel 3, max 5). Deben pertenecer al rubro del profesional.' })
   @IsOptional()
   @IsArray()
   @IsInt({ each: true })
+  @ArrayMaxSize(5)
   professionCategoryIds?: number[];
 }

@@ -6,56 +6,56 @@ import { professionTaxonomy } from './profession-taxonomy';
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL ?? 'postgresql://trama:trama_secret@localhost:5432/trama_cowork' });
 const prisma = new PrismaClient({ adapter } as never);
 
-async function seedProfessionCategories() {
+async function seedProfessionCategories(): Promise<Map<string, number>> {
   console.log('Seeding profession categories...');
+  const slugToId = new Map<string, number>();
   let order = 0;
 
   for (const level1 of professionTaxonomy) {
     const parent = await prisma.professionCategory.upsert({
       where: { slug: level1.slug },
-      update: { name: level1.name, order: order++ },
-      create: { slug: level1.slug, name: level1.name, order: order },
+      update: { name: level1.name, order: order++, level: 1 },
+      create: { slug: level1.slug, name: level1.name, order: order, level: 1 },
     });
+    slugToId.set(level1.slug, parent.id);
 
     if (level1.children) {
       let subOrder = 0;
       for (const level2 of level1.children) {
         const sub = await prisma.professionCategory.upsert({
           where: { slug: level2.slug },
-          update: { name: level2.name, parentId: parent.id, order: subOrder++ },
-          create: { slug: level2.slug, name: level2.name, parentId: parent.id, order: subOrder },
+          update: { name: level2.name, parentId: parent.id, order: subOrder++, level: 2 },
+          create: { slug: level2.slug, name: level2.name, parentId: parent.id, order: subOrder, level: 2 },
         });
+        slugToId.set(level2.slug, sub.id);
 
         if (level2.children) {
           let profOrder = 0;
           for (const level3 of level2.children) {
-            await prisma.professionCategory.upsert({
+            const prof = await prisma.professionCategory.upsert({
               where: { slug: level3.slug },
-              update: { name: level3.name, parentId: sub.id, order: profOrder++ },
-              create: { slug: level3.slug, name: level3.name, parentId: sub.id, order: profOrder },
+              update: { name: level3.name, parentId: sub.id, order: profOrder++, level: 3 },
+              create: { slug: level3.slug, name: level3.name, parentId: sub.id, order: profOrder, level: 3 },
             });
+            slugToId.set(level3.slug, prof.id);
           }
         }
       }
     }
   }
   console.log('Profession categories seeded ✓');
+  return slugToId;
 }
 
 async function main() {
   console.log('Seeding...');
 
-  // ── Categories ────────────────────────────────────────────────────────────
-  const categories = await Promise.all([
-    prisma.category.upsert({ where: { slug: 'design' },       update: {}, create: { slug: 'design',       name: 'Design' } }),
-    prisma.category.upsert({ where: { slug: 'ux' },           update: {}, create: { slug: 'ux',           name: 'UX' } }),
-    prisma.category.upsert({ where: { slug: 'consultants' },  update: {}, create: { slug: 'consultants',  name: 'Consultants' } }),
-    prisma.category.upsert({ where: { slug: 'designers' },    update: {}, create: { slug: 'designers',    name: 'Designers' } }),
-    prisma.category.upsert({ where: { slug: 'development' },  update: {}, create: { slug: 'development',  name: 'Development' } }),
-    prisma.category.upsert({ where: { slug: 'marketing' },    update: {}, create: { slug: 'marketing',    name: 'Marketing' } }),
-  ]);
-  const [catDesign, catUx, catConsultants, catDesigners, catDevelopment, catMarketing] = categories;
-  console.log('Categories:', categories.map((c) => c.slug).join(', '));
+  // ── Profession Categories (seed first to get IDs for professionals) ──────
+  const slugToId = await seedProfessionCategories();
+
+  // Helper to get rubro ID by slug
+  const rubroId = (slug: string) => slugToId.get(slug)!;
+  const profId = (slug: string) => slugToId.get(slug)!;
 
   // ── Admin ─────────────────────────────────────────────────────────────────
   const adminHash = await bcrypt.hash('admin123', 10);
@@ -69,6 +69,7 @@ async function main() {
   // ── Professionals ─────────────────────────────────────────────────────────
   const proHash = await bcrypt.hash('pro123456', 10);
 
+  // Ana - Creativos (Diseñadora UX/UI)
   const pro1 = await prisma.user.upsert({
     where: { email: 'ana@trama.com' },
     update: {},
@@ -82,7 +83,8 @@ async function main() {
       name: 'Ana García',
       bio: 'Diseñadora UX con 5 años de experiencia en productos digitales.',
       city: 'Buenos Aires',
-      categories: { connect: [{ id: catDesign.id }, { id: catUx.id }, { id: catDesigners.id }] },
+      rubroId: rubroId('creativos'),
+      professionCategories: { connect: [{ id: profId('disenador-ux-ui') }, { id: profId('disenador-producto-digital') }] },
       services: ['UX Design', 'UI Design', 'Wireframing'],
       priceMin: 50,
       priceMax: 150,
@@ -95,6 +97,7 @@ async function main() {
   });
   console.log('Professional:', pro1.email);
 
+  // Carlos - Servicios Profesionales (Consultor)
   const pro2 = await prisma.user.upsert({
     where: { email: 'carlos@trama.com' },
     update: {},
@@ -108,7 +111,8 @@ async function main() {
       name: 'Carlos Méndez',
       bio: 'Consultor de negocios y estrategia digital con más de 10 años de experiencia.',
       city: 'Córdoba',
-      categories: { connect: [{ id: catConsultants.id }] },
+      rubroId: rubroId('servicios-estrategicos'),
+      professionCategories: { connect: [{ id: profId('consultor-estrategia') }, { id: profId('consultor-transformacion-digital') }] },
       services: ['Business Strategy', 'Digital Transformation', 'Process Optimization'],
       priceMin: 80,
       priceMax: 200,
@@ -120,6 +124,7 @@ async function main() {
   });
   console.log('Professional:', pro2.email);
 
+  // Lucia - Tech (Fullstack Developer)
   const pro3 = await prisma.user.upsert({
     where: { email: 'lucia@trama.com' },
     update: {},
@@ -133,7 +138,8 @@ async function main() {
       name: 'Lucía Torres',
       bio: 'Desarrolladora fullstack especializada en React y Node.js.',
       city: 'Buenos Aires',
-      categories: { connect: [{ id: catDevelopment.id }] },
+      rubroId: rubroId('tech'),
+      professionCategories: { connect: [{ id: profId('fullstack-developer') }, { id: profId('frontend-developer') }] },
       services: ['Frontend Development', 'Backend Development', 'API Design'],
       priceMin: 60,
       priceMax: 180,
@@ -145,6 +151,7 @@ async function main() {
   });
   console.log('Professional:', pro3.email);
 
+  // Martin - Marketing y Ventas
   const pro4 = await prisma.user.upsert({
     where: { email: 'martin@trama.com' },
     update: {},
@@ -158,7 +165,8 @@ async function main() {
       name: 'Martín Rojas',
       bio: 'Especialista en marketing digital y growth hacking para startups.',
       city: 'Rosario',
-      categories: { connect: [{ id: catMarketing.id }, { id: catConsultants.id }] },
+      rubroId: rubroId('marketing-ventas'),
+      professionCategories: { connect: [{ id: profId('growth-marketer') }, { id: profId('seo-specialist-mkt') }] },
       services: ['SEO', 'Content Strategy', 'Paid Ads', 'Growth Hacking'],
       priceMin: 40,
       priceMax: 120,
@@ -236,9 +244,6 @@ async function main() {
     },
   });
   console.log('Community posts created');
-
-  // ── Profession Categories ─────────────────────────────────────────────────
-  await seedProfessionCategories();
 
   console.log('Seed complete ✓');
 }

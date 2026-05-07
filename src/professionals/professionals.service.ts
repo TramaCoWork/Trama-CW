@@ -31,7 +31,7 @@ export class ProfessionalsService {
 
     const profiles = await this.prisma.professionalProfile.findMany({
       where: { id: { in: rows.map((r) => r.id) } },
-      include: { categories: true, professionCategories: true },
+      include: { professionCategories: true, rubro: true },
     });
 
     const order = new Map(rows.map((r, i) => [r.id, i]));
@@ -43,7 +43,7 @@ export class ProfessionalsService {
     const [data, total] = await Promise.all([
       this.prisma.professionalProfile.findMany({
         where,
-        include: { categories: true, professionCategories: true },
+        include: { professionCategories: true, rubro: true },
         skip: (page - 1) * sizePage,
         take: sizePage,
       }),
@@ -56,8 +56,8 @@ export class ProfessionalsService {
     const profile = await this.prisma.professionalProfile.findFirst({
       where: { userId },
       include: {
-        categories: true,
         professionCategories: true,
+        rubro: true,
         educations: { include: { documents: true } },
         certifications: { include: { documents: true } },
         documents: true,
@@ -75,7 +75,7 @@ export class ProfessionalsService {
   async findOne(id: string) {
     const profile = await this.prisma.professionalProfile.findFirst({
       where: { id, isActive: true },
-      include: { categories: true, professionCategories: true },
+      include: { professionCategories: true, rubro: true },
     });
 
     if (!profile) {
@@ -97,8 +97,9 @@ export class ProfessionalsService {
       priceMin: dto.priceMin != null ? new Prisma.Decimal(dto.priceMin) : undefined,
       priceMax: dto.priceMax != null ? new Prisma.Decimal(dto.priceMax) : undefined,
       city: dto.city,
-      categories: {
-        connect: (dto.categories ?? []).map((id) => ({ id })),
+      rubro: dto.rubroId ? { connect: { id: dto.rubroId } } : undefined,
+      professionCategories: {
+        connect: (dto.professionCategoryIds ?? []).map((id) => ({ id })),
       },
       whatsapp: dto.whatsapp,
       emailContact: dto.emailContact,
@@ -106,7 +107,7 @@ export class ProfessionalsService {
 
     const profile = await this.prisma.professionalProfile.create({
       data,
-      include: { categories: true },
+      include: { professionCategories: true },
     });
 
     const completionPct = this.calculateCompletion(profile);
@@ -119,21 +120,22 @@ export class ProfessionalsService {
   async update(userId: string, id: string, dto: UpdateProfessionalDto) {
     const profile = await this.getOwnProfile(userId, id);
 
-    const { categories: categoryIds, ...rest } = dto;
+    const { professionCategoryIds, rubroId, ...rest } = dto;
 
     const updateData: Prisma.ProfessionalProfileUpdateInput = {
       ...rest,
       priceMin: dto.priceMin != null ? new Prisma.Decimal(dto.priceMin) : undefined,
       priceMax: dto.priceMax != null ? new Prisma.Decimal(dto.priceMax) : undefined,
-      ...(categoryIds ? {
-        categories: { set: categoryIds.map((id) => ({ id })) },
+      ...(rubroId ? { rubro: { connect: { id: rubroId } } } : {}),
+      ...(professionCategoryIds ? {
+        professionCategories: { set: professionCategoryIds.map((id) => ({ id })) },
       } : {}),
     };
 
     const updated = await this.prisma.professionalProfile.update({
       where: { id },
       data: updateData,
-      include: { categories: true },
+      include: { professionCategories: true },
     });
 
     const completionPct = this.calculateCompletion(updated);
@@ -156,7 +158,7 @@ export class ProfessionalsService {
         pricePerHour: dto.pricePerHour ? new Prisma.Decimal(dto.pricePerHour) : undefined,
         currentStep: Math.max(profile.currentStep, 2),
       },
-      include: { categories: true },
+      include: { professionCategories: true },
     });
 
     return this.recalculateAndReturn(updated);
@@ -166,6 +168,24 @@ export class ProfessionalsService {
     const profile = await this.getOwnProfile(userId, id);
 
     const { professionCategoryIds, services, ...rest } = dto;
+
+    // Validate professionCategoryIds belong to the professional's rubro
+    if (professionCategoryIds && professionCategoryIds.length > 0 && profile.rubroId) {
+      const validCategories = await this.prisma.professionCategory.findMany({
+        where: {
+          id: { in: professionCategoryIds },
+          level: 3,
+          isActive: true,
+          parent: { parentId: profile.rubroId },
+        },
+      });
+
+      if (validCategories.length !== professionCategoryIds.length) {
+        throw new BadRequestException(
+          'Algunas profesiones seleccionadas no pertenecen a tu rubro. Selecciona profesiones validas.',
+        );
+      }
+    }
 
     const updated = await this.prisma.professionalProfile.update({
       where: { id: profile.id },
@@ -177,7 +197,7 @@ export class ProfessionalsService {
         } : {}),
         currentStep: Math.max(profile.currentStep, 3),
       },
-      include: { categories: true },
+      include: { professionCategories: true },
     });
 
     return this.recalculateAndReturn(updated);
@@ -286,7 +306,7 @@ export class ProfessionalsService {
         ...dto,
         currentStep: Math.max(profile.currentStep, 7),
       },
-      include: { categories: true },
+      include: { professionCategories: true },
     });
 
     return this.recalculateAndReturn(updated);
@@ -301,7 +321,7 @@ export class ProfessionalsService {
         tramaMotivation: dto.tramaMotivation,
         currentStep: Math.max(profile.currentStep, 8),
       },
-      include: { categories: true },
+      include: { professionCategories: true },
     });
 
     return this.recalculateAndReturn(updated);
@@ -365,7 +385,7 @@ export class ProfessionalsService {
     return profile;
   }
 
-  private async recalculateAndReturn(profile: ProfessionalProfile & { categories: any[] }) {
+  private async recalculateAndReturn(profile: ProfessionalProfile & { professionCategories: any[] }) {
     const completionPct = this.calculateCompletion(profile);
     return this.prisma.professionalProfile.update({
       where: { id: profile.id },
@@ -373,7 +393,7 @@ export class ProfessionalsService {
     });
   }
 
-  private calculateCompletion(profile: ProfessionalProfile & { categories: any[] }): number {
+  private calculateCompletion(profile: ProfessionalProfile & { professionCategories: any[] }): number {
     const checks: boolean[] = [
       Boolean(profile.name),
       Boolean(profile.bio),
@@ -381,10 +401,10 @@ export class ProfessionalsService {
       Array.isArray(profile.services) && profile.services.length > 0,
       profile.priceMin !== null || profile.pricePerHour !== null,
       Boolean(profile.city),
-      Array.isArray(profile.categories) && profile.categories.length > 0,
+      Boolean(profile.rubroId),
+      Array.isArray(profile.professionCategories) && profile.professionCategories.length > 0,
       Boolean(profile.whatsapp) || Boolean(profile.emailContact),
       Boolean(profile.dni),
-      Boolean(profile.mainProfession),
       Boolean(profile.tramaMotivation),
     ];
 

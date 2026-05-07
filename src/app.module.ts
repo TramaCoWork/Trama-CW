@@ -14,7 +14,6 @@ import { ContactsModule } from './contacts/contacts.module';
 import { CommunityModule } from './community/community.module';
 import { JobsModule } from './jobs/jobs.module';
 import { AdminModule } from './admin/admin.module';
-import { CategoriesModule } from './categories/categories.module';
 import { ProfessionCategoriesModule } from './profession-categories/profession-categories.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { MailModule } from './mail/mail.module';
@@ -52,7 +51,6 @@ import { MailModule } from './mail/mail.module';
     CommunityModule,
     JobsModule,
     AdminModule,
-    CategoriesModule,
     ProfessionCategoriesModule,
     UploadsModule,
     MailModule,

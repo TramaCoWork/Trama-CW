@@ -5,6 +5,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  ArrayMaxSize,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -42,10 +43,16 @@ export class CreateProfessionalDto {
   @IsString()
   city: string;
 
-  @ApiProperty({ example: [1, 2], type: [Number], description: 'IDs de categorias' })
+  @ApiProperty({ example: 1, description: 'ID del rubro (nivel 1 de la taxonomia)' })
+  @IsInt()
+  rubroId: number;
+
+  @ApiPropertyOptional({ example: [14, 17], type: [Number], description: 'IDs de profesiones (nivel 3, max 5)' })
+  @IsOptional()
   @IsArray()
   @IsInt({ each: true })
-  categories: number[];
+  @ArrayMaxSize(5)
+  professionCategoryIds?: number[];
 
   @ApiPropertyOptional({ example: '+5491112345678', description: 'Numero de WhatsApp' })
   @IsOptional()

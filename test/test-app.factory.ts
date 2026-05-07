@@ -43,6 +43,13 @@ export async function registerProfessional(
   password: string,
   name: string = 'Test Professional',
 ): Promise<{ access_token: string; userId: string }> {
+  // Get first rubro to use as default
+  const rubrosRes = await request(app.getHttpServer())
+    .get('/profession-categories/rubros')
+    .expect(200);
+
+  const rubroId = rubrosRes.body.length > 0 ? rubrosRes.body[0].id : 1;
+
   const res = await request(app.getHttpServer())
     .post('/auth/professional-register')
     .send({
@@ -50,7 +57,7 @@ export async function registerProfessional(
       password,
       name,
       city: 'Buenos Aires',
-      categories: [],
+      rubroId,
     })
     .expect(201);
 

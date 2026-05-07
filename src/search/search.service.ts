@@ -3,11 +3,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ProfessionalProfile, Prisma } from '@prisma/client';
 
 export interface SearchQuery {
-  category?: string;
+  rubro?: string;
   city?: string;
   price_min?: string;
   price_max?: string;
-  profession?: string;
   modality?: string;
   industry?: string;
   years_min?: string;
@@ -28,8 +27,8 @@ export class SearchService {
       where.city = { contains: query.city, mode: 'insensitive' };
     }
 
-    if (query.category) {
-      where.categories = { some: { slug: query.category } };
+    if (query.rubro) {
+      where.rubro = { slug: query.rubro };
     }
 
     if (query.price_min !== undefined) {
@@ -38,10 +37,6 @@ export class SearchService {
 
     if (query.price_max !== undefined) {
       where.priceMax = { lte: new Prisma.Decimal(query.price_max) };
-    }
-
-    if (query.profession) {
-      where.mainProfession = { contains: query.profession, mode: 'insensitive' };
     }
 
     if (query.modality) {
@@ -74,7 +69,7 @@ export class SearchService {
 
     return this.prisma.professionalProfile.findMany({
       where,
-      include: { categories: true, professionCategories: true },
+      include: { professionCategories: true, rubro: true },
     });
   }
 }

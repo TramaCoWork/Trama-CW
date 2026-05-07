@@ -47,7 +47,7 @@ describe('Professionals (e2e)', () => {
     it('should reject without auth', async () => {
       await request(app.getHttpServer())
         .post('/professionals')
-        .send({ name: 'Test', services: [], city: 'BA', categories: [] })
+        .send({ name: 'Test', services: [], city: 'BA', rubroId: 1 })
         .expect(401);
     });
   });
@@ -84,10 +84,10 @@ describe('Professionals (e2e)', () => {
       const res = await request(app.getHttpServer())
         .patch(`/professionals/${profile!.id}/professional`)
         .set('Authorization', `Bearer ${access_token}`)
-        .send({ mainProfession: 'UX Designer', bio: 'Experienced designer' })
+        .send({ bio: 'Experienced designer', currentOccupation: 'UX Designer' })
         .expect(200);
 
-      expect(res.body.mainProfession).toBe('UX Designer');
+      expect(res.body.bio).toBe('Experienced designer');
     });
   });
 

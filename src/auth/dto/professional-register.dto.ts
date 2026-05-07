@@ -1,4 +1,4 @@
-import { IsArray, IsInt, IsOptional, IsString } from 'class-validator';
+import { IsInt, IsOptional, IsString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { RegisterDto } from './register.dto';
 
@@ -11,10 +11,9 @@ export class ProfessionalRegisterDto extends RegisterDto {
   @IsString()
   city: string;
 
-  @ApiProperty({ example: [1, 2], type: [Number], description: 'IDs de categorias' })
-  @IsArray()
-  @IsInt({ each: true })
-  categories: number[];
+  @ApiProperty({ example: 1, description: 'ID del rubro (nivel 1 de la taxonomia de profesiones)' })
+  @IsInt()
+  rubroId: number;
 
   @ApiPropertyOptional({ example: '+5491112345678', description: 'Numero de WhatsApp' })
   @IsOptional()

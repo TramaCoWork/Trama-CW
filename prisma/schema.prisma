@@ -120,7 +120,6 @@ model ProfessionalProfile {
   priceMin      Decimal?      @map("price_min") @db.Decimal(10, 2)
   priceMax      Decimal?      @map("price_max") @db.Decimal(10, 2)
   city          String
-  categories    Category[]
   whatsapp      String?
   emailContact  String?       @map("email_contact")
   isActive      Boolean       @default(false) @map("is_active")
@@ -128,6 +127,9 @@ model ProfessionalProfile {
   completionPct Int           @default(0) @map("completion_pct")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  // ─── Rubro principal (nivel 1, obligatorio al registrarse) ──────────────
+  rubroId       Int?          @map("rubro_id")
 
   // ─── Datos personales (seccion 1) ──────────────────────────────────────────
   dni              String?
@@ -137,7 +139,6 @@ model ProfessionalProfile {
   workModality     WorkModality? @map("work_modality")
 
   // ─── Perfil profesional (seccion 2) ────────────────────────────────────────
-  mainProfession    String?       @map("main_profession")
   currentOccupation String?      @map("current_occupation")
   workType          WorkType?    @map("work_type")
   workTypeOther     String?      @map("work_type_other")
@@ -163,6 +164,7 @@ model ProfessionalProfile {
 
   // ─── Relaciones ────────────────────────────────────────────────────────────
   user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rubro               ProfessionCategory?   @relation("ProfessionalRubro", fields: [rubroId], references: [id])
   contacts            ContactLog[]
   educations          Education[]
   certifications      Certification[]
@@ -173,7 +175,7 @@ model ProfessionalProfile {
   @@index([city], name: "professionals_city")
   @@index([isActive], name: "professionals_active")
   @@index([city, workModality, isActive], name: "professionals_search")
-  @@index([mainProfession, isActive], name: "professionals_profession")
+  @@index([rubroId, isActive], name: "professionals_rubro")
   @@map("professional_profiles")
 }
 
@@ -248,19 +250,6 @@ model CommunityComment {
   @@map("community_comments")
 }
 
-model Category {
-  id        Int       @id @default(autoincrement())
-  slug      String    @unique
-  name      String
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-
-  professionals ProfessionalProfile[]
-
-  @@map("categories")
-}
-
 model ContactLog {
   id             String      @id @default(uuid())
   professionalId String      @map("professional_id")
@@ -282,10 +271,12 @@ model Education {
   title           String
   institution     String
   year            Int?
+  professionId    Int?           @map("profession_id")
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
 
   professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  profession   ProfessionCategory? @relation("EducationProfession", fields: [professionId], references: [id])
   documents    Document[]
 
   @@map("educations")
@@ -299,10 +290,12 @@ model Certification {
   name            String
   institution     String
   year            Int?
+  professionId    Int?     @map("profession_id")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  profession   ProfessionCategory? @relation("CertificationProfession", fields: [professionId], references: [id])
   documents    Document[]
 
   @@map("certifications")
@@ -324,6 +317,9 @@ model Document {
   educationId     String?      @map("education_id")
   certificationId String?      @map("certification_id")
 
+  // Relacion opcional con profesion (para validar que el documento corresponde a una profesion)
+  professionId    Int?         @map("profession_id")
+
   // Verificacion del documento
   verificationStatus  DocumentVerificationStatus @default(pending) @map("verification_status")
   verifiedBy          String?          @map("verified_by")
@@ -334,6 +330,7 @@ model Document {
   professional  ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   education     Education?          @relation(fields: [educationId], references: [id], onDelete: SetNull)
   certification Certification?      @relation(fields: [certificationId], references: [id], onDelete: SetNull)
+  profession    ProfessionCategory? @relation("DocumentProfession", fields: [professionId], references: [id])
   verifier      User?               @relation("DocumentVerifier", fields: [verifiedBy], references: [id])
 
   @@map("documents")
@@ -359,13 +356,14 @@ model ProfileValidation {
   @@map("profile_validations")
 }
 
-// ─── Taxonomia de profesiones (jerarquica) ────────────────────────────────────
+// ─── Taxonomia de profesiones (jerarquica: rubro → sub-rubro → profesion) ────
 
 model ProfessionCategory {
   id        Int      @id @default(autoincrement())
   slug      String   @unique
   name      String
   parentId  Int?     @map("parent_id")
+  level     Int      @default(1)
   order     Int      @default(0)
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
@@ -374,7 +372,16 @@ model ProfessionCategory {
   parent   ProfessionCategory?  @relation("ProfessionHierarchy", fields: [parentId], references: [id])
   children ProfessionCategory[] @relation("ProfessionHierarchy")
 
+  // Profesionales que tienen este nodo como rubro (solo nivel 1)
+  professionalsAsRubro ProfessionalProfile[] @relation("ProfessionalRubro")
+
+  // Profesionales que seleccionaron esta profesion (solo nivel 3)
   professionals ProfessionalProfile[]
+
+  // Documentos, educaciones, certificaciones vinculadas a esta profesion
+  documents      Document[]      @relation("DocumentProfession")
+  educations     Education[]     @relation("EducationProfession")
+  certifications Certification[] @relation("CertificationProfession")
 
   @@map("profession_categories")
 }

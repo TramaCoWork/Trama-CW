@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ProfessionalProfile, Category } from '@prisma/client';
+import { ProfessionalProfile, ProfessionCategory } from '@prisma/client';
 
 type ProfileWithRelations = ProfessionalProfile & {
-  categories: Category[];
+  professionCategories: ProfessionCategory[];
   educations: any[];
   certifications: any[];
   documents: any[];
@@ -17,7 +17,7 @@ const CHECKLIST: Array<{
 }> = [
   { key: 'personal',       section: 1, label: 'Datos personales (nombre, DNI, ciudad)',     check: (p) => Boolean(p.name) && Boolean(p.dni) && Boolean(p.city) },
   { key: 'dni_document',   section: 1, label: 'Subir DNI / Pasaporte',                     check: (p) => p.documents.some((d) => d.type === 'dni') },
-  { key: 'professional',   section: 2, label: 'Perfil profesional (profesion, bio)',         check: (p) => Boolean(p.mainProfession) && Boolean(p.bio) },
+  { key: 'professional',   section: 2, label: 'Perfil profesional (rubro, profesiones, bio)', check: (p) => Boolean(p.rubroId) && Boolean(p.bio) },
   { key: 'education',      section: 3, label: 'Formacion academica',                        check: (p) => p.educations.length > 0 },
   { key: 'certifications', section: 4, label: 'Cursos y certificaciones',                   check: () => true }, // Opcional
   { key: 'cv',             section: 5, label: 'Subir CV (PDF)',                              check: (p) => p.documents.some((d) => d.type === 'cv') },
@@ -35,7 +35,7 @@ export class OnboardingService {
     const profile = await this.prisma.professionalProfile.findFirst({
       where: { userId },
       include: {
-        categories: true,
+        professionCategories: true,
         educations: true,
         certifications: true,
         documents: true,
