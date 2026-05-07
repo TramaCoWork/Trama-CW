@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { CreateJobDto } from './dto/create-job.dto';
 import { ValidateProfileDto } from './dto/validate-profile.dto';
+import { VerifyDocumentDto } from './dto/verify-document.dto';
 
 @Injectable()
 export class AdminService {
@@ -141,6 +142,29 @@ export class AdminService {
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { id: true, email: true } },
+      },
+    });
+  }
+
+  // ─── Verificacion de documentos ───────────────────────────────────────────
+
+  async verifyDocument(adminUserId: string, documentId: string, dto: VerifyDocumentDto) {
+    const document = await this.prisma.document.findUnique({
+      where: { id: documentId },
+    });
+
+    if (!document) {
+      throw new NotFoundException('Documento no encontrado');
+    }
+
+    return this.prisma.document.update({
+      where: { id: documentId },
+      data: {
+        verificationStatus: dto.status,
+        verifiedBy: adminUserId,
+        verifiedAt: new Date(),
+        verificationNotes: dto.verificationNotes ?? null,
+        verificationType: 'manual',
       },
     });
   }

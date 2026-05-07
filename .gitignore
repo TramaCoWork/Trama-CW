@@ -30,5 +30,6 @@ uploads/
 /generated/prisma
 .agents/
 .claude/
+.opencode/
 
 sdd/

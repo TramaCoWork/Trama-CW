@@ -6,11 +6,13 @@ import {
   Body,
   UseGuards,
   ValidationPipe,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { CreateJobDto } from './dto/create-job.dto';
 import { ValidateProfileDto } from './dto/validate-profile.dto';
+import { VerifyDocumentDto } from './dto/verify-document.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -74,6 +76,18 @@ export class AdminController {
   @ApiResponse({ status: 404, description: 'Profesional no encontrado' })
   async getValidationHistory(@Param('id') id: string) {
     return this.adminService.getValidationHistory(id);
+  }
+
+  @Post('documents/:id/verify')
+  @ApiOperation({ summary: 'Verificar un documento (aprobar o rechazar)' })
+  @ApiResponse({ status: 201, description: 'Documento verificado exitosamente' })
+  @ApiResponse({ status: 404, description: 'Documento no encontrado' })
+  async verifyDocument(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: VerifyDocumentDto,
+  ) {
+    return this.adminService.verifyDocument(user.userId, id, dto);
   }
 
   @Post('jobs')

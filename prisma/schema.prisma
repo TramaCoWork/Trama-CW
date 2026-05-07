@@ -77,6 +77,12 @@ enum ValidationType {
   ai
 }
 
+enum DocumentVerificationStatus {
+  pending
+  approved
+  rejected
+}
+
 enum UsageFrequency {
   daily
   three_four_weekly
@@ -99,6 +105,7 @@ model User {
   comments   CommunityComment[]
   jobApplies JobApplication[]
   reviews    ProfileValidation[]
+  verifiedDocuments Document[] @relation("DocumentVerifier")
 
   @@map("users")
 }
@@ -317,9 +324,17 @@ model Document {
   educationId     String?      @map("education_id")
   certificationId String?      @map("certification_id")
 
+  // Verificacion del documento
+  verificationStatus  DocumentVerificationStatus @default(pending) @map("verification_status")
+  verifiedBy          String?          @map("verified_by")
+  verifiedAt          DateTime?        @map("verified_at")
+  verificationNotes   String?          @map("verification_notes") @db.Text
+  verificationType    ValidationType?  @map("verification_type")
+
   professional  ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   education     Education?          @relation(fields: [educationId], references: [id], onDelete: SetNull)
   certification Certification?      @relation(fields: [certificationId], references: [id], onDelete: SetNull)
+  verifier      User?               @relation("DocumentVerifier", fields: [verifiedBy], references: [id])
 
   @@map("documents")
 }

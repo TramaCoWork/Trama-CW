@@ -4,6 +4,8 @@ const request = require('supertest');
 import { createTestApp, registerUser, registerProfessional } from './test-app.factory';
 import { cleanDatabase } from './clean-database';
 import { PrismaService } from '../src/prisma/prisma.service';
+import * as path from 'path';
+import * as fs from 'fs';
 
 describe('Admin (e2e)', () => {
   let app: INestApplication;
@@ -146,6 +148,76 @@ describe('Admin (e2e)', () => {
         .expect(200);
 
       expect(Array.isArray(res.body)).toBe(true);
+    });
+  });
+
+  describe('POST /admin/documents/:id/verify', () => {
+    async function uploadDocumentForProfile(proToken: string): Promise<string> {
+      const tmpFile = path.join('/tmp', 'test-doc.pdf');
+      fs.writeFileSync(tmpFile, '%PDF-1.4 test content');
+
+      const res = await request(app.getHttpServer())
+        .post('/uploads/document')
+        .set('Authorization', `Bearer ${proToken}`)
+        .field('type', 'cv')
+        .attach('file', tmpFile)
+        .expect(201);
+
+      fs.unlinkSync(tmpFile);
+      return res.body.id;
+    }
+
+    it('should approve a document', async () => {
+      const token = await createAdminToken();
+      const { proToken } = await createPendingProfile();
+      const docId = await uploadDocumentForProfile(proToken);
+
+      const res = await request(app.getHttpServer())
+        .post(`/admin/documents/${docId}/verify`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ status: 'approved', verificationNotes: 'CV verificado correctamente' })
+        .expect(201);
+
+      expect(res.body.verificationStatus).toBe('approved');
+      expect(res.body.verificationType).toBe('manual');
+      expect(res.body.verificationNotes).toBe('CV verificado correctamente');
+      expect(res.body.verifiedBy).toBeDefined();
+      expect(res.body.verifiedAt).toBeDefined();
+    });
+
+    it('should reject a document with notes', async () => {
+      const token = await createAdminToken();
+      const { proToken } = await createPendingProfile();
+      const docId = await uploadDocumentForProfile(proToken);
+
+      const res = await request(app.getHttpServer())
+        .post(`/admin/documents/${docId}/verify`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ status: 'rejected', verificationNotes: 'Documento ilegible' })
+        .expect(201);
+
+      expect(res.body.verificationStatus).toBe('rejected');
+      expect(res.body.verificationNotes).toBe('Documento ilegible');
+    });
+
+    it('should return 404 for non-existent document', async () => {
+      const token = await createAdminToken();
+
+      await request(app.getHttpServer())
+        .post('/admin/documents/00000000-0000-0000-0000-000000000000/verify')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ status: 'approved' })
+        .expect(404);
+    });
+
+    it('should reject non-admin', async () => {
+      const { access_token: proToken } = await registerProfessional(app, 'pro2@test.com', 'password123');
+
+      await request(app.getHttpServer())
+        .post('/admin/documents/00000000-0000-0000-0000-000000000000/verify')
+        .set('Authorization', `Bearer ${proToken}`)
+        .send({ status: 'approved' })
+        .expect(403);
     });
   });
 

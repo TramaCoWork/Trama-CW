@@ -106,7 +106,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-    command: sh -c "npx prisma migrate deploy && npx prisma db seed && npx jest --config test/jest-e2e.json --forceExit --detectOpenHandles"
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && npx prisma db seed && npx jest --config test/jest-e2e.json --forceExit --detectOpenHandles"
 
 volumes:
   postgres_data:
