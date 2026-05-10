@@ -19,6 +19,9 @@ export class SearchController {
   @ApiQuery({ name: 'years_min', required: false, type: Number, description: 'Anos de experiencia minimos' })
   @ApiQuery({ name: 'years_max', required: false, type: Number, description: 'Anos de experiencia maximos' })
   @ApiQuery({ name: 'profession_category', required: false, description: 'Slug de profesion (nivel 3 de taxonomia)' })
+  @ApiQuery({ name: 'sub_rubro', required: false, description: 'Slug del sub-rubro (nivel 2 de taxonomia)' })
+  @ApiQuery({ name: 'countryId', required: false, type: Number, description: 'ID del pais' })
+  @ApiQuery({ name: 'provinceId', required: false, type: Number, description: 'ID de la provincia' })
   @ApiResponse({ status: 200, description: 'Lista de profesionales que coinciden con los filtros' })
   search(@Query() query: SearchQuery) {
     return this.searchService.search(query);

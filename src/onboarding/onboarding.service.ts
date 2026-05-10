@@ -23,7 +23,7 @@ const CHECKLIST: Array<{
   { key: 'cv',             section: 5, label: 'Subir CV (PDF)',                              check: (p) => p.documents.some((d) => d.type === 'cv') },
   { key: 'interests',      section: 6, label: 'Intereses dentro de Trama',                  check: (p) => p.interestsInTrama.length > 0 },
   { key: 'usage',          section: 7, label: 'Modalidad de uso',                            check: (p) => p.usageFrequency !== null },
-  { key: 'motivation',     section: 8, label: 'Pregunta filtro (por que Trama)',             check: (p) => Boolean(p.tramaMotivation) },
+  { key: 'motivation',     section: 8, label: 'Pregunta filtro (por que Trama)',             check: () => true },
   { key: 'consent',        section: 9, label: 'Consentimiento y envio',                      check: (p) => p.termsAccepted && p.dataConsentAccepted },
 ];
 

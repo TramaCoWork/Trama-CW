@@ -19,4 +19,9 @@ export class CreateEducationDto {
   @IsOptional()
   @IsInt()
   year?: number;
+
+  @ApiPropertyOptional({ example: 5, description: 'ID de la profesion asociada' })
+  @IsOptional()
+  @IsInt()
+  professionId?: number;
 }

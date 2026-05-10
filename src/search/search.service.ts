@@ -4,6 +4,7 @@ import { ProfessionalProfile, Prisma } from '@prisma/client';
 
 export interface SearchQuery {
   rubro?: string;
+  sub_rubro?: string;
   city?: string;
   price_min?: string;
   price_max?: string;
@@ -12,6 +13,8 @@ export interface SearchQuery {
   years_min?: string;
   years_max?: string;
   profession_category?: string;
+  countryId?: string;
+  provinceId?: string;
 }
 
 @Injectable()
@@ -21,6 +24,7 @@ export class SearchService {
   async search(query: SearchQuery): Promise<ProfessionalProfile[]> {
     const where: Prisma.ProfessionalProfileWhereInput = {
       isActive: true,
+      user: { emailVerified: true },
     };
 
     if (query.city) {
@@ -67,9 +71,27 @@ export class SearchService {
       };
     }
 
+    if (query.sub_rubro) {
+      where.professionCategories = {
+        ...where.professionCategories,
+        some: {
+          ...(where.professionCategories as any)?.some,
+          parent: { slug: query.sub_rubro, level: 2 },
+        },
+      };
+    }
+
+    if (query.countryId) {
+      where.countryId = parseInt(query.countryId);
+    }
+
+    if (query.provinceId) {
+      where.provinceId = parseInt(query.provinceId);
+    }
+
     return this.prisma.professionalProfile.findMany({
       where,
-      include: { professionCategories: true, rubro: true },
+      include: { professionCategories: true, rubro: true, country: true, province: true },
     });
   }
 }

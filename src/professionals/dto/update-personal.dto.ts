@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsNumber, IsDateString } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsNumber, IsDateString, IsInt } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { WorkModality } from '@prisma/client';
 
@@ -28,10 +28,20 @@ export class UpdatePersonalDto {
   @IsString()
   whatsapp?: string;
 
-  @ApiPropertyOptional({ example: 'Buenos Aires', description: 'Lugar de residencia' })
+  @ApiPropertyOptional({ example: 'Buenos Aires', description: 'Ciudad de residencia (texto libre)' })
   @IsOptional()
   @IsString()
   city?: string;
+
+  @ApiPropertyOptional({ example: 1, description: 'ID del país' })
+  @IsOptional()
+  @IsInt()
+  countryId?: number;
+
+  @ApiPropertyOptional({ example: 1, description: 'ID de la provincia' })
+  @IsOptional()
+  @IsInt()
+  provinceId?: number;
 
   @ApiPropertyOptional({ example: '50.00', description: 'Precio por hora' })
   @IsOptional()

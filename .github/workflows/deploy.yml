@@ -21,7 +21,7 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Generate Prisma Client
         run: npx prisma generate
@@ -34,20 +34,50 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy via rsync
         run: |
           rsync -avz --delete \
-            -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT || 22 }}" \
+            --exclude='node_modules' \
+            --exclude='.env' \
+            -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }}" \
             dist/ \
-            node_modules/ \
             package.json \
+            package-lock.json \
             prisma/ \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/
 
-      - name: Run migrations and restart PM2
+      - name: Generate .env on server
         run: |
-          ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT || 22 }} \
+          ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "cd ${{ secrets.DEPLOY_PATH }} && npx prisma migrate deploy && (pm2 restart trama-backend 2>/dev/null || pm2 start dist/main.js --name trama-backend)"
+            "cat > ${{ secrets.DEPLOY_PATH }}/.env << 'EOF'
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          JWT_EXPIRES_IN=7d
+          PORT=3000
+          NODE_ENV=production
+          UPLOAD_PATH=./uploads
+          FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+          MERCADOPAGO_ACCESS_TOKEN=${{ secrets.MERCADOPAGO_ACCESS_TOKEN }}
+          SUBSCRIPTION_NOTIFICATION_URL=${{ secrets.SUBSCRIPTION_NOTIFICATION_URL }}
+          MAIL_PROVIDER=smtp
+          MAIL_FROM=Trama CoWork <no-responder@tramacowork.com>
+          SMTP_HOST=${{ secrets.SMTP_HOST }}
+          SMTP_PORT=465
+          SMTP_SECURE=true
+          SMTP_USER=${{ secrets.SMTP_USER }}
+          SMTP_PASS=${{ secrets.SMTP_PASS }}
+          TRIAL_DAYS=${{ vars.TRIAL_DAYS || '0' }}
+          EOF"
+
+      - name: Install dependencies, run migrations and restart PM2
+        run: |
+          ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ${{ secrets.DEPLOY_PATH }} && \
+             npm ci --legacy-peer-deps --production && \
+             npx prisma generate && \
+             npx prisma migrate deploy && \
+             (pm2 restart trama-backend 2>/dev/null || pm2 start dist/main.js --name trama-backend)"

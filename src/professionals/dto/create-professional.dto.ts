@@ -39,13 +39,25 @@ export class CreateProfessionalDto {
   @IsDecimal()
   priceMax?: string;
 
-  @ApiProperty({ example: 'Buenos Aires', description: 'Ciudad' })
+  @ApiPropertyOptional({ example: 'Buenos Aires', description: 'Ciudad (texto libre)' })
+  @IsOptional()
   @IsString()
-  city: string;
+  city?: string;
 
-  @ApiProperty({ example: 1, description: 'ID del rubro (nivel 1 de la taxonomia)' })
+  @ApiPropertyOptional({ example: 1, description: 'ID del rubro (nivel 1 de la taxonomia)' })
+  @IsOptional()
   @IsInt()
-  rubroId: number;
+  rubroId?: number;
+
+  @ApiPropertyOptional({ example: 1, description: 'ID del país' })
+  @IsOptional()
+  @IsInt()
+  countryId?: number;
+
+  @ApiPropertyOptional({ example: 1, description: 'ID de la provincia' })
+  @IsOptional()
+  @IsInt()
+  provinceId?: number;
 
   @ApiPropertyOptional({ example: [14, 17], type: [Number], description: 'IDs de profesiones (nivel 3, max 5)' })
   @IsOptional()

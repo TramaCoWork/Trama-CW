@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import * as Joi from 'joi';
@@ -17,6 +18,12 @@ import { AdminModule } from './admin/admin.module';
 import { ProfessionCategoriesModule } from './profession-categories/profession-categories.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { MailModule } from './mail/mail.module';
+import { MercadoPagoModule } from './mercadopago/mercadopago.module';
+import { SubscriptionPlansModule } from './subscription-plans/subscription-plans.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { LocationsModule } from './locations/locations.module';
+import { CatalogsModule } from './catalogs/catalogs.module';
+import { DiscountsModule } from './discounts/discounts.module';
 
 @Module({
   imports: [
@@ -37,9 +44,13 @@ import { MailModule } from './mail/mail.module';
         SMTP_PASS: Joi.string().optional(),
         GMAIL_USER: Joi.string().optional(),
         GMAIL_APP_PASSWORD: Joi.string().optional(),
+        MERCADOPAGO_ACCESS_TOKEN: Joi.string().optional(),
+        SUBSCRIPTION_NOTIFICATION_URL: Joi.string().optional(),
+        TRIAL_DAYS: Joi.number().default(0),
       }),
     }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     ProfessionalsModule,
@@ -54,6 +65,12 @@ import { MailModule } from './mail/mail.module';
     ProfessionCategoriesModule,
     UploadsModule,
     MailModule,
+    MercadoPagoModule,
+    SubscriptionPlansModule,
+    SubscriptionsModule,
+    LocationsModule,
+    CatalogsModule,
+    DiscountsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

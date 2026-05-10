@@ -7,13 +7,25 @@ export class ProfessionalRegisterDto extends RegisterDto {
   @IsString()
   name: string;
 
-  @ApiProperty({ example: 'Buenos Aires', description: 'Ciudad de residencia' })
+  @ApiPropertyOptional({ example: 'Buenos Aires', description: 'Ciudad de residencia' })
+  @IsOptional()
   @IsString()
-  city: string;
+  city?: string;
 
-  @ApiProperty({ example: 1, description: 'ID del rubro (nivel 1 de la taxonomia de profesiones)' })
+  @ApiPropertyOptional({ example: 1, description: 'ID del rubro (nivel 1 de la taxonomia de profesiones)' })
+  @IsOptional()
   @IsInt()
-  rubroId: number;
+  rubroId?: number;
+
+  @ApiPropertyOptional({ example: 1, description: 'ID del país' })
+  @IsOptional()
+  @IsInt()
+  countryId?: number;
+
+  @ApiPropertyOptional({ example: 1, description: 'ID de la provincia' })
+  @IsOptional()
+  @IsInt()
+  provinceId?: number;
 
   @ApiPropertyOptional({ example: '+5491112345678', description: 'Numero de WhatsApp' })
   @IsOptional()

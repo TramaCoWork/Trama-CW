@@ -38,12 +38,12 @@ services:
       PORT: 3000
       NODE_ENV: development
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "${APP_PORT:-3003}:3000"
     volumes:
       - .:/app
       - /app/node_modules
       - ./uploads:/app/uploads
-    command: npm run start:dev
+    command: sh -c "npx prisma generate && npm run start:dev"
 
   # ── App production ────────────────────────────────────────────────────────
   app-prod:
@@ -63,7 +63,7 @@ services:
       PORT: 3000
       NODE_ENV: production
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "${APP_PORT:-3003}:3000"
     profiles:
       - prod
 

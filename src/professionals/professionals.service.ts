@@ -23,8 +23,12 @@ export class ProfessionalsService {
 
   async findFeatured(): Promise<ProfessionalProfile[]> {
     const rows = await this.prisma.$queryRaw<{ id: string }[]>`
-      SELECT id FROM professional_profiles
-      WHERE is_active = true
+      SELECT pp.id FROM professional_profiles pp
+      JOIN users u ON u.id = pp.user_id
+      WHERE pp.is_active = true
+        AND pp.profile_status = 'active'
+        AND u.email_verified = true
+        AND (pp.trial_end_date IS NULL OR pp.trial_end_date >= NOW())
       ORDER BY RANDOM()
       LIMIT 6
     `;
@@ -39,7 +43,15 @@ export class ProfessionalsService {
   }
 
   async findAll(page: number, sizePage: number) {
-    const where = { isActive: true };
+    const where = {
+      isActive: true,
+      profileStatus: 'active' as const,
+      user: { emailVerified: true },
+      OR: [
+        { trialEndDate: null },
+        { trialEndDate: { gte: new Date() } },
+      ],
+    };
     const [data, total] = await Promise.all([
       this.prisma.professionalProfile.findMany({
         where,
@@ -74,7 +86,16 @@ export class ProfessionalsService {
 
   async findOne(id: string) {
     const profile = await this.prisma.professionalProfile.findFirst({
-      where: { id, isActive: true },
+      where: {
+        id,
+        isActive: true,
+        profileStatus: 'active',
+        user: { emailVerified: true },
+        OR: [
+          { trialEndDate: null },
+          { trialEndDate: { gte: new Date() } },
+        ],
+      },
       include: { professionCategories: true, rubro: true },
     });
 
@@ -88,6 +109,11 @@ export class ProfessionalsService {
   // ─── Create / Update genérico (legacy) ───────────────────────────────────
 
   async create(userId: string, dto: CreateProfessionalDto) {
+    // If emailContact is not provided, default to the user's email
+    const emailContact =
+      dto.emailContact ??
+      (await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true } })).email;
+
     const data: Prisma.ProfessionalProfileCreateInput = {
       user: { connect: { id: userId } },
       name: dto.name,
@@ -102,7 +128,7 @@ export class ProfessionalsService {
         connect: (dto.professionCategoryIds ?? []).map((id) => ({ id })),
       },
       whatsapp: dto.whatsapp,
-      emailContact: dto.emailContact,
+      emailContact,
     };
 
     const profile = await this.prisma.professionalProfile.create({
@@ -337,7 +363,7 @@ export class ProfessionalsService {
     if (!profile.name) missing.push('nombre');
     if (!profile.dni) missing.push('DNI');
     if (!profile.city) missing.push('ciudad');
-    if (!profile.tramaMotivation) missing.push('motivacion');
+
 
     if (missing.length > 0) {
       throw new BadRequestException(`Faltan campos obligatorios: ${missing.join(', ')}`);
@@ -405,7 +431,7 @@ export class ProfessionalsService {
       Array.isArray(profile.professionCategories) && profile.professionCategories.length > 0,
       Boolean(profile.whatsapp) || Boolean(profile.emailContact),
       Boolean(profile.dni),
-      Boolean(profile.tramaMotivation),
+
     ];
 
     const filled = checks.filter(Boolean).length;
