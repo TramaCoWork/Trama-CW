@@ -100,6 +100,24 @@ async function main() {
   });
   console.log('Admin:', admin.email);
 
+  // ── Subscription Plans ────────────────────────────────────────────────────
+  const planBase = await prisma.subscriptionPlan.upsert({
+    where: { id: '00000000-0000-4000-b000-000000000001' },
+    update: { name: 'Plan Base', amount: 35.00 },
+    create: {
+      id: '00000000-0000-4000-b000-000000000001',
+      name: 'Plan Base',
+      description: 'Suscripción mensual para profesionales de Trama CoWork',
+      amount: 35.00,
+      currency: 'ARS',
+      frequency: 1,
+      frequencyType: 'months',
+      trialDays: 0,
+      isActive: true,
+    },
+  });
+  console.log('Subscription Plan:', planBase.name, `- $${planBase.amount}`);
+
   // ── Professionals ─────────────────────────────────────────────────────────
   const proHash = await bcrypt.hash('pro123456', 10);
 

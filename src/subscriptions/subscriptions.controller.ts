@@ -11,6 +11,7 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { SubscriptionsService } from './subscriptions.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
+import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
@@ -51,7 +52,10 @@ export class SubscriptionsController {
 
   @Patch('me/cancel')
   @ApiOperation({ summary: 'Cancelar mi suscripción' })
-  cancel(@CurrentUser() user: CurrentUserType) {
-    return this.service.cancel(user.userId);
+  cancel(
+    @CurrentUser() user: CurrentUserType,
+    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: CancelSubscriptionDto,
+  ) {
+    return this.service.cancel(user.userId, dto.reason);
   }
 }

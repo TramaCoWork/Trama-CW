@@ -43,6 +43,7 @@ export class SubscriptionsWebhookController {
     this.logger.log(`Preapproval ${preapprovalId} status: ${status}`);
 
     const statusMap: Record<string, any> = {
+      pending: 'pending',
       authorized: 'authorized',
       active: 'active',
       paused: 'paused',

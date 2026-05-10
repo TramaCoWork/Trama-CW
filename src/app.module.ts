@@ -1,9 +1,12 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { WinstonModule } from 'nest-winston';
 import * as Joi from 'joi';
+import { createWinstonConfig } from './common/logger/winston.config';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { ProfessionalsModule } from './professionals/professionals.module';
@@ -47,10 +50,19 @@ import { DiscountsModule } from './discounts/discounts.module';
         MERCADOPAGO_ACCESS_TOKEN: Joi.string().optional(),
         SUBSCRIPTION_NOTIFICATION_URL: Joi.string().optional(),
         TRIAL_DAYS: Joi.number().default(0),
+        LOG_RETENTION_DAYS: Joi.number().default(90),
       }),
     }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
     ScheduleModule.forRoot(),
+    WinstonModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const retentionDays = config.get<number>('LOG_RETENTION_DAYS', 90);
+        return createWinstonConfig(retentionDays);
+      },
+    }),
     PrismaModule,
     AuthModule,
     ProfessionalsModule,
@@ -74,6 +86,7 @@ import { DiscountsModule } from './discounts/discounts.module';
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
   ],
 })
 export class AppModule {}

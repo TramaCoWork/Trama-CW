@@ -65,10 +65,13 @@ export class SubscriptionsService {
       notificationUrl,
     });
 
-    // Actualizar con externalId
+    // Actualizar con externalId e initPoint
     await this.prisma.subscription.update({
       where: { id: subscription.id },
-      data: { externalId: mpResult.id?.toString() },
+      data: {
+        externalId: mpResult.id?.toString(),
+        initPoint: mpResult.init_point,
+      },
     });
 
     this.logger.log(`Subscription created: ${subscription.id} -> MP: ${mpResult.id}`);
@@ -99,7 +102,7 @@ export class SubscriptionsService {
     return subscription;
   }
 
-  async cancel(userId: string) {
+  async cancel(userId: string, reason?: string) {
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         userId,
@@ -110,29 +113,37 @@ export class SubscriptionsService {
       throw new NotFoundException('No tenés una suscripción activa para cancelar');
     }
 
-    // Cancelar en MP
+    // Cancelar en MP y obtener next_payment_date
+    let endDate = new Date(); // fallback: expiración inmediata en el próximo cron
     if (subscription.externalId) {
       await this.mercadopago.cancelPreapproval(subscription.externalId);
+
+      try {
+        const preapproval = await this.mercadopago.getPreapproval(subscription.externalId);
+        const nextPayment = (preapproval as any).next_payment_date;
+        if (nextPayment) {
+          endDate = new Date(nextPayment);
+          this.logger.log(`Subscription ${subscription.id} paid until: ${endDate.toISOString()}`);
+        }
+      } catch (error) {
+        this.logger.warn(`Could not fetch preapproval details for endDate: ${error.message}`);
+      }
     }
 
-    // Actualizar DB
+    // Actualizar DB — NO tocar el perfil profesional
+    // El cron se encarga de desactivar cuando endDate expire
     await this.prisma.subscription.update({
       where: { id: subscription.id },
-      data: { status: 'cancelled', endDate: new Date() },
-    });
-
-    this.logger.log(`Subscription cancelled: ${subscription.id}`);
-
-    // Desactivar perfil profesional
-    await this.prisma.professionalProfile.updateMany({
-      where: { userId },
       data: {
-        profileStatus: 'waiting_payment',
-        isActive: false,
+        status: 'cancelled',
+        endDate,
+        cancellationReason: reason ?? null,
       },
     });
 
-    return { message: 'Suscripción cancelada exitosamente' };
+    this.logger.log(`Subscription cancelled: ${subscription.id}${reason ? ` — reason: ${reason}` : ''}`);
+
+    return { message: 'Suscripción cancelada. Tu perfil seguirá activo hasta el fin del período pagado.', paidUntil: endDate };
   }
 
   // --- Métodos usados por el webhook ---
