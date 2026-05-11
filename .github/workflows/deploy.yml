@@ -93,7 +93,7 @@ jobs:
              npm ci --legacy-peer-deps && \
              npx prisma generate && \
              npx prisma migrate deploy && \
-             (pm2 restart trama-backend 2>/dev/null || pm2 start dist/main.js --name trama-backend)"
+             (pm2 restart trama-backend 2>/dev/null || pm2 start dist/src/main.js --name trama-backend)"
 
       - name: Health check
         run: |
