@@ -68,7 +68,7 @@ jobs:
           DATABASE_URL=${{ secrets.DATABASE_URL }}
           JWT_SECRET=${{ secrets.JWT_SECRET }}
           JWT_EXPIRES_IN=7d
-          PORT=3000
+          PORT=${{ vars.PORT || '3000' }}
           NODE_ENV=production
           UPLOAD_PATH=./uploads
           FRONTEND_URL=${{ secrets.FRONTEND_URL }}
@@ -95,3 +95,9 @@ jobs:
              npx prisma generate && \
              npx prisma migrate deploy && \
              (pm2 restart trama-backend 2>/dev/null || pm2 start dist/main.js --name trama-backend)"
+
+      - name: Health check
+        run: |
+          ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "sleep 5 && curl -sf http://localhost:${{ vars.PORT || '3000' }}/health && echo ' Server is up!' || (echo 'Health check failed' && exit 1)"
