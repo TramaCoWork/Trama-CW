@@ -51,6 +51,9 @@ jobs:
             --exclude='.env' \
             --exclude='uploads' \
             --exclude='logs' \
+            --exclude='*.map' \
+            --exclude='*.d.ts' \
+            --exclude='tsconfig.build.tsbuildinfo' \
             -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }}" \
             dist \
             package.json \
