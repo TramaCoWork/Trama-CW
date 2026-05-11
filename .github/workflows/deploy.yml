@@ -58,8 +58,8 @@ jobs:
           rsync -avz --delete \
             --exclude='node_modules' \
             --exclude='.env' \
-            --exclude='uploads' \
-            --exclude='logs' \
+            --exclude='/uploads' \
+            --exclude='/logs' \
             -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }}" \
             deploy_pkg/ \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/
