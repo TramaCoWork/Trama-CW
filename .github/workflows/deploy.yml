@@ -105,4 +105,4 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "sleep 10 && curl -sf http://localhost:${{ vars.PORT || '3000' }}/health && echo ' Server is up!' || (echo 'Health check failed' && exit 1)"
+            "sleep 10 && curl -sf http://localhost:${{ vars.PORT || '3000' }}/ && echo ' Server is up!' || (echo 'Health check failed' && exit 1)"

@@ -27,6 +27,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { LocationsModule } from './locations/locations.module';
 import { CatalogsModule } from './catalogs/catalogs.module';
 import { DiscountsModule } from './discounts/discounts.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -85,6 +86,7 @@ import { DiscountsModule } from './discounts/discounts.module';
     CatalogsModule,
     DiscountsModule,
   ],
+  controllers: [AppController],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
