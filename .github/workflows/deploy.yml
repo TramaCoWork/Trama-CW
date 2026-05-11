@@ -36,8 +36,6 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          echo "Key file size: $(wc -c < ~/.ssh/deploy_key) bytes"
-          echo "Key first line: $(head -1 ~/.ssh/deploy_key)"
           ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: Ensure deploy directory exists on server
@@ -58,8 +56,7 @@ jobs:
             package.json \
             package-lock.json \
             prisma/ \
-            prisma.config.ts \
-            tsconfig.json \
+            prisma.config.js \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/
 
       - name: Generate .env on server
