@@ -29,6 +29,15 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Prepare deploy package
+        run: |
+          mkdir -p deploy_pkg
+          cp -r dist deploy_pkg/
+          cp package.json package-lock.json prisma.config.js deploy_pkg/
+          cp -r prisma deploy_pkg/
+          echo "Deploy package contents:"
+          find deploy_pkg/dist/src/uploads -type f 2>/dev/null || echo "WARNING: uploads module not found in build!"
+
       - name: Setup SSH key
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY }}
@@ -51,15 +60,8 @@ jobs:
             --exclude='.env' \
             --exclude='uploads' \
             --exclude='logs' \
-            --exclude='*.map' \
-            --exclude='*.d.ts' \
-            --exclude='tsconfig.build.tsbuildinfo' \
             -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }}" \
-            dist \
-            package.json \
-            package-lock.json \
-            prisma \
-            prisma.config.js \
+            deploy_pkg/ \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/
 
       - name: Generate .env on server
@@ -96,7 +98,8 @@ jobs:
              npm ci --legacy-peer-deps && \
              npx prisma generate && \
              npx prisma migrate deploy && \
-             (pm2 restart trama-backend 2>/dev/null || pm2 start dist/src/main.js --name trama-backend)"
+             (pm2 delete trama-backend 2>/dev/null || true) && \
+             pm2 start dist/src/main.js --name trama-backend"
 
       - name: Health check
         run: |
