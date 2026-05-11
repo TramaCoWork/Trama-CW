@@ -30,14 +30,14 @@ jobs:
         run: npm run build
 
       - name: Setup SSH key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
-          printf '%s' "${{ secrets.SSH_KEY }}" | base64 -d > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          echo "Key file head:"
-          head -1 ~/.ssh/deploy_key
-          echo "Key file size:"
-          wc -c ~/.ssh/deploy_key
+          echo "Key file size: $(wc -c < ~/.ssh/deploy_key) bytes"
+          echo "Key first line: $(head -1 ~/.ssh/deploy_key)"
           ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: Ensure deploy directory exists on server
