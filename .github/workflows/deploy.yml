@@ -51,7 +51,6 @@ jobs:
             --exclude='.env' \
             --exclude='uploads' \
             --exclude='logs' \
-            --exclude='src' \
             --exclude='*.map' \
             --exclude='*.d.ts' \
             --exclude='tsconfig.build.tsbuildinfo' \
