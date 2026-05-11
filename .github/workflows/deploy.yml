@@ -36,11 +36,19 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Ensure deploy directory exists on server
+        run: |
+          ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "mkdir -p ${{ secrets.DEPLOY_PATH }}/{uploads,logs}"
+
       - name: Deploy via rsync
         run: |
           rsync -avz --delete \
             --exclude='node_modules' \
             --exclude='.env' \
+            --exclude='uploads' \
+            --exclude='logs' \
             -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }}" \
             dist/ \
             package.json \
@@ -70,6 +78,8 @@ jobs:
           SMTP_USER=${{ secrets.SMTP_USER }}
           SMTP_PASS=${{ secrets.SMTP_PASS }}
           TRIAL_DAYS=${{ vars.TRIAL_DAYS || '0' }}
+          PAYMENT_MODE=${{ vars.PAYMENT_MODE || 'subscription' }}
+          LOG_RETENTION_DAYS=${{ vars.LOG_RETENTION_DAYS || '90' }}
           EOF"
 
       - name: Install dependencies, run migrations and restart PM2

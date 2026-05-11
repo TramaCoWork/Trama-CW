@@ -25,8 +25,8 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Uploads (archivos subidos por usuarios)
-uploads/
+# Uploads (archivos subidos por usuarios, solo la carpeta raíz)
+/uploads/
 
 /generated/prisma
 .agents/
