@@ -99,7 +99,8 @@ jobs:
              npx prisma generate && \
              npx prisma migrate deploy && \
              (pm2 delete trama-backend 2>/dev/null || true) && \
-             pm2 start dist/src/main.js --name trama-backend"
+             pm2 start dist/src/main.js --name trama-backend && \
+             pm2 save"
 
       - name: Health check
         run: |

@@ -216,6 +216,48 @@ docker compose --profile prod up -d app-prod db
 
 Esto usa el target `production` del Dockerfile (build optimizado, sin hot reload).
 
+## CI/CD - Tags y Workflows
+
+El proyecto usa GitHub Actions con dos workflows que se disparan con tags de git.
+
+### Deploy completo (`deploy.yml`)
+
+| Tag | Ejemplo | Que hace |
+|-----|---------|----------|
+| `v*` | `v0.1.15`, `v1.0.0` | Build + rsync al servidor + npm ci + prisma migrate + PM2 restart + health check |
+
+```bash
+git tag v0.1.15 && git push origin v0.1.15
+```
+
+### PM2 Manage (`pm2.yml`)
+
+Se puede disparar con tag o con boton manual desde GitHub Actions.
+
+**Por tag:**
+
+| Tag | Ejemplo | Que hace |
+|-----|---------|----------|
+| `pm2-*` | `pm2-restart`, `pm2-fix` | SSH al servidor + PM2 delete + start + save + health check |
+
+```bash
+git tag pm2-restart && git push origin pm2-restart
+```
+
+**Por boton manual** (GitHub → Actions → PM2 Manage → Run workflow):
+
+| Accion | Que hace |
+|--------|----------|
+| `restart` | PM2 delete + start + save + health check |
+| `stop` | PM2 stop + save |
+| `logs` | Muestra ultimas 50 lineas de logs |
+
+### Secrets y Variables requeridas en GitHub
+
+**Secrets:** `SSH_KEY`, `SSH_HOST`, `SSH_PORT`, `SSH_USER`, `DEPLOY_PATH`, `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL`, `MERCADOPAGO_ACCESS_TOKEN`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`
+
+**Variables:** `PORT`, `SUBSCRIPTION_NOTIFICATION_URL`, `TRIAL_DAYS`, `PAYMENT_MODE`, `LOG_RETENTION_DAYS`
+
 ## Notas importantes
 
 - El **file watcher** de NestJS dentro de Docker a veces no detecta cambios desde Windows. Si los cambios no se reflejan, ejecutar `docker compose restart app`.

@@ -1,0 +1,62 @@
+name: PM2 Manage
+
+on:
+  push:
+    tags:
+      - "pm2-*"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "PM2 action to perform"
+        required: true
+        default: "restart"
+        type: choice
+        options:
+          - restart
+          - stop
+          - logs
+
+jobs:
+  pm2:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup SSH key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: PM2 Restart
+        if: github.event_name == 'push' || github.event.inputs.action == 'restart'
+        run: |
+          ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ${{ secrets.DEPLOY_PATH }} && \
+             (pm2 delete trama-backend 2>/dev/null || true) && \
+             pm2 start dist/src/main.js --name trama-backend && \
+             pm2 save"
+
+      - name: PM2 Stop
+        if: github.event.inputs.action == 'stop'
+        run: |
+          ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "pm2 stop trama-backend 2>/dev/null && pm2 save || echo 'Not running'"
+
+      - name: PM2 Logs
+        if: github.event.inputs.action == 'logs'
+        run: |
+          ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "pm2 logs trama-backend --lines 50 --nostream"
+
+      - name: Health check
+        if: github.event_name == 'push' || github.event.inputs.action == 'restart'
+        run: |
+          ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "sleep 10 && curl -sf http://localhost:${{ vars.PORT || '3000' }}/ && echo ' Server is up!' || (echo 'Health check failed' && exit 1)"
