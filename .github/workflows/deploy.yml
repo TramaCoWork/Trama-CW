@@ -52,10 +52,10 @@ jobs:
             --exclude='uploads' \
             --exclude='logs' \
             -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }}" \
-            dist/ \
+            dist \
             package.json \
             package-lock.json \
-            prisma/ \
+            prisma \
             prisma.config.js \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/
 
