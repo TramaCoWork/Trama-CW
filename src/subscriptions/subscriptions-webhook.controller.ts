@@ -1,7 +1,7 @@
 import { Controller, Post, Body, HttpCode, Logger } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiExcludeEndpoint } from '@nestjs/swagger';
-import { MercadoPagoService } from '../mercadopago/mercadopago.service';
+import { ApiTags, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { SubscriptionsService } from './subscriptions.service';
+import { PaymentStrategyFactory } from './strategies/payment-strategy.factory';
 
 @ApiTags('Subscriptions Webhook')
 @Controller('subscriptions')
@@ -10,7 +10,7 @@ export class SubscriptionsWebhookController {
 
   constructor(
     private readonly subscriptionsService: SubscriptionsService,
-    private readonly mercadopago: MercadoPagoService,
+    private readonly strategyFactory: PaymentStrategyFactory,
   ) {}
 
   @Post('webhook')
@@ -22,10 +22,11 @@ export class SubscriptionsWebhookController {
     const { type, data } = body;
 
     try {
-      if (type === 'subscription_preapproval') {
-        await this.handlePreapproval(data.id);
-      } else if (type === 'payment') {
+      if (type === 'payment') {
         await this.handlePayment(data.id);
+      } else {
+        // Eventos de gateway (subscription_preapproval, etc.)
+        await this.handleGatewayEvent(type, data.id);
       }
     } catch (error) {
       this.logger.error(`Webhook processing error: ${error.message}`, error.stack);
@@ -35,79 +36,47 @@ export class SubscriptionsWebhookController {
     return { received: true };
   }
 
-  private async handlePreapproval(preapprovalId: string) {
-    // Verificar consultando a MP
-    const preapproval = await this.mercadopago.getPreapproval(preapprovalId);
-    const status = preapproval.status as string;
-
-    this.logger.log(`Preapproval ${preapprovalId} status: ${status}`);
-
-    const statusMap: Record<string, any> = {
-      pending: 'pending',
-      authorized: 'authorized',
-      active: 'active',
-      paused: 'paused',
-      cancelled: 'cancelled',
-    };
-
-    const mappedStatus = statusMap[status];
-    if (!mappedStatus) {
-      this.logger.warn(`Unknown preapproval status: ${status}`);
-      return;
+  private async handleGatewayEvent(eventType: string, dataId: string) {
+    // Intentar con cada strategy hasta que una lo maneje
+    for (const strategy of this.strategyFactory.getAllStrategies()) {
+      const result = await strategy.handleGatewayWebhook(eventType, dataId);
+      if (result) {
+        await this.subscriptionsService.updateStatus(
+          result.externalId,
+          result.status as any,
+          result.startDate,
+          result.externalReference,
+        );
+        return;
+      }
     }
 
-    const startDate = (status === 'authorized' || status === 'active') && preapproval.date_created
-      ? new Date(preapproval.date_created)
-      : undefined;
-
-    await this.subscriptionsService.updateStatus(preapprovalId, mappedStatus, startDate);
+    this.logger.log(`No strategy handled gateway event: ${eventType} / ${dataId}`);
   }
 
   private async handlePayment(paymentId: string) {
-    // Verificar consultando a MP
-    const payment = await this.mercadopago.getPayment(paymentId);
+    // Intentar con cada strategy hasta que una lo maneje
+    for (const strategy of this.strategyFactory.getAllStrategies()) {
+      const result = await strategy.handlePaymentWebhook(paymentId);
+      if (result) {
+        const { subscriptionId, data, shouldActivate } = result;
 
-    // Solo procesar pagos vinculados a suscripciones
-    const preapprovalId = (payment as any).metadata?.preapproval_id;
-    if (!preapprovalId) {
-      this.logger.log(`Payment ${paymentId} not linked to subscription, skipping`);
-      return;
+        // Si el subscriptionId tiene prefijo "ext:", buscar por externalId
+        if (subscriptionId.startsWith('ext:')) {
+          const externalId = subscriptionId.slice(4);
+          await this.subscriptionsService.registerPayment({
+            subscriptionExternalId: externalId,
+            ...data,
+          });
+        } else if (shouldActivate && data.status === 'sub_approved') {
+          await this.subscriptionsService.activateFromCheckoutPayment(subscriptionId, data);
+        } else {
+          await this.subscriptionsService.registerPaymentBySubscriptionId(subscriptionId, data);
+        }
+        return;
+      }
     }
 
-    const status = payment.status as string;
-    this.logger.log(`Payment ${paymentId} status: ${status} for preapproval: ${preapprovalId}`);
-
-    // Extraer datos del medio de pago
-    const paymentDetails = {
-      paymentMethod: (payment as any).payment_type_id ?? null,       // credit_card, debit_card, account_money
-      paymentMethodId: (payment as any).payment_method_id ?? null,   // visa, master, amex
-      cardLastFourDigits: (payment as any).card?.last_four_digits ?? null,
-      installments: (payment as any).installments ?? null,
-      statusDetail: payment.status_detail ?? null,
-    };
-
-    // Raw completo para auditoría
-    const rawPayment = JSON.parse(JSON.stringify(payment));
-
-    if (status === 'approved') {
-      await this.subscriptionsService.registerPayment({
-        subscriptionExternalId: preapprovalId,
-        paymentExternalId: paymentId,
-        amount: payment.transaction_amount ?? 0,
-        status: 'sub_approved',
-        ...paymentDetails,
-        metadata: rawPayment,
-      });
-    } else if (status === 'rejected' || status === 'in_process') {
-      await this.subscriptionsService.registerPayment({
-        subscriptionExternalId: preapprovalId,
-        paymentExternalId: paymentId,
-        amount: payment.transaction_amount ?? 0,
-        status: 'sub_rejected',
-        failureReason: payment.status_detail ?? status,
-        ...paymentDetails,
-        metadata: rawPayment,
-      });
-    }
+    this.logger.log(`No strategy handled payment: ${paymentId}`);
   }
 }

@@ -50,6 +50,7 @@ import { DiscountsModule } from './discounts/discounts.module';
         MERCADOPAGO_ACCESS_TOKEN: Joi.string().optional(),
         SUBSCRIPTION_NOTIFICATION_URL: Joi.string().optional(),
         TRIAL_DAYS: Joi.number().default(0),
+        PAYMENT_MODE: Joi.string().valid('subscription', 'checkout').default('subscription'),
         LOG_RETENTION_DAYS: Joi.number().default(90),
       }),
     }),

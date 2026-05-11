@@ -474,6 +474,7 @@ model Subscription {
   mpPayerEmail    String?            @map("mp_payer_email")
   initPoint       String?            @map("init_point") @db.Text
   cancellationReason String?         @map("cancellation_reason") @db.Text
+  paymentStrategy    String?         @map("payment_strategy")
   metadata        Json?
   createdAt       DateTime           @default(now()) @map("created_at")
   updatedAt       DateTime           @updatedAt @map("updated_at")

@@ -6,6 +6,7 @@ import { profileRejectedTemplate } from './templates/profile-rejected';
 import { welcomeTemplate } from './templates/welcome';
 import { emailVerificationTemplate } from './templates/email-verification';
 import { resetPasswordTemplate } from './templates/reset-password';
+import { paymentReminderTemplate } from './templates/payment-reminder';
 
 @Injectable()
 export class MailService {
@@ -57,6 +58,15 @@ export class MailService {
       await this.transport.send(email, subject, html);
     } catch (error) {
       this.logger.error(`Error sending rejection email to ${email}: ${error.message}`);
+    }
+  }
+
+  async sendPaymentReminder(email: string, name: string, planName: string, paymentUrl: string): Promise<void> {
+    const { subject, html } = paymentReminderTemplate(name, planName, paymentUrl);
+    try {
+      await this.transport.send(email, subject, html);
+    } catch (error) {
+      this.logger.error(`Error sending payment reminder to ${email}: ${error.message}`);
     }
   }
 }
