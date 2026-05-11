@@ -58,6 +58,8 @@ jobs:
             package.json \
             package-lock.json \
             prisma/ \
+            prisma.config.ts \
+            tsconfig.json \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/
 
       - name: Generate .env on server
