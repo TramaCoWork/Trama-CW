@@ -65,25 +65,24 @@ export class CommunityService {
     await this.validateChannelAccess(userId, channelSlug);
 
     const where = { channelSlug, deletedAt: null, status: PostStatus.published };
-    const [data, total] = await Promise.all([
+    const [posts, total] = await Promise.all([
       this.prisma.communityPost.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
         include: {
-          user: { select: { id: true, email: true } },
-          comments: {
-            where: { deletedAt: null },
-            orderBy: { createdAt: 'asc' },
-            include: {
-              user: { select: { id: true, email: true } },
-            },
-          },
+          user: { select: { id: true, email: true, profile: { select: { name: true } } } },
+          _count: { select: { comments: { where: { deletedAt: null } } } },
         },
       }),
       this.prisma.communityPost.count({ where }),
     ]);
+
+    const data = posts.map(({ _count, ...post }) => ({
+      ...post,
+      commentCount: _count.comments,
+    }));
 
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
@@ -93,25 +92,24 @@ export class CommunityService {
    */
   async getMyPosts(userId: string, page: number, limit: number) {
     const where = { userId, deletedAt: null };
-    const [data, total] = await Promise.all([
+    const [posts, total] = await Promise.all([
       this.prisma.communityPost.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
         include: {
-          user: { select: { id: true, email: true } },
-          comments: {
-            where: { deletedAt: null },
-            orderBy: { createdAt: 'asc' },
-            include: {
-              user: { select: { id: true, email: true } },
-            },
-          },
+          user: { select: { id: true, email: true, profile: { select: { name: true } } } },
+          _count: { select: { comments: { where: { deletedAt: null } } } },
         },
       }),
       this.prisma.communityPost.count({ where }),
     ]);
+
+    const data = posts.map(({ _count, ...post }) => ({
+      ...post,
+      commentCount: _count.comments,
+    }));
 
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
@@ -198,6 +196,38 @@ export class CommunityService {
       where: { id: commentId },
       data: { deletedAt: new Date() },
     });
+  }
+
+  /**
+   * Get paginated comments for a post. Excludes soft-deleted comments.
+   * Validates channel access.
+   */
+  async getPostComments(postId: string, userId: string, page: number, limit: number) {
+    const post = await this.prisma.communityPost.findUnique({
+      where: { id: postId },
+    });
+
+    if (!post || post.deletedAt) {
+      throw new NotFoundException('Post no encontrado');
+    }
+
+    await this.validateChannelAccess(userId, post.channelSlug);
+
+    const where = { postId, deletedAt: null };
+    const [data, total] = await Promise.all([
+      this.prisma.communityComment.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          user: { select: { id: true, email: true, profile: { select: { name: true } } } },
+        },
+      }),
+      this.prisma.communityComment.count({ where }),
+    ]);
+
+    return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
   /**

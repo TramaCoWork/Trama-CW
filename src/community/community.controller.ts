@@ -77,6 +77,28 @@ export class CommunityController {
     );
   }
 
+  @Get('posts/:id/comments')
+  @ApiOperation({ summary: 'Listar comentarios de un post (paginado, mas recientes primero)' })
+  @ApiParam({ name: 'id', description: 'ID del post' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Numero de pagina (default: 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Comentarios por pagina (default: 10)' })
+  @ApiResponse({ status: 200, description: 'Lista paginada de comentarios' })
+  @ApiResponse({ status: 403, description: 'No tienes acceso al canal de este post' })
+  @ApiResponse({ status: 404, description: 'Post no encontrado' })
+  getPostComments(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id') id: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.communityService.getPostComments(
+      id,
+      user.userId,
+      parseInt(page ?? '1', 10),
+      parseInt(limit ?? '10', 10),
+    );
+  }
+
   @Post('posts')
   @ApiOperation({ summary: 'Crear un post en un canal' })
   @ApiResponse({ status: 201, description: 'Post creado' })
