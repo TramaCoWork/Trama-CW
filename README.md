@@ -251,6 +251,8 @@ git tag pm2-restart && git push origin pm2-restart
 | `restart` | PM2 delete + start + save + health check |
 | `stop` | PM2 stop + save |
 | `logs` | Muestra ultimas 50 lineas de logs |
+| `env` | Solo regenera el .env en el servidor (sin restart) |
+| `env-restart` | Regenera .env + reinicia PM2 + health check |
 
 ### Secrets y Variables requeridas en GitHub
 
