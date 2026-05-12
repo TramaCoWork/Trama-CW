@@ -216,6 +216,16 @@ docker compose --profile prod up -d app-prod db
 
 Esto usa el target `production` del Dockerfile (build optimizado, sin hot reload).
 
+### Seeds de produccion
+
+Ejecutar en el servidor via SSH:
+
+```bash
+ssh root@<tu-vps-ip> "cd /opt/api/prod && npx tsx prisma/seed-prod.ts"
+```
+
+Esto crea: categorias de profesiones, ubicaciones, planes de suscripcion, usuario admin y datos iniciales.
+
 ## CI/CD - Tags y Workflows
 
 El proyecto usa GitHub Actions con dos workflows que se disparan con tags de git.
