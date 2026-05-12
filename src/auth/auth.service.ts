@@ -294,6 +294,31 @@ export class AuthService {
     return { message: 'Contraseña restablecida exitosamente' };
   }
 
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    const passwordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+
+    if (!passwordValid) {
+      throw new UnauthorizedException('La contraseña actual es incorrecta');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    return { message: 'Contraseña actualizada exitosamente' };
+  }
+
   private sendVerificationEmail(userId: string, email: string, name?: string): void {
     const token = this.jwtService.sign(
       { sub: userId, purpose: 'email-verification' },

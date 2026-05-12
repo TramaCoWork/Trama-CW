@@ -15,20 +15,25 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableCors();
 
-  // Swagger
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('Trama Cowork API')
-    .setDescription('Marketplace de profesionales — API REST')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
+  // Swagger — solo en desarrollo
+  const nodeEnv = config.get<string>('NODE_ENV', 'development');
+  if (nodeEnv !== 'production') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('Trama Cowork API')
+      .setDescription('Marketplace de profesionales — API REST')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
 
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('docs', app, document);
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('docs', app, document);
+  }
 
   const port = config.get<number>('PORT') ?? 3000;
   await app.listen(port, '0.0.0.0');
   console.log(`App running on http://localhost:${port}`);
-  console.log(`Docs at http://localhost:${port}/docs`);
+  if (nodeEnv !== 'production') {
+    console.log(`Docs at http://localhost:${port}/docs`);
+  }
 }
 bootstrap();
