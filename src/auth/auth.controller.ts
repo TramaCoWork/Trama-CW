@@ -1,5 +1,6 @@
 import { Controller, Post, Get, Patch, Body, Query, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService, TokenResponse } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -14,6 +15,7 @@ import type { CurrentUserType } from './decorators/current-user.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
+@Throttle({ default: { ttl: 60000, limit: 10 } })
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
@@ -39,6 +41,7 @@ export class AuthController {
   }
 
   @Post('admin/login')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Iniciar sesion como administrador' })
   @ApiBody({ type: LoginDto })
   @ApiResponse({ status: 201, description: 'Login admin exitoso, retorna token JWT' })
@@ -68,6 +71,7 @@ export class AuthController {
   }
 
   @Post('resend-verification')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Reenviar email de verificacion' })
   @ApiBody({ type: ResendVerificationDto })
   @ApiResponse({ status: 201, description: 'Si el email existe y no fue verificado, se reenvia el enlace' })
@@ -77,6 +81,7 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Solicitar recuperacion de contraseña (envia email con enlace)' })
   @ApiBody({ type: ForgotPasswordDto })
   @ApiResponse({ status: 201, description: 'Si el email esta registrado, se envia un enlace de recuperacion' })
@@ -86,6 +91,7 @@ export class AuthController {
   }
 
   @Post('reset-password')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Restablecer contraseña usando token recibido por email' })
   @ApiBody({ type: ResetPasswordDto })
   @ApiResponse({ status: 201, description: 'Contraseña restablecida exitosamente' })
