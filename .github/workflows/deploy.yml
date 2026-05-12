@@ -4,11 +4,16 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version label (e.g. v0.1.15) - optional"
+        required: false
+        type: string
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: github.ref_type == 'tag'
 
     steps:
       - name: Checkout code

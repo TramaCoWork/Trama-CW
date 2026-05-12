@@ -232,6 +232,10 @@ El proyecto usa GitHub Actions con dos workflows que se disparan con tags de git
 
 ### Deploy completo (`deploy.yml`)
 
+Se puede disparar con tag o con boton manual desde GitHub Actions.
+
+**Por tag:**
+
 | Tag | Ejemplo | Que hace |
 |-----|---------|----------|
 | `v*` | `v0.1.15`, `v1.0.0` | Build + rsync al servidor + npm ci + prisma migrate + PM2 restart + health check |
@@ -239,6 +243,14 @@ El proyecto usa GitHub Actions con dos workflows que se disparan con tags de git
 ```bash
 git tag v0.1.15 && git push origin v0.1.15
 ```
+
+**Por boton manual** (GitHub → Actions → Deploy to Production → Run workflow):
+
+1. Seleccionar la branch (main, develop, etc.)
+2. Opcionalmente escribir una version (informativo)
+3. Click en "Run workflow"
+
+Despliega el HEAD de la branch seleccionada.
 
 ### PM2 Manage (`pm2.yml`)
 
