@@ -27,6 +27,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { LocationsModule } from './locations/locations.module';
 import { CatalogsModule } from './catalogs/catalogs.module';
 import { DiscountsModule } from './discounts/discounts.module';
+import { ContactModule } from './contact/contact.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -53,6 +54,8 @@ import { AppController } from './app.controller';
         TRIAL_DAYS: Joi.number().default(0),
         PAYMENT_MODE: Joi.string().valid('subscription', 'checkout').default('subscription'),
         LOG_RETENTION_DAYS: Joi.number().default(90),
+        SUPPORT_EMAIL: Joi.string().optional(),
+        TURNSTILE_SECRET_KEY: Joi.string().optional(),
       }),
     }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
@@ -85,6 +88,7 @@ import { AppController } from './app.controller';
     LocationsModule,
     CatalogsModule,
     DiscountsModule,
+    ContactModule,
   ],
   controllers: [AppController],
   providers: [

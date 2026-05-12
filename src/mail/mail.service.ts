@@ -7,6 +7,7 @@ import { welcomeTemplate } from './templates/welcome';
 import { emailVerificationTemplate } from './templates/email-verification';
 import { resetPasswordTemplate } from './templates/reset-password';
 import { paymentReminderTemplate } from './templates/payment-reminder';
+import { contactFormTemplate } from './templates/contact-form';
 
 @Injectable()
 export class MailService {
@@ -67,6 +68,15 @@ export class MailService {
       await this.transport.send(email, subject, html);
     } catch (error) {
       this.logger.error(`Error sending payment reminder to ${email}: ${error.message}`);
+    }
+  }
+
+  async sendContactForm(to: string, data: { name: string; email: string; subject: string; message: string }): Promise<void> {
+    const { subject, html } = contactFormTemplate(data);
+    try {
+      await this.transport.send(to, subject, html);
+    } catch (error) {
+      this.logger.error(`Error sending contact form email: ${error.message}`);
     }
   }
 }

@@ -57,6 +57,8 @@ jobs:
           TRIAL_DAYS=${{ vars.TRIAL_DAYS || '0' }}
           PAYMENT_MODE=${{ vars.PAYMENT_MODE || 'subscription' }}
           LOG_RETENTION_DAYS=${{ vars.LOG_RETENTION_DAYS || '90' }}
+          SUPPORT_EMAIL=${{ vars.SUPPORT_EMAIL }}
+          TURNSTILE_SECRET_KEY=${{ secrets.TURNSTILE_SECRET_KEY }}
           EOF"
           echo ".env regenerated on server"
 
