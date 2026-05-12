@@ -9,7 +9,8 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { CurrentUser, CurrentUserType } from './decorators/current-user.decorator';
+import { CurrentUser } from './decorators/current-user.decorator';
+import type { CurrentUserType } from './decorators/current-user.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
