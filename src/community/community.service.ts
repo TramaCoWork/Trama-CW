@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UserRole, PostStatus } from '@prisma/client';
+import { sanitizeMarkdown } from './utils/sanitize-markdown';
 
 const GENERAL_CHANNEL = 'general';
 
@@ -123,7 +124,7 @@ export class CommunityService {
       data: {
         userId,
         channelSlug,
-        content: dto.content,
+        content: sanitizeMarkdown(dto.content),
       },
       include: {
         user: { select: { id: true, email: true } },
@@ -146,7 +147,7 @@ export class CommunityService {
       data: {
         postId: dto.postId,
         userId,
-        content: dto.content,
+        content: sanitizeMarkdown(dto.content),
       },
       include: {
         user: { select: { id: true, email: true } },

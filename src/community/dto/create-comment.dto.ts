@@ -6,9 +6,9 @@ export class CreateCommentDto {
   @IsUUID()
   postId: string;
 
-  @ApiProperty({ example: 'Excelente aporte!', maxLength: 500, description: 'Contenido del comentario' })
+  @ApiProperty({ example: 'Excelente aporte!', maxLength: 2000, description: 'Contenido del comentario' })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(500)
+  @MaxLength(2000)
   content: string;
 }
