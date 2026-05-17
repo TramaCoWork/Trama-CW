@@ -44,7 +44,7 @@ services:
       - /app/node_modules
       - ./uploads:/app/uploads
       - ./logs:/app/logs
-    command: sh -c "npx prisma generate && npm run start:dev"
+    command: sh -c "npm install --legacy-peer-deps && npx prisma generate && npm run start:dev"
 
   # ── App production ────────────────────────────────────────────────────────
   app-prod:
@@ -109,7 +109,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-    command: sh -c "npx prisma generate && npx prisma migrate deploy && npx prisma db seed && npx jest --config test/jest-e2e.json --forceExit --detectOpenHandles"
+    command: sh -c "npm install --legacy-peer-deps && npx prisma generate && npx prisma migrate deploy && npx prisma db seed && npx jest --config test/jest-e2e.json --forceExit --detectOpenHandles"
 
 volumes:
   postgres_data:

@@ -28,6 +28,7 @@ import { LocationsModule } from './locations/locations.module';
 import { CatalogsModule } from './catalogs/catalogs.module';
 import { DiscountsModule } from './discounts/discounts.module';
 import { ContactModule } from './contact/contact.module';
+import { MessagesModule } from './messages/messages.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -89,6 +90,7 @@ import { AppController } from './app.controller';
     CatalogsModule,
     DiscountsModule,
     ContactModule,
+    MessagesModule,
   ],
   controllers: [AppController],
   providers: [

@@ -13,6 +13,6 @@ import { STORAGE_SERVICE } from './storage.interface';
       useClass: LocalStorageService,
     },
   ],
-  exports: [UploadsService],
+  exports: [UploadsService, STORAGE_SERVICE],
 })
 export class UploadsModule {}

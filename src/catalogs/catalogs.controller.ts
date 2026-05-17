@@ -1,6 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
+  CommunityImageEntityType,
   EducationLevel,
   WorkModality,
   WorkType,
@@ -44,5 +45,15 @@ export class CatalogsController {
   @ApiResponse({ status: 200, description: 'Array de frecuencias de uso' })
   getUsageFrequencies(): string[] {
     return Object.values(UsageFrequency);
+  }
+
+  @Get('community-image-entity-types')
+  @ApiOperation({ summary: 'Listar tipos de entidad para imagenes de comunidad' })
+  @ApiResponse({
+    status: 200,
+    description: 'Array de tipos de entidad para imagenes de comunidad',
+  })
+  getCommunityImageEntityTypes(): string[] {
+    return Object.values(CommunityImageEntityType);
   }
 }

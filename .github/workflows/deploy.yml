@@ -80,6 +80,7 @@ jobs:
           PORT=${{ vars.PORT || '3000' }}
           NODE_ENV=production
           UPLOAD_PATH=./uploads
+          COMMUNITY_MAX_IMAGES_PER_ENTITY=10
           FRONTEND_URL=${{ secrets.FRONTEND_URL }}
           MERCADOPAGO_ACCESS_TOKEN=${{ secrets.MERCADOPAGO_ACCESS_TOKEN }}
           SUBSCRIPTION_NOTIFICATION_URL=${{ vars.SUBSCRIPTION_NOTIFICATION_URL }}

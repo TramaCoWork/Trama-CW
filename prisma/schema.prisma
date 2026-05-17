@@ -118,6 +118,12 @@ enum PostStatus {
   paused
 }
 
+enum CommunityImageEntityType {
+  POST
+  COMMENT
+  MESSAGE
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model User {
@@ -136,10 +142,13 @@ model User {
   subscriptions Subscription[]
   posts      CommunityPost[]
   comments   CommunityComment[]
+  communityImages CommunityImage[]
   jobApplies JobApplication[]
   reviews    ProfileValidation[]
    verifiedDocuments Document[] @relation("DocumentVerifier")
   createdDiscounts Discount[] @relation("DiscountCreator")
+  sentMessages PrivateMessage[] @relation("MessageSender")
+  receivedMessages PrivateMessage[] @relation("MessageReceiver")
 
   @@map("users")
 }
@@ -301,6 +310,24 @@ model CommunityComment {
   user User          @relation(fields: [userId], references: [id])
 
   @@map("community_comments")
+}
+
+model CommunityImage {
+  id         String                    @id @default(uuid())
+  userId     String                    @map("user_id")
+  entityType CommunityImageEntityType?
+  entityId   String?                   @map("entity_id")
+  filename   String
+  url        String
+  mimeType   String                    @map("mime_type")
+  size       Int
+  uploadedAt DateTime                  @default(now()) @map("uploaded_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], name: "community_images_user")
+  @@index([entityType, entityId], name: "community_images_entity")
+  @@map("community_images")
 }
 
 model ContactLog {
@@ -577,4 +604,21 @@ model Discount {
 
   @@index([professionalId, startDate, endDate], name: "discounts_professional_dates")
   @@map("discounts")
+}
+
+model PrivateMessage {
+  id                String   @id @default(uuid())
+  senderId          String   @map("sender_id")
+  receiverId        String   @map("receiver_id")
+  content           String   @db.Text
+  sentAt            DateTime @default(now()) @map("sent_at")
+  readAt            DateTime? @map("read_at")
+  deletedBySender   Boolean  @default(false) @map("deleted_by_sender")
+  deletedByReceiver Boolean  @default(false) @map("deleted_by_receiver")
+
+  sender   User @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([senderId, receiverId, sentAt], name: "private_messages_sender_receiver_sent_at")
+  @@map("private_messages")
 }
