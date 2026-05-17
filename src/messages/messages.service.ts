@@ -11,6 +11,8 @@ import { CreateMessageDto } from './dto/create-message.dto';
 
 type ConversationSummary = {
   otherUserId: string;
+  otherUserName: string | null;
+  otherUserEmail: string;
   lastMessage: PrivateMessage;
   unreadCount: number;
 };
@@ -68,6 +70,17 @@ export class MessagesService {
     return Promise.all(
       conversationMessages.map(async (message) => {
         const otherUserId = message.senderId === userId ? message.receiverId : message.senderId;
+        const otherUser = await this.prisma.user.findUnique({
+          where: { id: otherUserId },
+          select: {
+            email: true,
+            profile: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        });
 
         const unreadCount = await this.prisma.privateMessage.count({
           where: {
@@ -80,6 +93,8 @@ export class MessagesService {
 
         return {
           otherUserId,
+          otherUserName: otherUser?.profile?.name ?? null,
+          otherUserEmail: otherUser?.email ?? '',
           lastMessage: message,
           unreadCount,
         };
@@ -136,7 +151,7 @@ export class MessagesService {
     });
   }
 
-  async deleteMessage(userId: string, messageId: string) {
+  async deleteMessage(userId: string, messageId: string, forAll = false) {
     const message = await this.prisma.privateMessage.findUnique({
       where: { id: messageId },
     });
@@ -149,6 +164,20 @@ export class MessagesService {
       throw new ForbiddenException('No tienes permisos para eliminar este mensaje');
     }
 
+    if (forAll) {
+      if (message.senderId !== userId) {
+        throw new ForbiddenException('Solo el remitente puede eliminar el mensaje para todos');
+      }
+
+      return this.prisma.privateMessage.update({
+        where: { id: messageId },
+        data: {
+          deletedBySender: true,
+          deletedByReceiver: true,
+        },
+      });
+    }
+
     const data = message.senderId === userId
       ? { deletedBySender: true }
       : { deletedByReceiver: true };
@@ -157,6 +186,30 @@ export class MessagesService {
       where: { id: messageId },
       data,
     });
+  }
+
+  async deleteConversation(userId: string, otherUserId: string) {
+    await this.prisma.privateMessage.updateMany({
+      where: {
+        senderId: userId,
+        receiverId: otherUserId,
+      },
+      data: {
+        deletedBySender: true,
+      },
+    });
+
+    await this.prisma.privateMessage.updateMany({
+      where: {
+        senderId: otherUserId,
+        receiverId: userId,
+      },
+      data: {
+        deletedByReceiver: true,
+      },
+    });
+
+    return { success: true };
   }
 
   async searchRecipients(userId: string, term: string): Promise<RecipientSuggestion[]> {

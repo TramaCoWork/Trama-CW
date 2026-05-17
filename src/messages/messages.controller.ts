@@ -14,6 +14,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { DeleteMessageDto } from './dto/delete-message.dto';
 import { QueryMessagesDto } from './dto/query-messages.dto';
 import { MessagesService } from './messages.service';
 
@@ -66,11 +67,20 @@ export class MessagesController {
     return this.messagesService.markAsRead(user.userId, messageId);
   }
 
+  @Delete('conversations/:userId')
+  deleteConversation(
+    @CurrentUser() user: CurrentUserType,
+    @Param('userId') otherUserId: string,
+  ) {
+    return this.messagesService.deleteConversation(user.userId, otherUserId);
+  }
+
   @Delete(':id')
   deleteMessage(
     @CurrentUser() user: CurrentUserType,
     @Param('id') messageId: string,
+    @Query() dto: DeleteMessageDto,
   ) {
-    return this.messagesService.deleteMessage(user.userId, messageId);
+    return this.messagesService.deleteMessage(user.userId, messageId, dto.forAll);
   }
 }
