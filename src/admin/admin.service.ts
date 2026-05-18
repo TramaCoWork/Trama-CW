@@ -176,6 +176,15 @@ export class AdminService {
     });
   }
 
+  async setTrialDate(professionalProfileId: string, trialEndDate: Date | null) {
+    await this.findProfileOrThrow(professionalProfileId);
+
+    return this.prisma.professionalProfile.update({
+      where: { id: professionalProfileId },
+      data: { trialEndDate },
+    });
+  }
+
   // ─── Jobs ────────────────────────────────────────────────────────────────
 
   async createJob(dto: CreateJobDto) {

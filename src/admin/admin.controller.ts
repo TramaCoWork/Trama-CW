@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Param,
   Body,
   Query,
@@ -14,6 +15,7 @@ import { AdminService } from './admin.service';
 import { CreateJobDto } from './dto/create-job.dto';
 import { ValidateProfileDto } from './dto/validate-profile.dto';
 import { VerifyDocumentDto } from './dto/verify-document.dto';
+import { SetTrialDateDto } from './dto/set-trial-date.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -132,6 +134,20 @@ export class AdminController {
     @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: VerifyDocumentDto,
   ) {
     return this.adminService.verifyDocument(user.userId, id, dto);
+  }
+
+  @Patch('professionals/:id/trial')
+  @ApiOperation({ summary: 'Setear o limpiar la fecha de fin de prueba de un profesional' })
+  @ApiParam({ name: 'id', description: 'ID del perfil profesional' })
+  @ApiResponse({ status: 200, description: 'Perfil profesional actualizado' })
+  @ApiResponse({ status: 404, description: 'Profesional no encontrado' })
+  async setTrialDate(
+    @Param('id') id: string,
+    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: SetTrialDateDto,
+  ) {
+    const trialEndDate = dto.trialEndDate ? new Date(dto.trialEndDate) : null;
+
+    return this.adminService.setTrialDate(id, trialEndDate);
   }
 
   @Post('jobs')
