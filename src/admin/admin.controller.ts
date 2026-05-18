@@ -21,7 +21,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
-import { UserRole, ProfileStatus, SubscriptionPaymentStatus, FrequencyType } from '@prisma/client';
+import { UserRole, ProfileStatus, SubscriptionPaymentStatus, FrequencyType, SubscriptionStatus } from '@prisma/client';
 
 @ApiTags('Admin')
 @ApiBearerAuth()
@@ -171,6 +171,27 @@ export class AdminController {
     @Query('search') search?: string,
   ) {
     return this.adminService.getSubscriptionPayments({
+      page: Number(page),
+      sizePage: Number(sizePage),
+      status,
+      search,
+    });
+  }
+
+  @Get('subscriptions')
+  @ApiOperation({ summary: 'Listar suscripciones (paginado, con filtros)' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Página actual (default: 1)' })
+  @ApiQuery({ name: 'sizePage', required: false, type: Number, description: 'Resultados por página (default: 10)' })
+  @ApiQuery({ name: 'status', required: false, enum: SubscriptionStatus, description: 'Filtrar por estado de suscripción' })
+  @ApiQuery({ name: 'search', required: false, type: String, description: 'Buscar por email de usuario' })
+  @ApiResponse({ status: 200, description: 'Lista paginada de suscripciones' })
+  async getSubscriptions(
+    @Query('page') page = 1,
+    @Query('sizePage') sizePage = 10,
+    @Query('status') status?: SubscriptionStatus,
+    @Query('search') search?: string,
+  ) {
+    return this.adminService.getSubscriptions({
       page: Number(page),
       sizePage: Number(sizePage),
       status,

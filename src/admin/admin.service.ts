@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma, ProfileStatus, SubscriptionPaymentStatus, FrequencyType } from '@prisma/client';
+import { Prisma, ProfileStatus, SubscriptionPaymentStatus, FrequencyType, SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { CreateJobDto } from './dto/create-job.dto';
@@ -272,6 +272,42 @@ export class AdminService {
         take: sizePage,
       }),
       this.prisma.subscriptionPayment.count({ where }),
+    ]);
+
+    return { data, total, page, sizePage };
+  }
+
+  async getSubscriptions(filters: {
+    page: number;
+    sizePage: number;
+    status?: SubscriptionStatus;
+    search?: string;
+  }) {
+    const { page, sizePage, status, search } = filters;
+
+    const where: Prisma.SubscriptionWhereInput = {};
+
+    if (status) where.status = status;
+
+    if (search) {
+      where.user = {
+        email: { contains: search, mode: 'insensitive' },
+      };
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.subscription.findMany({
+        where,
+        include: {
+          user: { select: { id: true, email: true } },
+          plan: { select: { id: true, name: true, amount: true, frequencyType: true } },
+          _count: { select: { payments: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * sizePage,
+        take: sizePage,
+      }),
+      this.prisma.subscription.count({ where }),
     ]);
 
     return { data, total, page, sizePage };
