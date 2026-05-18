@@ -6,6 +6,8 @@ import {
   WorkModality,
   WorkType,
   DocumentType,
+  FrequencyType,
+  SubscriptionStatus,
   UsageFrequency,
 } from '@prisma/client';
 
@@ -55,5 +57,19 @@ export class CatalogsController {
   })
   getCommunityImageEntityTypes(): string[] {
     return Object.values(CommunityImageEntityType);
+  }
+
+  @Get('frequency-types')
+  @ApiOperation({ summary: 'Listar tipos de frecuencia disponibles' })
+  @ApiResponse({ status: 200, description: 'Array de tipos de frecuencia' })
+  getFrequencyTypes(): string[] {
+    return Object.values(FrequencyType);
+  }
+
+  @Get('subscription-statuses')
+  @ApiOperation({ summary: 'Listar estados de suscripcion disponibles' })
+  @ApiResponse({ status: 200, description: 'Array de estados de suscripcion' })
+  getSubscriptionStatuses(): string[] {
+    return Object.values(SubscriptionStatus);
   }
 }
