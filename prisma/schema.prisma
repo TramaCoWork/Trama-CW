@@ -495,7 +495,6 @@ model Subscription {
   externalId      String?            @unique @map("external_id")
   status          SubscriptionStatus @default(pending)
   startDate       DateTime?          @map("start_date")
-  trialEndDate    DateTime?          @map("trial_end_date")
   endDate         DateTime?          @map("end_date")
   nextPaymentDate DateTime?          @map("next_payment_date")
   mpPayerEmail    String?            @map("mp_payer_email")

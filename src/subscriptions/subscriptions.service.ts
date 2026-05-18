@@ -169,14 +169,23 @@ export class SubscriptionsService {
     }
 
     const data: any = { status };
+    const computedTrialEnd = startDate && subscription.plan.trialDays > 0
+      ? new Date(startDate.getTime() + subscription.plan.trialDays * 86400000)
+      : undefined;
+
     if (startDate) {
       data.startDate = startDate;
-      if (subscription.plan.trialDays > 0) {
-        data.trialEndDate = new Date(startDate.getTime() + subscription.plan.trialDays * 86400000);
-      }
     }
 
     await this.prisma.subscription.update({ where: { id: subscription.id }, data });
+
+    if (computedTrialEnd) {
+      await this.prisma.professionalProfile.updateMany({
+        where: { userId: subscription.userId },
+        data: { trialEndDate: computedTrialEnd },
+      });
+    }
+
     this.logger.log(`Subscription ${subscription.id} status -> ${status}`);
 
     // Reactivar perfil profesional cuando la suscripción se activa

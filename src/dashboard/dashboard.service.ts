@@ -10,7 +10,7 @@ export class DashboardService {
   async getProfessionalDashboard(userId: string): Promise<ProfessionalDashboardDto> {
     const profile = await this.prisma.professionalProfile.findUnique({
       where: { userId },
-      select: { id: true },
+      select: { id: true, trialEndDate: true },
     });
 
     if (!profile) {
@@ -53,7 +53,6 @@ export class DashboardService {
         },
         select: {
           endDate: true,
-          trialEndDate: true,
           plan: {
             select: {
               name: true,
@@ -64,7 +63,7 @@ export class DashboardService {
       }),
     ]);
 
-    const trialEndDate = activeSubscription?.trialEndDate ?? null;
+    const trialEndDate = profile?.trialEndDate ?? null;
 
     return {
       totalContacts,
