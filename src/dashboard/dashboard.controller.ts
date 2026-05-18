@@ -1,5 +1,11 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiOkResponse,
+} from '@nestjs/swagger';
 import { DashboardService } from './dashboard.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -7,6 +13,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
+import { ProfessionalDashboardDto } from './dto/professional-dashboard.dto';
 
 @ApiTags('Dashboard')
 @ApiBearerAuth()
@@ -37,5 +44,15 @@ export class DashboardController {
   @ApiResponse({ status: 200, description: 'Lista de aplicaciones a trabajos' })
   async getJobs(@CurrentUser() user: CurrentUserType) {
     return this.dashboardService.getJobs(user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.professional)
+  @Get('professional')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Obtener totalizadores y plan del profesional autenticado' })
+  @ApiOkResponse({ type: ProfessionalDashboardDto })
+  async getProfessionalDashboard(@CurrentUser() user: CurrentUserType) {
+    return this.dashboardService.getProfessionalDashboard(user.userId);
   }
 }
