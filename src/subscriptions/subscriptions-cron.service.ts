@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { PaymentStrategyFactory } from './strategies/payment-strategy.factory';
@@ -21,7 +20,6 @@ export class SubscriptionsCronService {
    * Para cada strategy registrada, busca suscripciones activas con endDate expirado
    * y delega la renovación al strategy correspondiente.
    */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleRenewals() {
     const now = new Date();
     const strategies = this.strategyFactory.getAllStrategies();

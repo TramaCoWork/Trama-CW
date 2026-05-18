@@ -27,6 +27,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { LocationsModule } from './locations/locations.module';
 import { CatalogsModule } from './catalogs/catalogs.module';
 import { DiscountsModule } from './discounts/discounts.module';
+import { BackgroundJobsModule } from './background-jobs/background-jobs.module';
 import { ContactModule } from './contact/contact.module';
 import { MessagesModule } from './messages/messages.module';
 import { AppController } from './app.controller';
@@ -54,6 +55,27 @@ import { AppController } from './app.controller';
         SUBSCRIPTION_NOTIFICATION_URL: Joi.string().optional(),
         TRIAL_DAYS: Joi.number().default(0),
         PAYMENT_MODE: Joi.string().valid('subscription', 'checkout').default('subscription'),
+        CRON_SCHEDULE: Joi.string()
+          .custom((value, helpers) => {
+            if (!value) return value;
+            try {
+              const parsed = JSON.parse(value);
+              if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+                return helpers.error('any.invalid', { message: 'must be a JSON object' });
+              }
+              for (const [key, val] of Object.entries(parsed)) {
+                if (val !== null && typeof val !== 'string') {
+                  return helpers.error('any.invalid', { message: `value for "${key}" must be a string or null` });
+                }
+              }
+              return value;
+            } catch {
+              return helpers.error('any.invalid', { message: 'must be valid JSON' });
+            }
+          })
+          .default(
+            '{"expiredTrials":"0 0 * * *","expiredCancelledSubs":"0 0 * * *","subscriptionRenewals":"0 0 * * *","applyDiscounts":"0 1 * * *","restoreDiscounts":"0 2 * * *"}',
+          ),
         LOG_RETENTION_DAYS: Joi.number().default(90),
         SUPPORT_EMAIL: Joi.string().optional(),
         TURNSTILE_SECRET_KEY: Joi.string().optional(),
@@ -89,6 +111,7 @@ import { AppController } from './app.controller';
     LocationsModule,
     CatalogsModule,
     DiscountsModule,
+    BackgroundJobsModule,
     ContactModule,
     MessagesModule,
   ],

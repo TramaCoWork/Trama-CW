@@ -30,5 +30,6 @@ import { MailModule } from '../mail/mail.module';
     },
     PaymentStrategyFactory,
   ],
+  exports: [SubscriptionsCronService],
 })
 export class SubscriptionsModule {}

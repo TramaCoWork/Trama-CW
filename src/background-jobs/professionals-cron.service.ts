@@ -1,14 +1,47 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { SchedulerRegistry } from '@nestjs/schedule';
+import { CronJob } from 'cron';
 import { PrismaService } from '../prisma/prisma.service';
 
+type CronScheduleConfig = Record<string, string | null>;
+
 @Injectable()
-export class ProfessionalsCronService {
+export class ProfessionalsCronService implements OnModuleInit {
   private readonly logger = new Logger(ProfessionalsCronService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly schedulerRegistry: SchedulerRegistry,
+    private readonly prisma: PrismaService,
+  ) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  onModuleInit() {
+    const cronSchedule = JSON.parse(this.configService.getOrThrow<string>('CRON_SCHEDULE')) as CronScheduleConfig;
+
+    this.registerJob('expiredTrials', cronSchedule.expiredTrials, () => this.handleExpiredTrials());
+    this.registerJob('expiredCancelledSubs', cronSchedule.expiredCancelledSubs, () =>
+      this.handleExpiredCancelledSubscriptions(),
+    );
+  }
+
+  private registerJob(jobName: string, schedule: string | null | undefined, handler: () => Promise<void>) {
+    if (typeof schedule !== 'string') {
+      return;
+    }
+
+    const job = new CronJob(schedule, async () => {
+      const startTime = Date.now();
+      this.logger.log(`Iniciando ${jobName}...`);
+      await handler();
+      this.logger.log(`Finalizado ${jobName} (duración: ${Date.now() - startTime}ms)`);
+    });
+
+    this.logger.log(`Job ${jobName} registrado con schedule: ${schedule}`);
+    this.schedulerRegistry.addCronJob(jobName, job);
+    job.start();
+  }
+
   async handleExpiredTrials() {
     const now = new Date();
 
@@ -29,7 +62,6 @@ export class ProfessionalsCronService {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleExpiredCancelledSubscriptions() {
     const now = new Date();
 
@@ -76,3 +108,5 @@ export class ProfessionalsCronService {
     }
   }
 }
+
+// Traceability: implemented by @programmer at 2026-05-18 18:34:52
