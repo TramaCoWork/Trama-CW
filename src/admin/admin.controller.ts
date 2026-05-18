@@ -21,7 +21,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
-import { UserRole, ProfileStatus, SubscriptionPaymentStatus } from '@prisma/client';
+import { UserRole, ProfileStatus, SubscriptionPaymentStatus, FrequencyType } from '@prisma/client';
 
 @ApiTags('Admin')
 @ApiBearerAuth()
@@ -175,6 +175,30 @@ export class AdminController {
       sizePage: Number(sizePage),
       status,
       search,
+    });
+  }
+
+  @Get('subscription-plans')
+  @ApiOperation({ summary: 'Listar planes de suscripción (paginado, con filtros)' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Página actual (default: 1)' })
+  @ApiQuery({ name: 'sizePage', required: false, type: Number, description: 'Resultados por página (default: 10)' })
+  @ApiQuery({ name: 'isActive', required: false, type: Boolean, description: 'Filtrar por activo/inactivo' })
+  @ApiQuery({ name: 'frequencyType', required: false, enum: FrequencyType, description: 'Filtrar por tipo de frecuencia' })
+  @ApiQuery({ name: 'hasTrial', required: false, type: Boolean, description: 'Filtrar por planes con/sin período de prueba' })
+  @ApiResponse({ status: 200, description: 'Lista paginada de planes de suscripción' })
+  async getSubscriptionPlans(
+    @Query('page') page = 1,
+    @Query('sizePage') sizePage = 10,
+    @Query('isActive') isActive?: string,
+    @Query('frequencyType') frequencyType?: FrequencyType,
+    @Query('hasTrial') hasTrial?: string,
+  ) {
+    return this.adminService.getSubscriptionPlans({
+      page: Number(page),
+      sizePage: Number(sizePage),
+      isActive: isActive !== undefined ? isActive === 'true' : undefined,
+      frequencyType,
+      hasTrial: hasTrial !== undefined ? hasTrial === 'true' : undefined,
     });
   }
 
