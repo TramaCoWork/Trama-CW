@@ -177,6 +177,11 @@ export class ProfessionCategoriesService {
     return this.prisma.professionCategory.findMany({
       where,
       orderBy: [{ order: 'asc' }, { name: 'asc' }],
+      include: {
+        _count: {
+          select: { children: true },
+        },
+      },
     });
   }
 
