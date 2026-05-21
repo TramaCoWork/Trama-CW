@@ -39,7 +39,9 @@ export class ProfessionalsService {
     });
 
     const order = new Map(rows.map((r, i) => [r.id, i]));
-    return profiles.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    return profiles.sort(
+      (a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0),
+    );
   }
 
   async findAll(page: number, sizePage: number) {
@@ -47,10 +49,7 @@ export class ProfessionalsService {
       isActive: true,
       profileStatus: 'active' as const,
       user: { emailVerified: true },
-      OR: [
-        { trialEndDate: null },
-        { trialEndDate: { gte: new Date() } },
-      ],
+      OR: [{ trialEndDate: null }, { trialEndDate: { gte: new Date() } }],
     };
     const [data, total] = await Promise.all([
       this.prisma.professionalProfile.findMany({
@@ -78,7 +77,9 @@ export class ProfessionalsService {
     });
 
     if (!profile) {
-      throw new NotFoundException(`Professional profile for user ${userId} not found`);
+      throw new NotFoundException(
+        `Professional profile for user ${userId} not found`,
+      );
     }
 
     return profile;
@@ -91,16 +92,15 @@ export class ProfessionalsService {
         isActive: true,
         profileStatus: 'active',
         user: { emailVerified: true },
-        OR: [
-          { trialEndDate: null },
-          { trialEndDate: { gte: new Date() } },
-        ],
+        OR: [{ trialEndDate: null }, { trialEndDate: { gte: new Date() } }],
       },
       include: { professionCategories: true, rubro: true },
     });
 
     if (!profile) {
-      throw new NotFoundException(`Professional profile with id ${id} not found`);
+      throw new NotFoundException(
+        `Professional profile with id ${id} not found`,
+      );
     }
 
     return profile;
@@ -112,7 +112,12 @@ export class ProfessionalsService {
     // If emailContact is not provided, default to the user's email
     const emailContact =
       dto.emailContact ??
-      (await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true } })).email;
+      (
+        await this.prisma.user.findUniqueOrThrow({
+          where: { id: userId },
+          select: { email: true },
+        })
+      ).email;
 
     const data: Prisma.ProfessionalProfileCreateInput = {
       user: { connect: { id: userId } },
@@ -120,9 +125,12 @@ export class ProfessionalsService {
       bio: dto.bio,
       photo: dto.photo,
       services: dto.services ?? [],
-      priceMin: dto.priceMin != null ? new Prisma.Decimal(dto.priceMin) : undefined,
-      priceMax: dto.priceMax != null ? new Prisma.Decimal(dto.priceMax) : undefined,
+      priceMin:
+        dto.priceMin != null ? new Prisma.Decimal(dto.priceMin) : undefined,
+      priceMax:
+        dto.priceMax != null ? new Prisma.Decimal(dto.priceMax) : undefined,
       city: dto.city,
+      address: dto.address,
       rubro: dto.rubroId ? { connect: { id: dto.rubroId } } : undefined,
       professionCategories: {
         connect: (dto.professionCategoryIds ?? []).map((id) => ({ id })),
@@ -150,12 +158,18 @@ export class ProfessionalsService {
 
     const updateData: Prisma.ProfessionalProfileUpdateInput = {
       ...rest,
-      priceMin: dto.priceMin != null ? new Prisma.Decimal(dto.priceMin) : undefined,
-      priceMax: dto.priceMax != null ? new Prisma.Decimal(dto.priceMax) : undefined,
+      priceMin:
+        dto.priceMin != null ? new Prisma.Decimal(dto.priceMin) : undefined,
+      priceMax:
+        dto.priceMax != null ? new Prisma.Decimal(dto.priceMax) : undefined,
       ...(rubroId ? { rubro: { connect: { id: rubroId } } } : {}),
-      ...(professionCategoryIds ? {
-        professionCategories: { set: professionCategoryIds.map((id) => ({ id })) },
-      } : {}),
+      ...(professionCategoryIds
+        ? {
+            professionCategories: {
+              set: professionCategoryIds.map((id) => ({ id })),
+            },
+          }
+        : {}),
     };
 
     const updated = await this.prisma.professionalProfile.update({
@@ -181,7 +195,9 @@ export class ProfessionalsService {
       data: {
         ...dto,
         birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
-        pricePerHour: dto.pricePerHour ? new Prisma.Decimal(dto.pricePerHour) : undefined,
+        pricePerHour: dto.pricePerHour
+          ? new Prisma.Decimal(dto.pricePerHour)
+          : undefined,
         currentStep: Math.max(profile.currentStep, 2),
       },
       include: { professionCategories: true },
@@ -190,13 +206,21 @@ export class ProfessionalsService {
     return this.recalculateAndReturn(updated);
   }
 
-  async updateProfessionalInfo(userId: string, id: string, dto: UpdateProfessionalInfoDto) {
+  async updateProfessionalInfo(
+    userId: string,
+    id: string,
+    dto: UpdateProfessionalInfoDto,
+  ) {
     const profile = await this.getOwnProfile(userId, id);
 
     const { professionCategoryIds, services, ...rest } = dto;
 
     // Validate professionCategoryIds belong to the professional's rubro
-    if (professionCategoryIds && professionCategoryIds.length > 0 && profile.rubroId) {
+    if (
+      professionCategoryIds &&
+      professionCategoryIds.length > 0 &&
+      profile.rubroId
+    ) {
       const validCategories = await this.prisma.professionCategory.findMany({
         where: {
           id: { in: professionCategoryIds },
@@ -218,9 +242,13 @@ export class ProfessionalsService {
       data: {
         ...rest,
         ...(services ? { services } : {}),
-        ...(professionCategoryIds ? {
-          professionCategories: { set: professionCategoryIds.map((id) => ({ id })) },
-        } : {}),
+        ...(professionCategoryIds
+          ? {
+              professionCategories: {
+                set: professionCategoryIds.map((id) => ({ id })),
+              },
+            }
+          : {}),
         currentStep: Math.max(profile.currentStep, 3),
       },
       include: { professionCategories: true },
@@ -231,7 +259,11 @@ export class ProfessionalsService {
 
   // ─── Education CRUD ──────────────────────────────────────────────────────
 
-  async addEducation(userId: string, profileId: string, dto: CreateEducationDto) {
+  async addEducation(
+    userId: string,
+    profileId: string,
+    dto: CreateEducationDto,
+  ) {
     const profile = await this.getOwnProfile(userId, profileId);
 
     const education = await this.prisma.education.create({
@@ -249,7 +281,12 @@ export class ProfessionalsService {
     return education;
   }
 
-  async updateEducation(userId: string, profileId: string, educationId: string, dto: CreateEducationDto) {
+  async updateEducation(
+    userId: string,
+    profileId: string,
+    educationId: string,
+    dto: CreateEducationDto,
+  ) {
     await this.getOwnProfile(userId, profileId);
 
     return this.prisma.education.update({
@@ -258,7 +295,11 @@ export class ProfessionalsService {
     });
   }
 
-  async deleteEducation(userId: string, profileId: string, educationId: string) {
+  async deleteEducation(
+    userId: string,
+    profileId: string,
+    educationId: string,
+  ) {
     await this.getOwnProfile(userId, profileId);
 
     await this.prisma.education.delete({ where: { id: educationId } });
@@ -277,7 +318,11 @@ export class ProfessionalsService {
 
   // ─── Certification CRUD ──────────────────────────────────────────────────
 
-  async addCertification(userId: string, profileId: string, dto: CreateCertificationDto) {
+  async addCertification(
+    userId: string,
+    profileId: string,
+    dto: CreateCertificationDto,
+  ) {
     const profile = await this.getOwnProfile(userId, profileId);
 
     const certification = await this.prisma.certification.create({
@@ -295,7 +340,12 @@ export class ProfessionalsService {
     return certification;
   }
 
-  async updateCertification(userId: string, profileId: string, certId: string, dto: CreateCertificationDto) {
+  async updateCertification(
+    userId: string,
+    profileId: string,
+    certId: string,
+    dto: CreateCertificationDto,
+  ) {
     await this.getOwnProfile(userId, profileId);
 
     return this.prisma.certification.update({
@@ -323,7 +373,11 @@ export class ProfessionalsService {
 
   // ─── Preferences & Motivation ────────────────────────────────────────────
 
-  async updatePreferences(userId: string, id: string, dto: UpdatePreferencesDto) {
+  async updatePreferences(
+    userId: string,
+    id: string,
+    dto: UpdatePreferencesDto,
+  ) {
     const profile = await this.getOwnProfile(userId, id);
 
     const updated = await this.prisma.professionalProfile.update({
@@ -364,9 +418,10 @@ export class ProfessionalsService {
     if (!profile.dni) missing.push('DNI');
     if (!profile.city) missing.push('ciudad');
 
-
     if (missing.length > 0) {
-      throw new BadRequestException(`Faltan campos obligatorios: ${missing.join(', ')}`);
+      throw new BadRequestException(
+        `Faltan campos obligatorios: ${missing.join(', ')}`,
+      );
     }
 
     // Verificar que tiene al menos un documento CV
@@ -375,7 +430,9 @@ export class ProfessionalsService {
     });
 
     if (!cvDoc) {
-      throw new BadRequestException('Debes subir tu CV antes de enviar para revision');
+      throw new BadRequestException(
+        'Debes subir tu CV antes de enviar para revision',
+      );
     }
 
     const updated = await this.prisma.professionalProfile.update({
@@ -401,17 +458,23 @@ export class ProfessionalsService {
     });
 
     if (!profile) {
-      throw new NotFoundException(`Professional profile with id ${id} not found`);
+      throw new NotFoundException(
+        `Professional profile with id ${id} not found`,
+      );
     }
 
     if (profile.userId !== userId) {
-      throw new ForbiddenException('You are not allowed to modify this profile');
+      throw new ForbiddenException(
+        'You are not allowed to modify this profile',
+      );
     }
 
     return profile;
   }
 
-  private async recalculateAndReturn(profile: ProfessionalProfile & { professionCategories: any[] }) {
+  private async recalculateAndReturn(
+    profile: ProfessionalProfile & { professionCategories: any[] },
+  ) {
     const completionPct = this.calculateCompletion(profile);
     return this.prisma.professionalProfile.update({
       where: { id: profile.id },
@@ -419,7 +482,9 @@ export class ProfessionalsService {
     });
   }
 
-  private calculateCompletion(profile: ProfessionalProfile & { professionCategories: any[] }): number {
+  private calculateCompletion(
+    profile: ProfessionalProfile & { professionCategories: any[] },
+  ): number {
     const checks: boolean[] = [
       Boolean(profile.name),
       Boolean(profile.bio),
@@ -428,10 +493,10 @@ export class ProfessionalsService {
       profile.priceMin !== null || profile.pricePerHour !== null,
       Boolean(profile.city),
       Boolean(profile.rubroId),
-      Array.isArray(profile.professionCategories) && profile.professionCategories.length > 0,
+      Array.isArray(profile.professionCategories) &&
+        profile.professionCategories.length > 0,
       Boolean(profile.whatsapp) || Boolean(profile.emailContact),
       Boolean(profile.dni),
-
     ];
 
     const filled = checks.filter(Boolean).length;

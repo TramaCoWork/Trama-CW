@@ -47,6 +47,7 @@ class ProfessionalItem {
   @ApiProperty({ required: false, nullable: true }) priceMin: string | null;
   @ApiProperty({ required: false, nullable: true }) priceMax: string | null;
   @ApiProperty({ required: false, nullable: true }) city: string | null;
+  @ApiProperty({ required: false, nullable: true }) address: string | null;
   @ApiProperty({ required: false, nullable: true }) whatsapp: string | null;
   @ApiProperty({ required: false, nullable: true }) emailContact: string | null;
   @ApiProperty() completionPct: number;
@@ -71,19 +72,29 @@ export class ProfessionalsController {
 
   @Get()
   @ApiOperation({ summary: 'Listar profesionales activos (paginado)' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Pagina actual (default: 1)' })
-  @ApiQuery({ name: 'sizePage', required: false, type: Number, description: 'Resultados por pagina (default: 10)' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Pagina actual (default: 1)',
+  })
+  @ApiQuery({
+    name: 'sizePage',
+    required: false,
+    type: Number,
+    description: 'Resultados por pagina (default: 10)',
+  })
   @ApiOkResponse({ type: PaginatedProfessionalsResponse })
-  findAll(
-    @Query('page') page = 1,
-    @Query('sizePage') sizePage = 10,
-  ) {
+  findAll(@Query('page') page = 1, @Query('sizePage') sizePage = 10) {
     return this.professionalsService.findAll(Number(page), Number(sizePage));
   }
 
   @Get('featured')
   @ApiOperation({ summary: 'Obtener 6 profesionales destacados al azar' })
-  @ApiResponse({ status: 200, description: 'Lista de profesionales destacados' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de profesionales destacados',
+  })
   findFeatured() {
     return this.professionalsService.findFeatured();
   }
@@ -91,7 +102,10 @@ export class ProfessionalsController {
   @Get('by-user/:userId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Obtener perfil completo por userId (incluye educacion, certificaciones, documentos)' })
+  @ApiOperation({
+    summary:
+      'Obtener perfil completo por userId (incluye educacion, certificaciones, documentos)',
+  })
   @ApiResponse({ status: 200, description: 'Perfil completo del profesional' })
   @ApiResponse({ status: 404, description: 'Perfil no encontrado' })
   findByUserId(@Param('userId') userId: string) {
@@ -170,7 +184,11 @@ export class ProfessionalsController {
     @Param('id') id: string,
     @Body() dto: UpdateProfessionalInfoDto,
   ) {
-    return this.professionalsService.updateProfessionalInfo(user.userId, id, dto);
+    return this.professionalsService.updateProfessionalInfo(
+      user.userId,
+      id,
+      dto,
+    );
   }
 
   // ─── Seccion 3: Formacion academica ─────────────────────────────────────
@@ -180,11 +198,11 @@ export class ProfessionalsController {
   @Roles(UserRole.professional)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Listar formacion academica del perfil' })
-  @ApiResponse({ status: 200, description: 'Lista de formaciones con documentos adjuntos' })
-  getEducations(
-    @CurrentUser() user: CurrentUserType,
-    @Param('id') id: string,
-  ) {
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de formaciones con documentos adjuntos',
+  })
+  getEducations(@CurrentUser() user: CurrentUserType, @Param('id') id: string) {
     return this.professionalsService.getEducations(user.userId, id);
   }
 
@@ -216,7 +234,12 @@ export class ProfessionalsController {
     @Param('educationId') educationId: string,
     @Body() dto: CreateEducationDto,
   ) {
-    return this.professionalsService.updateEducation(user.userId, id, educationId, dto);
+    return this.professionalsService.updateEducation(
+      user.userId,
+      id,
+      educationId,
+      dto,
+    );
   }
 
   @Delete(':id/education/:educationId')
@@ -230,7 +253,11 @@ export class ProfessionalsController {
     @Param('id') id: string,
     @Param('educationId') educationId: string,
   ) {
-    return this.professionalsService.deleteEducation(user.userId, id, educationId);
+    return this.professionalsService.deleteEducation(
+      user.userId,
+      id,
+      educationId,
+    );
   }
 
   // ─── Seccion 4: Certificaciones ─────────────────────────────────────────
@@ -240,7 +267,10 @@ export class ProfessionalsController {
   @Roles(UserRole.professional)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Listar certificaciones del perfil' })
-  @ApiResponse({ status: 200, description: 'Lista de certificaciones con documentos adjuntos' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de certificaciones con documentos adjuntos',
+  })
   getCertifications(
     @CurrentUser() user: CurrentUserType,
     @Param('id') id: string,
@@ -276,7 +306,12 @@ export class ProfessionalsController {
     @Param('certId') certId: string,
     @Body() dto: CreateCertificationDto,
   ) {
-    return this.professionalsService.updateCertification(user.userId, id, certId, dto);
+    return this.professionalsService.updateCertification(
+      user.userId,
+      id,
+      certId,
+      dto,
+    );
   }
 
   @Delete(':id/certifications/:certId')
@@ -290,7 +325,11 @@ export class ProfessionalsController {
     @Param('id') id: string,
     @Param('certId') certId: string,
   ) {
-    return this.professionalsService.deleteCertification(user.userId, id, certId);
+    return this.professionalsService.deleteCertification(
+      user.userId,
+      id,
+      certId,
+    );
   }
 
   // ─── Seccion 6+7: Intereses y modalidad ─────────────────────────────────
@@ -299,7 +338,9 @@ export class ProfessionalsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.professional)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Actualizar intereses y modalidad de uso (secciones 6+7)' })
+  @ApiOperation({
+    summary: 'Actualizar intereses y modalidad de uso (secciones 6+7)',
+  })
   @ApiResponse({ status: 200, description: 'Preferencias actualizadas' })
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   updatePreferences(
@@ -316,7 +357,9 @@ export class ProfessionalsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.professional)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Actualizar motivacion / pregunta filtro (seccion 8)' })
+  @ApiOperation({
+    summary: 'Actualizar motivacion / pregunta filtro (seccion 8)',
+  })
   @ApiResponse({ status: 200, description: 'Motivacion actualizada' })
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   updateMotivation(
@@ -333,13 +376,13 @@ export class ProfessionalsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.professional)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Enviar perfil para revision (seccion 9 - consentimiento + submit)' })
+  @ApiOperation({
+    summary:
+      'Enviar perfil para revision (seccion 9 - consentimiento + submit)',
+  })
   @ApiResponse({ status: 201, description: 'Perfil enviado para revision' })
   @ApiResponse({ status: 400, description: 'Faltan campos obligatorios o CV' })
-  submit(
-    @CurrentUser() user: CurrentUserType,
-    @Param('id') id: string,
-  ) {
+  submit(@CurrentUser() user: CurrentUserType, @Param('id') id: string) {
     return this.professionalsService.submitForReview(user.userId, id);
   }
 }

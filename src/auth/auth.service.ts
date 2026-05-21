@@ -43,7 +43,10 @@ export class AuthService {
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
   ) {
-    this.frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:4321');
+    this.frontendUrl = this.configService.get<string>(
+      'FRONTEND_URL',
+      'http://localhost:4321',
+    );
   }
 
   async register(dto: RegisterDto): Promise<TokenResponse> {
@@ -152,7 +155,9 @@ export class AuthService {
       });
 
       if (!rubro) {
-        throw new BadRequestException('Rubro invalido. Debe ser un rubro de nivel 1');
+        throw new BadRequestException(
+          'Rubro invalido. Debe ser un rubro de nivel 1',
+        );
       }
     }
 
@@ -167,6 +172,7 @@ export class AuthService {
           create: {
             name: dto.name,
             city: dto.city,
+            address: dto.address,
             countryId: dto.countryId,
             provinceId: dto.provinceId,
             whatsapp: dto.whatsapp,
@@ -190,7 +196,9 @@ export class AuthService {
     try {
       payload = this.jwtService.verify<VerificationPayload>(token);
     } catch {
-      throw new BadRequestException('Token de verificacion invalido o expirado');
+      throw new BadRequestException(
+        'Token de verificacion invalido o expirado',
+      );
     }
 
     if (payload.purpose !== 'email-verification') {
@@ -223,7 +231,9 @@ export class AuthService {
     });
 
     if (!user) {
-      return { message: 'Si el email existe, se envio un nuevo enlace de verificacion' };
+      return {
+        message: 'Si el email existe, se envio un nuevo enlace de verificacion',
+      };
     }
 
     if (user.emailVerified) {
@@ -232,7 +242,9 @@ export class AuthService {
 
     this.sendVerificationEmail(user.id, user.email);
 
-    return { message: 'Si el email existe, se envio un nuevo enlace de verificacion' };
+    return {
+      message: 'Si el email existe, se envio un nuevo enlace de verificacion',
+    };
   }
 
   async forgotPassword(email: string): Promise<{ message: string }> {
@@ -243,7 +255,10 @@ export class AuthService {
 
     if (user) {
       const rawToken = crypto.randomBytes(32).toString('hex');
-      const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+      const hashedToken = crypto
+        .createHash('sha256')
+        .update(rawToken)
+        .digest('hex');
       const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
       await this.prisma.user.update({
@@ -257,26 +272,39 @@ export class AuthService {
     }
 
     // Generic message — don't reveal if email exists
-    return { message: 'Si el email esta registrado, recibiras un enlace para restablecer tu contraseña' };
+    return {
+      message:
+        'Si el email esta registrado, recibiras un enlace para restablecer tu contraseña',
+    };
   }
 
-  async resetPassword(userId: string, token: string, newPassword: string): Promise<{ message: string }> {
+  async resetPassword(
+    userId: string,
+    token: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
 
     if (!user || !user.resetToken || !user.resetTokenExpiry) {
-      throw new BadRequestException('Token de recuperacion invalido o expirado');
+      throw new BadRequestException(
+        'Token de recuperacion invalido o expirado',
+      );
     }
 
     if (user.resetTokenExpiry < new Date()) {
-      throw new BadRequestException('Token de recuperacion invalido o expirado');
+      throw new BadRequestException(
+        'Token de recuperacion invalido o expirado',
+      );
     }
 
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
     if (hashedToken !== user.resetToken) {
-      throw new BadRequestException('Token de recuperacion invalido o expirado');
+      throw new BadRequestException(
+        'Token de recuperacion invalido o expirado',
+      );
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
@@ -294,7 +322,11 @@ export class AuthService {
     return { message: 'Contraseña restablecida exitosamente' };
   }
 
-  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -303,7 +335,10 @@ export class AuthService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    const passwordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    const passwordValid = await bcrypt.compare(
+      currentPassword,
+      user.passwordHash,
+    );
 
     if (!passwordValid) {
       throw new UnauthorizedException('La contraseña actual es incorrecta');
@@ -319,7 +354,11 @@ export class AuthService {
     return { message: 'Contraseña actualizada exitosamente' };
   }
 
-  private sendVerificationEmail(userId: string, email: string, name?: string): void {
+  private sendVerificationEmail(
+    userId: string,
+    email: string,
+    name?: string,
+  ): void {
     const token = this.jwtService.sign(
       { sub: userId, purpose: 'email-verification' },
       { expiresIn: '24h' },

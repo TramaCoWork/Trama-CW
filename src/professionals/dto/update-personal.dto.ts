@@ -1,9 +1,19 @@
-import { IsString, IsOptional, IsEnum, IsNumber, IsDateString, IsInt } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  IsDateString,
+  IsInt,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { WorkModality } from '@prisma/client';
 
 export class UpdatePersonalDto {
-  @ApiPropertyOptional({ example: 'Ana García', description: 'Nombre completo' })
+  @ApiPropertyOptional({
+    example: 'Ana García',
+    description: 'Nombre completo',
+  })
   @IsOptional()
   @IsString()
   name?: string;
@@ -13,25 +23,45 @@ export class UpdatePersonalDto {
   @IsString()
   dni?: string;
 
-  @ApiPropertyOptional({ example: '1990-05-15', description: 'Fecha de nacimiento (ISO)' })
+  @ApiPropertyOptional({
+    example: '1990-05-15',
+    description: 'Fecha de nacimiento (ISO)',
+  })
   @IsOptional()
   @IsDateString()
   birthDate?: string;
 
-  @ApiPropertyOptional({ example: 'https://linkedin.com/in/ana-garcia', description: 'Perfil de LinkedIn' })
+  @ApiPropertyOptional({
+    example: 'https://linkedin.com/in/ana-garcia',
+    description: 'Perfil de LinkedIn',
+  })
   @IsOptional()
   @IsString()
   linkedin?: string;
 
-  @ApiPropertyOptional({ example: '+5491112345678', description: 'Numero de WhatsApp' })
+  @ApiPropertyOptional({
+    example: '+5491112345678',
+    description: 'Numero de WhatsApp',
+  })
   @IsOptional()
   @IsString()
   whatsapp?: string;
 
-  @ApiPropertyOptional({ example: 'Buenos Aires', description: 'Ciudad de residencia (texto libre)' })
+  @ApiPropertyOptional({
+    example: 'Buenos Aires',
+    description: 'Ciudad de residencia (texto libre)',
+  })
   @IsOptional()
   @IsString()
   city?: string;
+
+  @ApiPropertyOptional({
+    example: 'Av. Corrientes 1234',
+    description: 'Dirección de residencia (texto libre)',
+  })
+  @IsOptional()
+  @IsString()
+  address?: string;
 
   @ApiPropertyOptional({ example: 1, description: 'ID del país' })
   @IsOptional()
@@ -48,7 +78,10 @@ export class UpdatePersonalDto {
   @IsString()
   pricePerHour?: string;
 
-  @ApiPropertyOptional({ enum: WorkModality, description: 'Modalidad de trabajo' })
+  @ApiPropertyOptional({
+    enum: WorkModality,
+    description: 'Modalidad de trabajo',
+  })
   @IsOptional()
   @IsEnum(WorkModality)
   workModality?: WorkModality;

@@ -163,6 +163,7 @@ model ProfessionalProfile {
   priceMin      Decimal?      @map("price_min") @db.Decimal(10, 2)
   priceMax      Decimal?      @map("price_max") @db.Decimal(10, 2)
   city          String?
+  address       String?
   whatsapp      String?
   emailContact  String?       @map("email_contact")
   isActive      Boolean       @default(false) @map("is_active")

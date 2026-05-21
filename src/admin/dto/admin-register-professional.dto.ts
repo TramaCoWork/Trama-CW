@@ -32,6 +32,14 @@ export class AdminRegisterProfessionalDto {
   @IsString()
   city?: string;
 
+  @ApiPropertyOptional({
+    example: 'Av. Corrientes 1234',
+    description: 'Dirección de residencia (texto libre)',
+  })
+  @IsOptional()
+  @IsString()
+  address?: string;
+
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @IsInt()

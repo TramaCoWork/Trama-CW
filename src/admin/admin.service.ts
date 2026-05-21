@@ -1,6 +1,18 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma, ProfileStatus, SubscriptionPaymentStatus, FrequencyType, SubscriptionStatus, UserRole } from '@prisma/client';
+import {
+  Prisma,
+  ProfileStatus,
+  SubscriptionPaymentStatus,
+  FrequencyType,
+  SubscriptionStatus,
+  UserRole,
+} from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
@@ -18,7 +30,9 @@ export class AdminService {
   ) {}
 
   async registerProfessional(dto: AdminRegisterProfessionalDto) {
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     if (existing) throw new ConflictException('Email already in use');
 
     if (dto.rubroId) {
@@ -30,7 +44,9 @@ export class AdminService {
 
     if (dto.professionCategoryIds && dto.professionCategoryIds.length > 0) {
       if (!dto.rubroId) {
-        throw new BadRequestException('Debe indicar rubroId si envía professionCategoryIds');
+        throw new BadRequestException(
+          'Debe indicar rubroId si envía professionCategoryIds',
+        );
       }
 
       const validCategories = await this.prisma.professionCategory.findMany({
@@ -43,7 +59,9 @@ export class AdminService {
       });
 
       if (validCategories.length !== dto.professionCategoryIds.length) {
-        throw new BadRequestException('Algunas profesiones seleccionadas no pertenecen al rubro indicado');
+        throw new BadRequestException(
+          'Algunas profesiones seleccionadas no pertenecen al rubro indicado',
+        );
       }
     }
 
@@ -60,6 +78,7 @@ export class AdminService {
             create: {
               name: dto.name,
               city: dto.city,
+              address: dto.address,
               photo: dto.photo,
               dni: dto.document,
               rubroId: dto.rubroId ?? null,
@@ -67,10 +86,17 @@ export class AdminService {
               provinceId: dto.provinceId ?? null,
               whatsapp: dto.whatsapp,
               profileStatus: dto.profileStatus ?? ProfileStatus.active,
-              trialEndDate: dto.trialEndDate ? new Date(dto.trialEndDate) : null,
+              trialEndDate: dto.trialEndDate
+                ? new Date(dto.trialEndDate)
+                : null,
               services: [],
-              ...(dto.professionCategoryIds && dto.professionCategoryIds.length > 0
-                ? { professionCategories: { connect: dto.professionCategoryIds.map((id) => ({ id })) } }
+              ...(dto.professionCategoryIds &&
+              dto.professionCategoryIds.length > 0
+                ? {
+                    professionCategories: {
+                      connect: dto.professionCategoryIds.map((id) => ({ id })),
+                    },
+                  }
                 : {}),
             },
           },
@@ -101,7 +127,16 @@ export class AdminService {
     countryId?: number;
     provinceId?: number;
   }) {
-    const { page, sizePage, profileStatus, isActive, search, rubroId, countryId, provinceId } = filters;
+    const {
+      page,
+      sizePage,
+      profileStatus,
+      isActive,
+      search,
+      rubroId,
+      countryId,
+      provinceId,
+    } = filters;
 
     const where: Prisma.ProfessionalProfileWhereInput = {};
 
@@ -182,7 +217,11 @@ export class AdminService {
 
   // ─── Validacion con registro ─────────────────────────────────────────────
 
-  async validateProfile(adminUserId: string, profileId: string, dto: ValidateProfileDto) {
+  async validateProfile(
+    adminUserId: string,
+    profileId: string,
+    dto: ValidateProfileDto,
+  ) {
     const profile = await this.findProfileOrThrow(profileId);
 
     // Crear registro de validacion
@@ -205,9 +244,10 @@ export class AdminService {
       data: {
         profileStatus: isApproved ? 'active' : 'rejected',
         isActive: isApproved,
-        ...(isApproved && trialDays > 0 && {
-          trialEndDate: new Date(Date.now() + trialDays * 86400000),
-        }),
+        ...(isApproved &&
+          trialDays > 0 && {
+            trialEndDate: new Date(Date.now() + trialDays * 86400000),
+          }),
       },
     });
 
@@ -222,7 +262,11 @@ export class AdminService {
       if (isApproved) {
         await this.mailService.sendProfileApproved(user.email, name);
       } else {
-        await this.mailService.sendProfileRejected(user.email, name, dto.reviewNotes);
+        await this.mailService.sendProfileRejected(
+          user.email,
+          name,
+          dto.reviewNotes,
+        );
       }
     }
 
@@ -285,7 +329,11 @@ export class AdminService {
 
   // ─── Verificacion de documentos ───────────────────────────────────────────
 
-  async verifyDocument(adminUserId: string, documentId: string, dto: VerifyDocumentDto) {
+  async verifyDocument(
+    adminUserId: string,
+    documentId: string,
+    dto: VerifyDocumentDto,
+  ) {
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
     });
@@ -374,7 +422,9 @@ export class AdminService {
         where,
         include: {
           user: { select: { id: true, email: true } },
-          plan: { select: { id: true, name: true, amount: true, frequencyType: true } },
+          plan: {
+            select: { id: true, name: true, amount: true, frequencyType: true },
+          },
           _count: { select: { payments: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -422,7 +472,11 @@ export class AdminService {
     return { data, total, page, sizePage };
   }
 
-  async getProfessionalSubscriptionPayments(profileId: string, page = 1, sizePage = 10) {
+  async getProfessionalSubscriptionPayments(
+    profileId: string,
+    page = 1,
+    sizePage = 10,
+  ) {
     const profile = await this.findProfileOrThrow(profileId);
 
     const where: Prisma.SubscriptionPaymentWhereInput = {
@@ -434,7 +488,10 @@ export class AdminService {
         where,
         include: {
           subscription: {
-            select: { externalId: true, plan: { select: { id: true, name: true } } },
+            select: {
+              externalId: true,
+              plan: { select: { id: true, name: true } },
+            },
           },
         },
         orderBy: { createdAt: 'desc' },
@@ -453,7 +510,15 @@ export class AdminService {
     const profile = await this.prisma.professionalProfile.findUnique({
       where: { id },
       include: {
-        user: { select: { id: true, email: true, role: true, emailVerified: true, createdAt: true } },
+        user: {
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            emailVerified: true,
+            createdAt: true,
+          },
+        },
         rubro: true,
         country: true,
         province: true,
