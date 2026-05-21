@@ -16,6 +16,7 @@ import { CreateJobDto } from './dto/create-job.dto';
 import { ValidateProfileDto } from './dto/validate-profile.dto';
 import { VerifyDocumentDto } from './dto/verify-document.dto';
 import { SetTrialDateDto } from './dto/set-trial-date.dto';
+import { AdminRegisterProfessionalDto } from './dto/admin-register-professional.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -76,6 +77,17 @@ export class AdminController {
   @ApiResponse({ status: 200, description: 'Lista de profesionales en estado pending_review' })
   async getPendingReview() {
     return this.adminService.getPendingReview();
+  }
+
+  @Post('professionals/register')
+  @ApiOperation({ summary: 'Registrar un profesional manualmente (admin)' })
+  @ApiResponse({ status: 201, description: 'Profesional creado exitosamente' })
+  @ApiResponse({ status: 409, description: 'Email ya en uso' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos' })
+  async registerProfessional(
+    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: AdminRegisterProfessionalDto,
+  ) {
+    return this.adminService.registerProfessional(dto);
   }
 
   @Post('professionals/:id/approve')

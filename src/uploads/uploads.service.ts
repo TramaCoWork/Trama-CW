@@ -172,6 +172,42 @@ export class UploadsService {
     return { url };
   }
 
+  async adminUploadPhoto(profileId: string, file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No se envio ningun archivo');
+    }
+
+    if (!ALLOWED_PHOTO_MIME_TYPES.includes(file.mimetype)) {
+      throw new BadRequestException('Tipo de archivo no permitido. Solo JPG, PNG y WebP');
+    }
+
+    if (file.size > MAX_PHOTO_SIZE) {
+      throw new BadRequestException('El archivo excede el tamaño maximo de 2MB');
+    }
+
+    const profile = await this.prisma.professionalProfile.findUnique({
+      where: { id: profileId },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Perfil profesional no encontrado');
+    }
+
+    if (profile.photo) {
+      const oldRelativePath = profile.photo.replace('/uploads/', '');
+      await this.storage.delete(oldRelativePath);
+    }
+
+    const { url } = await this.storage.upload(file, `photos/${profile.id}`);
+
+    await this.prisma.professionalProfile.update({
+      where: { id: profile.id },
+      data: { photo: url },
+    });
+
+    return { url };
+  }
+
   async getPhotoFile(profileId: string) {
     const profile = await this.prisma.professionalProfile.findUnique({
       where: { id: profileId },

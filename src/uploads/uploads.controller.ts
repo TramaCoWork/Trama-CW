@@ -11,6 +11,9 @@ import {
   UploadedFiles,
   Res,
   ParseUUIDPipe,
+  ParseFilePipe,
+  FileTypeValidator,
+  MaxFileSizeValidator,
 } from '@nestjs/common';
 import { FileInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 import {
@@ -125,6 +128,39 @@ export class UploadsController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     return this.uploadsService.uploadPhoto(user.userId, file);
+  }
+
+  @Post('admin/professionals/:id/photo')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.admin)
+  @ApiBearerAuth()
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 2 * 1024 * 1024 } }))
+  @ApiOperation({ summary: 'Subir foto de perfil de un profesional (admin)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, description: 'Foto subida exitosamente' })
+  @ApiResponse({ status: 404, description: 'Perfil profesional no encontrado' })
+  async adminUploadPhoto(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new FileTypeValidator({ fileType: /(jpg|jpeg|png|webp)$/ }),
+          new MaxFileSizeValidator({ maxSize: 2 * 1024 * 1024 }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    const { url } = await this.uploadsService.adminUploadPhoto(id, file);
+    return { message: 'Foto subida exitosamente', url };
   }
 
   @Get('photo/:profileId')

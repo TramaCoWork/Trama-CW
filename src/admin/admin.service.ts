@@ -1,11 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma, ProfileStatus, SubscriptionPaymentStatus, FrequencyType, SubscriptionStatus } from '@prisma/client';
+import { Prisma, ProfileStatus, SubscriptionPaymentStatus, FrequencyType, SubscriptionStatus, UserRole } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { CreateJobDto } from './dto/create-job.dto';
 import { ValidateProfileDto } from './dto/validate-profile.dto';
 import { VerifyDocumentDto } from './dto/verify-document.dto';
+import { AdminRegisterProfessionalDto } from './dto/admin-register-professional.dto';
 
 @Injectable()
 export class AdminService {
@@ -14,6 +16,78 @@ export class AdminService {
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
   ) {}
+
+  async registerProfessional(dto: AdminRegisterProfessionalDto) {
+    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (existing) throw new ConflictException('Email already in use');
+
+    if (dto.rubroId) {
+      const rubro = await this.prisma.professionCategory.findFirst({
+        where: { id: dto.rubroId, level: 1, isActive: true },
+      });
+      if (!rubro) throw new BadRequestException('Rubro inválido o inactivo');
+    }
+
+    if (dto.professionCategoryIds && dto.professionCategoryIds.length > 0) {
+      if (!dto.rubroId) {
+        throw new BadRequestException('Debe indicar rubroId si envía professionCategoryIds');
+      }
+
+      const validCategories = await this.prisma.professionCategory.findMany({
+        where: {
+          id: { in: dto.professionCategoryIds },
+          level: 3,
+          isActive: true,
+          parent: { parentId: dto.rubroId },
+        },
+      });
+
+      if (validCategories.length !== dto.professionCategoryIds.length) {
+        throw new BadRequestException('Algunas profesiones seleccionadas no pertenecen al rubro indicado');
+      }
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+
+    const user = await this.prisma.$transaction(async (tx) => {
+      return tx.user.create({
+        data: {
+          email: dto.email,
+          passwordHash,
+          role: UserRole.professional,
+          emailVerified: dto.emailVerified ?? true,
+          profile: {
+            create: {
+              name: dto.name,
+              city: dto.city,
+              photo: dto.photo,
+              dni: dto.document,
+              rubroId: dto.rubroId ?? null,
+              countryId: dto.countryId ?? null,
+              provinceId: dto.provinceId ?? null,
+              whatsapp: dto.whatsapp,
+              profileStatus: dto.profileStatus ?? ProfileStatus.active,
+              trialEndDate: dto.trialEndDate ? new Date(dto.trialEndDate) : null,
+              services: [],
+              ...(dto.professionCategoryIds && dto.professionCategoryIds.length > 0
+                ? { professionCategories: { connect: dto.professionCategoryIds.map((id) => ({ id })) } }
+                : {}),
+            },
+          },
+        },
+        include: {
+          profile: {
+            include: { professionCategories: true, rubro: true },
+          },
+        },
+      });
+    });
+
+    return {
+      message: 'Profesional registrado exitosamente',
+      user,
+    };
+  }
 
   // ─── Profesionales pendientes ────────────────────────────────────────────
 
