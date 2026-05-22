@@ -318,9 +318,9 @@ export class AdminService {
     if (dto.isActive !== undefined || dto.is_active !== undefined) {
       data.isActive = dto.isActive ?? dto.is_active;
     }
-    if (dto.rubroId !== undefined) data.rubroId = dto.rubroId;
-    if (dto.countryId !== undefined) data.countryId = dto.countryId;
-    if (dto.provinceId !== undefined) data.provinceId = dto.provinceId;
+    if (dto.rubroId !== undefined) data.rubro = { connect: { id: dto.rubroId } };
+    if (dto.countryId !== undefined) data.country = { connect: { id: dto.countryId } };
+    if (dto.provinceId !== undefined) data.province = { connect: { id: dto.provinceId } };
     if (dto.profileStatus !== undefined) data.profileStatus = dto.profileStatus;
     if (dto.trialEndDate !== undefined) data.trialEndDate = new Date(dto.trialEndDate);
     if (dto.professionCategoryIds !== undefined) {
