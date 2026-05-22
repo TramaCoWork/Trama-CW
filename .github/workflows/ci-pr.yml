@@ -1,0 +1,57 @@
+name: CI — Tests
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: trama
+          POSTGRES_PASSWORD: trama_secret
+          POSTGRES_DB: trama_cowork_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U trama -d trama_cowork_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://trama:trama_secret@localhost:5432/trama_cowork_test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+      - name: Seed test database
+        run: npx ts-node --compiler-options '{"module":"CommonJS"}' prisma/seed-dev.ts
+
+      - name: Run E2E tests
+        run: npx jest --config test/jest-e2e.json --forceExit --detectOpenHandles
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          JWT_SECRET: test_jwt_secret
+          JWT_EXPIRES_IN: 7d
+          NODE_ENV: test
+          PORT: 3001
