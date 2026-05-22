@@ -20,6 +20,7 @@ import { CreateJobDto } from './dto/create-job.dto';
 import { ValidateProfileDto } from './dto/validate-profile.dto';
 import { VerifyDocumentDto } from './dto/verify-document.dto';
 import { AdminRegisterProfessionalDto } from './dto/admin-register-professional.dto';
+import { AdminUpdateProfessionalDto } from './dto/admin-update-professional.dto';
 
 @Injectable()
 export class AdminService {
@@ -86,6 +87,7 @@ export class AdminService {
               provinceId: dto.provinceId ?? null,
               whatsapp: dto.whatsapp,
               profileStatus: dto.profileStatus ?? ProfileStatus.active,
+              isActive: dto.isActive ?? dto.is_active ?? false,
               trialEndDate: dto.trialEndDate
                 ? new Date(dto.trialEndDate)
                 : null,
@@ -300,6 +302,50 @@ export class AdminService {
     return this.prisma.professionalProfile.update({
       where: { id: professionalProfileId },
       data: { trialEndDate },
+    });
+  }
+
+  async updateProfessional(id: string, dto: AdminUpdateProfessionalDto) {
+    const profile = await this.findProfileOrThrow(id);
+    const data: Prisma.ProfessionalProfileUpdateInput = {};
+
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.city !== undefined) data.city = dto.city;
+    if (dto.address !== undefined) data.address = dto.address;
+    if (dto.photo !== undefined) data.photo = dto.photo;
+    if (dto.document !== undefined) data.dni = dto.document;
+    if (dto.whatsapp !== undefined) data.whatsapp = dto.whatsapp;
+    if (dto.isActive !== undefined || dto.is_active !== undefined) {
+      data.isActive = dto.isActive ?? dto.is_active;
+    }
+    if (dto.rubroId !== undefined) data.rubroId = dto.rubroId;
+    if (dto.countryId !== undefined) data.countryId = dto.countryId;
+    if (dto.provinceId !== undefined) data.provinceId = dto.provinceId;
+    if (dto.profileStatus !== undefined) data.profileStatus = dto.profileStatus;
+    if (dto.trialEndDate !== undefined) data.trialEndDate = new Date(dto.trialEndDate);
+    if (dto.professionCategoryIds !== undefined) {
+      data.professionCategories = {
+        set: dto.professionCategoryIds.map((categoryId) => ({ id: categoryId })),
+      };
+    }
+
+    if (dto.emailVerified !== undefined) {
+      await this.prisma.user.update({
+        where: { id: profile.userId },
+        data: { emailVerified: dto.emailVerified },
+      });
+    }
+
+    return this.prisma.professionalProfile.update({
+      where: { id },
+      data,
+      include: {
+        user: { select: { id: true, email: true, emailVerified: true } },
+        rubro: true,
+        country: true,
+        province: true,
+        professionCategories: true,
+      },
     });
   }
 

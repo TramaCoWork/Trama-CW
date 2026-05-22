@@ -91,4 +91,13 @@ export class AdminRegisterProfessionalDto {
   @IsOptional()
   @IsEnum(ProfileStatus)
   profileStatus?: ProfileStatus;
+
+  @IsOptional()
+  @IsBoolean()
+  is_active?: boolean;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

@@ -1,11 +1,14 @@
 import { INestApplication } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { UserRole } from '@prisma/client';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const request = require('supertest');
-import { createTestApp, registerUser, registerProfessional } from './test-app.factory';
+import { createTestApp, registerProfessional } from './test-app.factory';
 import { cleanDatabase } from './clean-database';
 import { PrismaService } from '../src/prisma/prisma.service';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 
 describe('Admin (e2e)', () => {
   let app: INestApplication;
@@ -25,8 +28,21 @@ describe('Admin (e2e)', () => {
   });
 
   async function createAdminToken(): Promise<string> {
-    const { access_token } = await registerUser(app, 'admin@test.com', 'password123', 'admin');
-    return access_token;
+    const admin = await prisma.user.create({
+      data: {
+        email: `admin-${Date.now()}-${Math.floor(Math.random() * 10000)}@test.com`,
+        passwordHash: 'test-password-hash',
+        role: UserRole.admin,
+        emailVerified: true,
+      },
+    });
+    const jwtService = app.get(JwtService);
+
+    return jwtService.sign({
+      sub: admin.id,
+      email: admin.email,
+      role: admin.role,
+    });
   }
 
   async function createPendingProfile(): Promise<{ profileId: string; proToken: string }> {
@@ -37,6 +53,51 @@ describe('Admin (e2e)', () => {
       data: { profileStatus: 'pending_review' },
     });
     return { profileId: profile!.id, proToken: access_token };
+  }
+
+  async function createProfessionalToken(): Promise<string> {
+    const professional = await prisma.user.create({
+      data: {
+        email: `professional-${Date.now()}-${Math.floor(Math.random() * 10000)}@test.com`,
+        passwordHash: 'test-password-hash',
+        role: UserRole.professional,
+        emailVerified: true,
+      },
+    });
+    const jwtService = app.get(JwtService);
+
+    return jwtService.sign({
+      sub: professional.id,
+      email: professional.email,
+      role: professional.role,
+    });
+  }
+
+  async function getFirstRubroId(): Promise<number> {
+    const rubrosRes = await request(app.getHttpServer())
+      .get('/profession-categories/rubros')
+      .expect(200);
+
+    return rubrosRes.body.length > 0 ? rubrosRes.body[0].id : 1;
+  }
+
+  async function adminRegisterProfessional(
+    token: string,
+    overrides: Record<string, unknown> = {},
+  ) {
+    const rubroId = await getFirstRubroId();
+    const email = `admin-pro-${Date.now()}-${Math.floor(Math.random() * 10000)}@test.com`;
+
+    return request(app.getHttpServer())
+      .post('/admin/professionals/register')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Admin Professional',
+        email,
+        password: 'password123',
+        rubroId,
+        ...overrides,
+      });
   }
 
   describe('GET /admin/professionals/pending', () => {
@@ -88,6 +149,114 @@ describe('Admin (e2e)', () => {
       const profile = await prisma.professionalProfile.findUnique({ where: { id: profileId } });
       expect(profile!.isActive).toBe(true);
       expect(profile!.profileStatus).toBe('active');
+    });
+  });
+
+  describe('POST /admin/professionals/register — isActive', () => {
+    it('should create active profile when is_active is true', async () => {
+      const token = await createAdminToken();
+
+      const res = await adminRegisterProfessional(token, { is_active: true });
+
+      expect(res.status).toBe(201);
+
+      expect(res.body.user.profile.isActive).toBe(true);
+    });
+
+    it('should create inactive profile when is_active is omitted', async () => {
+      const token = await createAdminToken();
+
+      const res = await adminRegisterProfessional(token);
+
+      expect(res.status).toBe(201);
+
+      expect(res.body.user.profile.isActive).toBe(false);
+    });
+
+    it('should create inactive profile when is_active is false', async () => {
+      const token = await createAdminToken();
+
+      const res = await adminRegisterProfessional(token, { is_active: false });
+
+      expect(res.status).toBe(201);
+
+      expect(res.body.user.profile.isActive).toBe(false);
+    });
+  });
+
+  describe('PATCH /admin/professionals/:id', () => {
+    it('should toggle isActive to false with is_active payload', async () => {
+      const token = await createAdminToken();
+      const created = await adminRegisterProfessional(token, { is_active: true });
+      expect(created.status).toBe(201);
+      const profileId = created.body.user.profile.id;
+
+      const updated = await request(app.getHttpServer())
+        .patch(`/admin/professionals/${profileId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ is_active: false })
+        .expect(200);
+
+      expect(updated.body.isActive).toBe(false);
+    });
+
+    it('should keep isActive unchanged when omitted', async () => {
+      const token = await createAdminToken();
+      const created = await adminRegisterProfessional(token, { is_active: true });
+      expect(created.status).toBe(201);
+      const profileId = created.body.user.profile.id;
+
+      const updated = await request(app.getHttpServer())
+        .patch(`/admin/professionals/${profileId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ city: 'Rosario' })
+        .expect(200);
+
+      expect(updated.body.isActive).toBe(true);
+      expect(updated.body.city).toBe('Rosario');
+    });
+
+    it('should return 404 for non-existent profile', async () => {
+      const token = await createAdminToken();
+
+      await request(app.getHttpServer())
+        .patch('/admin/professionals/00000000-0000-0000-0000-000000000000')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ is_active: false })
+        .expect(404);
+    });
+
+    it('should reject non-admin', async () => {
+      const token = await createAdminToken();
+      const created = await adminRegisterProfessional(token, { is_active: true });
+      expect(created.status).toBe(201);
+      const profileId = created.body.user.profile.id;
+      const { access_token: proToken } = await registerProfessional(
+        app,
+        `pro-admin-patch-${Date.now()}@test.com`,
+        'password123',
+      );
+
+      await request(app.getHttpServer())
+        .patch(`/admin/professionals/${profileId}`)
+        .set('Authorization', `Bearer ${proToken}`)
+        .send({ is_active: false })
+        .expect(403);
+    });
+
+    it('should return isActive in GET professional response', async () => {
+      const token = await createAdminToken();
+      const created = await adminRegisterProfessional(token, { is_active: true });
+      expect(created.status).toBe(201);
+      const profileId = created.body.user.profile.id;
+
+      const res = await request(app.getHttpServer())
+        .get(`/admin/professionals/${profileId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(res.body).toHaveProperty('isActive');
+      expect(res.body.isActive).toBe(true);
     });
   });
 
@@ -153,7 +322,7 @@ describe('Admin (e2e)', () => {
 
   describe('POST /admin/documents/:id/verify', () => {
     async function uploadDocumentForProfile(proToken: string): Promise<string> {
-      const tmpFile = path.join('/tmp', 'test-doc.pdf');
+      const tmpFile = path.join(os.tmpdir(), 'test-doc.pdf');
       fs.writeFileSync(tmpFile, '%PDF-1.4 test content');
 
       const res = await request(app.getHttpServer())
@@ -211,7 +380,7 @@ describe('Admin (e2e)', () => {
     });
 
     it('should reject non-admin', async () => {
-      const { access_token: proToken } = await registerProfessional(app, 'pro2@test.com', 'password123');
+      const proToken = await createProfessionalToken();
 
       await request(app.getHttpServer())
         .post('/admin/documents/00000000-0000-0000-0000-000000000000/verify')

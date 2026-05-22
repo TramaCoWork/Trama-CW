@@ -17,6 +17,7 @@ import { ValidateProfileDto } from './dto/validate-profile.dto';
 import { VerifyDocumentDto } from './dto/verify-document.dto';
 import { SetTrialDateDto } from './dto/set-trial-date.dto';
 import { AdminRegisterProfessionalDto } from './dto/admin-register-professional.dto';
+import { AdminUpdateProfessionalDto } from './dto/admin-update-professional.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -160,6 +161,18 @@ export class AdminController {
     const trialEndDate = dto.trialEndDate ? new Date(dto.trialEndDate) : null;
 
     return this.adminService.setTrialDate(id, trialEndDate);
+  }
+
+  @Patch('professionals/:id')
+  @ApiOperation({ summary: 'Actualizar datos de un profesional (admin)' })
+  @ApiParam({ name: 'id', description: 'ID del perfil profesional' })
+  @ApiResponse({ status: 200, description: 'Perfil profesional actualizado' })
+  @ApiResponse({ status: 404, description: 'Profesional no encontrado' })
+  async updateProfessional(
+    @Param('id') id: string,
+    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: AdminUpdateProfessionalDto,
+  ) {
+    return this.adminService.updateProfessional(id, dto);
   }
 
   @Post('jobs')
