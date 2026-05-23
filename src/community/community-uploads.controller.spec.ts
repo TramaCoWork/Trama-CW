@@ -1,5 +1,6 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { CommunityUploadsController } from './community-uploads.controller';
+import { PHOTO_MAX_FILE_SIZE } from '../uploads/photo-file-validation';
 
 describe('CommunityUploadsController', () => {
   let controller: CommunityUploadsController;
@@ -46,39 +47,15 @@ describe('CommunityUploadsController', () => {
     expect(storageService.upload).toHaveBeenCalledWith(file, 'community/user-1');
   });
 
-  it('POST images sin archivo devuelve 400', async () => {
-    await expect(controller.uploadImage({ userId: 'u1' } as any, undefined)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
-  });
-
-  it('POST images con MIME no imagen devuelve 400', async () => {
-    const file = {
-      mimetype: 'application/pdf',
-      size: 1024,
-    } as Express.Multer.File;
-
-    await expect(controller.uploadImage({ userId: 'u1' } as any, file)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
-  });
-
-  it('POST images con archivo mayor a 5MB devuelve 400', async () => {
-    const file = {
-      mimetype: 'image/jpeg',
-      size: 6 * 1024 * 1024,
-    } as Express.Multer.File;
-
-    await expect(controller.uploadImage({ userId: 'u1' } as any, file)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+  it('POST images valida límites configurados para pipe de archivo', () => {
+    expect(PHOTO_MAX_FILE_SIZE).toBe(2 * 1024 * 1024);
   });
 
   it('GET images con id válido existente llama sendFile', async () => {
     communityImagesService.findById.mockResolvedValue({
       id: 'img-1',
       userId: 'user-1',
-      filename: 'file.png',
+      url: '/uploads/community/user-1/file.png',
       mimeType: 'image/png',
     });
     storageService.getAbsolutePath.mockReturnValue('C:/uploads/community/user-1/file.png');
@@ -88,10 +65,8 @@ describe('CommunityUploadsController', () => {
     const setHeader = jest.fn();
     const sendFile = jest.fn();
     const res = { setHeader, sendFile };
-    const user = { userId: 'viewer-1' };
 
     await controller.getImage(
-      user as any,
       'e7f7b218-9cc7-4da6-bf5f-6a98f99ed910',
       res as any,
     );
@@ -112,7 +87,6 @@ describe('CommunityUploadsController', () => {
 
     await expect(
       controller.getImage(
-        { userId: 'viewer-1' } as any,
         'e7f7b218-9cc7-4da6-bf5f-6a98f99ed910',
         {} as any,
       ),

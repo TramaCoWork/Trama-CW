@@ -10,10 +10,8 @@ import {
   UploadedFile,
   UploadedFiles,
   Res,
+  HttpStatus,
   ParseUUIDPipe,
-  ParseFilePipe,
-  FileTypeValidator,
-  MaxFileSizeValidator,
 } from '@nestjs/common';
 import { FileInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 import {
@@ -33,6 +31,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
+import { createPhotoFileValidationPipe, PHOTO_MAX_FILE_SIZE } from './photo-file-validation';
 
 @ApiTags('Uploads')
 @Controller('uploads')
@@ -115,7 +114,11 @@ export class UploadsController {
       type: 'object',
       required: ['file'],
       properties: {
-        file: { type: 'string', format: 'binary', description: 'Imagen (JPG, PNG o WebP, max 2MB)' },
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: `Imagen (JPG, PNG o WebP, max ${PHOTO_MAX_FILE_SIZE / (1024 * 1024)}MB)`,
+        },
       },
     },
   })
@@ -125,7 +128,7 @@ export class UploadsController {
   @UseInterceptors(FileInterceptor('file'))
   async uploadPhoto(
     @CurrentUser() user: CurrentUserType,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(createPhotoFileValidationPipe(HttpStatus.BAD_REQUEST)) file: Express.Multer.File,
   ) {
     return this.uploadsService.uploadPhoto(user.userId, file);
   }
@@ -134,7 +137,7 @@ export class UploadsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.admin)
   @ApiBearerAuth()
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 2 * 1024 * 1024 } }))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: PHOTO_MAX_FILE_SIZE } }))
   @ApiOperation({ summary: 'Subir foto de perfil de un profesional (admin)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -149,15 +152,7 @@ export class UploadsController {
   @ApiResponse({ status: 404, description: 'Perfil profesional no encontrado' })
   async adminUploadPhoto(
     @Param('id', ParseUUIDPipe) id: string,
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new FileTypeValidator({ fileType: /(jpg|jpeg|png|webp)$/ }),
-          new MaxFileSizeValidator({ maxSize: 2 * 1024 * 1024 }),
-        ],
-      }),
-    )
-    file: Express.Multer.File,
+    @UploadedFile(createPhotoFileValidationPipe(HttpStatus.BAD_REQUEST)) file: Express.Multer.File,
   ) {
     const { url } = await this.uploadsService.adminUploadPhoto(id, file);
     return { message: 'Foto subida exitosamente', url };

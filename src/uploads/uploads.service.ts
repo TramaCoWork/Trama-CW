@@ -14,9 +14,6 @@ import { UploadDocumentDto } from './dto/upload-document.dto';
 const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-const ALLOWED_PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_PHOTO_SIZE = 2 * 1024 * 1024; // 2MB
-
 @Injectable()
 export class UploadsService {
   constructor(
@@ -140,14 +137,6 @@ export class UploadsService {
       throw new BadRequestException('No se envio ningun archivo');
     }
 
-    if (!ALLOWED_PHOTO_MIME_TYPES.includes(file.mimetype)) {
-      throw new BadRequestException('Tipo de archivo no permitido. Solo JPG, PNG y WebP');
-    }
-
-    if (file.size > MAX_PHOTO_SIZE) {
-      throw new BadRequestException('El archivo excede el tamaño maximo de 2MB');
-    }
-
     const profile = await this.prisma.professionalProfile.findUnique({
       where: { userId },
     });
@@ -175,14 +164,6 @@ export class UploadsService {
   async adminUploadPhoto(profileId: string, file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('No se envio ningun archivo');
-    }
-
-    if (!ALLOWED_PHOTO_MIME_TYPES.includes(file.mimetype)) {
-      throw new BadRequestException('Tipo de archivo no permitido. Solo JPG, PNG y WebP');
-    }
-
-    if (file.size > MAX_PHOTO_SIZE) {
-      throw new BadRequestException('El archivo excede el tamaño maximo de 2MB');
     }
 
     const profile = await this.prisma.professionalProfile.findUnique({

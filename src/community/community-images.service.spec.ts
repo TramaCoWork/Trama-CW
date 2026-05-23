@@ -38,7 +38,6 @@ describe('CommunityImagesService', () => {
 
     await expect(
       service.createRecord('user-1', {
-        filename: 'a.png',
         url: '/uploads/community/u1/a.png',
         mimeType: 'image/png',
         size: 123,

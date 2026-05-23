@@ -10,7 +10,6 @@ import { PrismaService } from '../prisma/prisma.service';
 const DEFAULT_MAX_IMAGES_PER_ENTITY = 10;
 
 type CommunityImageUploadMetadata = {
-  filename: string;
   url: string;
   mimeType: string;
   size: number;
@@ -35,7 +34,6 @@ export class CommunityImagesService {
     return this.prisma.communityImage.create({
       data: {
         userId,
-        filename: metadata.filename,
         url: metadata.url,
         mimeType: metadata.mimeType,
         size: metadata.size,

@@ -1,8 +1,8 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   ForbiddenException,
+  HttpStatus,
   Get,
   Inject,
   NotFoundException,
@@ -32,10 +32,10 @@ import type { CurrentUserType } from '../auth/decorators/current-user.decorator'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { STORAGE_SERVICE } from '../uploads/storage.interface';
 import type { StorageService } from '../uploads/storage.interface';
+import { createPhotoFileValidationPipe } from '../uploads/photo-file-validation';
 import { AssociateImagesDto } from './dto/associate-images.dto';
 import { CommunityImagesService } from './community-images.service';
 
-const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 @ApiTags('Community Uploads')
 @Controller('community/uploads')
 export class CommunityUploadsController {
@@ -65,29 +65,11 @@ export class CommunityUploadsController {
   @UseInterceptors(FileInterceptor('file'))
   async uploadImage(
     @CurrentUser() user: CurrentUserType,
-    @UploadedFile() file?: Express.Multer.File,
+    @UploadedFile(createPhotoFileValidationPipe(HttpStatus.BAD_REQUEST)) file: Express.Multer.File,
   ) {
-    if (!file) {
-      throw new BadRequestException('Archivo requerido');
-    }
-
-    if (!file.mimetype.startsWith('image/')) {
-      throw new BadRequestException('Solo se permiten imágenes');
-    }
-
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      throw new BadRequestException('El archivo excede 5MB');
-    }
-
     const upload = await this.storageService.upload(file, `community/${user.userId}`);
-    const filename = upload.path.split('/').pop()?.split('\\').pop();
-
-    if (!filename) {
-      throw new BadRequestException('No se pudo determinar el archivo subido');
-    }
 
     const imageRecord = await this.communityImagesService.createRecord(user.userId, {
-      filename,
       url: upload.url,
       mimeType: file.mimetype,
       size: file.size,
@@ -130,7 +112,7 @@ export class CommunityUploadsController {
       throw new NotFoundException('Imagen no encontrada');
     }
 
-    const relativePath = `community/${image.userId}/${image.filename}`;
+    const relativePath = image.url.replace('/uploads/', '');
     const absolutePath = this.storageService.getAbsolutePath(relativePath);
 
     if (!fs.existsSync(absolutePath)) {

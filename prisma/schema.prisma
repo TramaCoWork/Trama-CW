@@ -318,7 +318,6 @@ model CommunityImage {
   userId     String                    @map("user_id")
   entityType CommunityImageEntityType?
   entityId   String?                   @map("entity_id")
-  filename   String
   url        String
   mimeType   String                    @map("mime_type")
   size       Int

@@ -77,6 +77,13 @@ import { AppController } from './app.controller';
             '{"expiredTrials":"0 0 * * *","expiredCancelledSubs":"0 0 * * *","subscriptionRenewals":"0 0 * * *","applyDiscounts":"0 1 * * *","restoreDiscounts":"0 2 * * *"}',
           ),
         LOG_RETENTION_DAYS: Joi.number().default(90),
+        UPLOAD_PATH: Joi.string()
+          .trim()
+          .pattern(/^(?!.*\.\.)(?![A-Za-z]:[\\/])(?![\\/]).+$/)
+          .default('uploads')
+          .messages({
+            'string.pattern.base': 'UPLOAD_PATH must be a non-empty relative path without .. segments',
+          }),
         SUPPORT_EMAIL: Joi.string().optional(),
         TURNSTILE_SECRET_KEY: Joi.string().optional(),
       }),
