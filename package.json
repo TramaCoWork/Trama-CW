@@ -18,11 +18,11 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed:dev": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed-dev.ts",
-    "seed:prod": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed-prod.ts"
+    "seed:dev": "npx tsx prisma/seed-dev.ts",
+    "seed:prod": "npx tsx prisma/seed-prod.ts"
   },
   "prisma": {
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed-dev.ts"
+    "seed": "npx tsx prisma/seed-dev.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

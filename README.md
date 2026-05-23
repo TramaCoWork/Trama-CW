@@ -80,11 +80,13 @@ Esto levanta:
 docker compose exec app npx prisma migrate deploy
 ```
 
-### 5. Ejecutar seeds
+### 5. Ejecutar seeds de desarrollo
 
 ```bash
-docker compose exec app npx prisma db seed
+docker compose exec app npm run seed:dev
 ```
+
+Esto carga categorias de profesiones, ubicaciones y datos de prueba necesarios para desarrollar.
 
 ### 6. Verificar
 
@@ -113,7 +115,8 @@ Todos los comandos de Prisma se ejecutan dentro del contenedor:
 | `docker compose exec app npx prisma migrate deploy` | Aplicar migraciones pendientes |
 | `docker compose exec app npx prisma migrate status` | Ver estado de migraciones |
 | `docker compose exec app npx prisma migrate reset` | Reset completo (drop + migrate + seed) |
-| `docker compose exec app npx prisma db seed` | Ejecutar seeds |
+| `docker compose exec app npm run seed:dev` | Ejecutar seeds de desarrollo |
+| `docker compose exec app npm run seed:prod` | Ejecutar seeds de produccion |
 | `docker compose exec app npx prisma generate` | Regenerar Prisma Client |
 | `docker compose exec app npx prisma studio` | Abrir Prisma Studio (GUI de la DB) |
 
