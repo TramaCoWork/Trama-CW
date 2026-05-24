@@ -8,6 +8,7 @@ import { emailVerificationTemplate } from './templates/email-verification';
 import { resetPasswordTemplate } from './templates/reset-password';
 import { paymentReminderTemplate } from './templates/payment-reminder';
 import { contactFormTemplate } from './templates/contact-form';
+import { professionalContactTemplate } from './templates/professional-contact';
 
 @Injectable()
 export class MailService {
@@ -77,6 +78,15 @@ export class MailService {
       await this.transport.send(to, subject, html);
     } catch (error) {
       this.logger.error(`Error sending contact form email: ${error.message}`);
+    }
+  }
+
+  async sendProfessionalContact(to: string, data: { senderName: string; senderEmail: string; message: string }): Promise<void> {
+    const { subject, html } = professionalContactTemplate(data);
+    try {
+      await this.transport.send(to, subject, html);
+    } catch (error) {
+      this.logger.error(`Error sending professional contact email: ${error.message}`);
     }
   }
 }
