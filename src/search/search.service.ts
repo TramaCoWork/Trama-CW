@@ -23,6 +23,7 @@ export class SearchService {
 
   async search(query: SearchQuery): Promise<ProfessionalProfile[]> {
     const where: Prisma.ProfessionalProfileWhereInput = {
+      deletedAt: null,
       isActive: true,
       user: { emailVerified: true },
     };
@@ -94,4 +95,5 @@ export class SearchService {
       include: { professionCategories: true, rubro: true, country: true, province: true },
     });
   }
+
 }

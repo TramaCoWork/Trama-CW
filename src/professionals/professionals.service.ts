@@ -14,6 +14,7 @@ import { CreateCertificationDto } from './dto/create-certification.dto';
 import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 import { UpdateMotivationDto } from './dto/update-motivation.dto';
 import { ProfessionalProfile, Prisma } from '@prisma/client';
+import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 @Injectable()
 export class ProfessionalsService {
@@ -34,7 +35,7 @@ export class ProfessionalsService {
     `;
 
     const profiles = await this.prisma.professionalProfile.findMany({
-      where: { id: { in: rows.map((r) => r.id) } },
+      where: withoutDeleted({ id: { in: rows.map((r) => r.id) } }),
       include: { professionCategories: true, rubro: true },
     });
 
@@ -46,6 +47,7 @@ export class ProfessionalsService {
 
   async findAll(page: number, sizePage: number) {
     const where = {
+      deletedAt: null,
       isActive: true,
       profileStatus: 'active' as const,
       user: { emailVerified: true },
@@ -65,7 +67,7 @@ export class ProfessionalsService {
 
   async findByUserId(userId: string) {
     const profile = await this.prisma.professionalProfile.findFirst({
-      where: { userId },
+      where: withoutDeleted({ userId }),
       include: {
         professionCategories: true,
         rubro: true,
@@ -88,6 +90,7 @@ export class ProfessionalsService {
   async findOne(id: string) {
     const profile = await this.prisma.professionalProfile.findFirst({
       where: {
+        deletedAt: null,
         id,
         isActive: true,
         profileStatus: 'active',
@@ -114,7 +117,7 @@ export class ProfessionalsService {
       dto.emailContact ??
       (
         await this.prisma.user.findUniqueOrThrow({
-          where: { id: userId },
+          where: withoutDeleted({ id: userId }),
           select: { email: true },
         })
       ).email;
@@ -146,7 +149,7 @@ export class ProfessionalsService {
 
     const completionPct = this.calculateCompletion(profile);
     return this.prisma.professionalProfile.update({
-      where: { id: profile.id },
+      where: withoutDeleted({ id: profile.id }),
       data: { completionPct },
     });
   }
@@ -173,14 +176,14 @@ export class ProfessionalsService {
     };
 
     const updated = await this.prisma.professionalProfile.update({
-      where: { id },
+      where: withoutDeleted({ id }),
       data: updateData,
       include: { professionCategories: true },
     });
 
     const completionPct = this.calculateCompletion(updated);
     return this.prisma.professionalProfile.update({
-      where: { id },
+      where: withoutDeleted({ id }),
       data: { completionPct },
     });
   }
@@ -191,7 +194,7 @@ export class ProfessionalsService {
     const profile = await this.getOwnProfile(userId, id);
 
     const updated = await this.prisma.professionalProfile.update({
-      where: { id: profile.id },
+      where: withoutDeleted({ id: profile.id }),
       data: {
         ...dto,
         birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
@@ -238,7 +241,7 @@ export class ProfessionalsService {
     }
 
     const updated = await this.prisma.professionalProfile.update({
-      where: { id: profile.id },
+      where: withoutDeleted({ id: profile.id }),
       data: {
         ...rest,
         ...(services ? { services } : {}),
@@ -274,7 +277,7 @@ export class ProfessionalsService {
     });
 
     await this.prisma.professionalProfile.update({
-      where: { id: profile.id },
+      where: withoutDeleted({ id: profile.id }),
       data: { currentStep: Math.max(profile.currentStep, 4) },
     });
 
@@ -333,7 +336,7 @@ export class ProfessionalsService {
     });
 
     await this.prisma.professionalProfile.update({
-      where: { id: profile.id },
+      where: withoutDeleted({ id: profile.id }),
       data: { currentStep: Math.max(profile.currentStep, 5) },
     });
 
@@ -381,7 +384,7 @@ export class ProfessionalsService {
     const profile = await this.getOwnProfile(userId, id);
 
     const updated = await this.prisma.professionalProfile.update({
-      where: { id: profile.id },
+      where: withoutDeleted({ id: profile.id }),
       data: {
         ...dto,
         currentStep: Math.max(profile.currentStep, 7),
@@ -396,7 +399,7 @@ export class ProfessionalsService {
     const profile = await this.getOwnProfile(userId, id);
 
     const updated = await this.prisma.professionalProfile.update({
-      where: { id: profile.id },
+      where: withoutDeleted({ id: profile.id }),
       data: {
         tramaMotivation: dto.tramaMotivation,
         currentStep: Math.max(profile.currentStep, 8),
@@ -436,7 +439,7 @@ export class ProfessionalsService {
     }
 
     const updated = await this.prisma.professionalProfile.update({
-      where: { id: profile.id },
+      where: withoutDeleted({ id: profile.id }),
       data: {
         profileStatus: 'pending_review',
         submittedAt: new Date(),
@@ -454,7 +457,7 @@ export class ProfessionalsService {
 
   private async getOwnProfile(userId: string, id: string) {
     const profile = await this.prisma.professionalProfile.findUnique({
-      where: { id },
+      where: withoutDeleted({ id }),
     });
 
     if (!profile) {
@@ -477,7 +480,7 @@ export class ProfessionalsService {
   ) {
     const completionPct = this.calculateCompletion(profile);
     return this.prisma.professionalProfile.update({
-      where: { id: profile.id },
+      where: withoutDeleted({ id: profile.id }),
       data: { completionPct },
     });
   }

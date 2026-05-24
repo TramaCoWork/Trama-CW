@@ -209,6 +209,17 @@ Esto levanta una base de datos de test separada (`db-test` en puerto 5433, usa t
 - `test/jest-e2e.json` — Configuracion de Jest para E2E
 - DB de test usa `tmpfs` (RAM) y perfil Docker `test` para no afectar `docker compose up`
 
+## Soft delete de usuarios y perfiles
+
+- `User` y `ProfessionalProfile` usan soft delete por columna `deleted_at`.
+- Un usuario soft-deleted no puede iniciar sesión, ni acceder endpoints protegidos, ni ser actualizado por flujos normales.
+- El endpoint `DELETE /users/:id` hace soft delete atómico de `User` + `ProfessionalProfile` vía transacción Prisma.
+- Emails de usuarios soft-deleted siguen bloqueados por unicidad (`email @unique`).
+- Endpoints admin:
+  - `GET /admin/users/deleted`: lista paginada de usuarios soft-deleted.
+  - `POST /admin/users/:id/restore`: restaura atómicamente `User` + `ProfessionalProfile`.
+- Limitación conocida: JWT emitidos antes del soft delete siguen válidos hasta expirar, pero cada request protegida vuelve a validar en DB y rechaza usuarios soft-deleted.
+
 ## Produccion
 
 Para levantar en modo produccion:

@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MercadoPagoService } from '../mercadopago/mercadopago.service';
 import { CreateDiscountDto } from './dto/create-discount.dto';
+import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 @Injectable()
 export class DiscountsService {
@@ -27,7 +28,7 @@ export class DiscountsService {
 
     // Verificar que el profesional existe
     const profile = await this.prisma.professionalProfile.findUnique({
-      where: { id: dto.professionalId },
+      where: withoutDeleted({ id: dto.professionalId }),
     });
     if (!profile) {
       throw new NotFoundException('Perfil profesional no encontrado');

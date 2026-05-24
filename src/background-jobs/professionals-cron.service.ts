@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import { PrismaService } from '../prisma/prisma.service';
+import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 type CronScheduleConfig = Record<string, string | null>;
 
@@ -47,6 +48,7 @@ export class ProfessionalsCronService implements OnModuleInit {
 
     const result = await this.prisma.professionalProfile.updateMany({
       where: {
+        deletedAt: null,
         profileStatus: 'active',
         trialEndDate: { lt: now },
       },
@@ -92,6 +94,7 @@ export class ProfessionalsCronService implements OnModuleInit {
 
       const result = await this.prisma.professionalProfile.updateMany({
         where: {
+          deletedAt: null,
           userId,
           profileStatus: 'active',
           isActive: true,

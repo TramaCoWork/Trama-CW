@@ -6,6 +6,7 @@ import { MailService } from '../mail/mail.service';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { CreateProfessionalContactDto } from './dto/create-professional-contact.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 @Injectable()
 export class ContactService {
@@ -49,7 +50,7 @@ export class ContactService {
     }
 
     const profile = await this.prisma.professionalProfile.findUnique({
-      where: { id: dto.professionalId },
+      where: withoutDeleted({ id: dto.professionalId }),
       include: { user: true },
     });
 

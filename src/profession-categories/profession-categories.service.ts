@@ -7,6 +7,7 @@ import { UpdateProfesionDto } from './dto/update-profesion.dto';
 import { UpdateRubroDto } from './dto/update-rubro.dto';
 import { UpdateSubrubroDto } from './dto/update-subrubro.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 @Injectable()
 export class ProfessionCategoriesService {
@@ -319,7 +320,7 @@ export class ProfessionCategoriesService {
 
     const [professionalsCount, docsCount] = await Promise.all([
       this.prisma.professionalProfile.count({
-        where: { professionCategories: { some: { id } }, isActive: true },
+        where: { ...withoutDeleted(), professionCategories: { some: { id } }, isActive: true },
       }),
       this.prisma.document.count({ where: { professionId: id } }),
     ]);

@@ -30,6 +30,7 @@ import { DiscountsModule } from './discounts/discounts.module';
 import { BackgroundJobsModule } from './background-jobs/background-jobs.module';
 import { ContactModule } from './contact/contact.module';
 import { MessagesModule } from './messages/messages.module';
+import { UsersModule } from './users/users.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -121,6 +122,7 @@ import { AppController } from './app.controller';
     BackgroundJobsModule,
     ContactModule,
     MessagesModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [

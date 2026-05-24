@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { PaymentStatus } from '@prisma/client';
+import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 @Injectable()
 export class PaymentsService {
@@ -38,7 +39,7 @@ export class PaymentsService {
             });
 
             await this.prisma.professionalProfile.updateMany({
-              where: { userId: payment.userId },
+              where: withoutDeleted({ userId: payment.userId }),
               data: { isActive: true, profileStatus: 'active' },
             });
           }

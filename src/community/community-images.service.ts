@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { CommunityImage, CommunityImageEntityType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 const DEFAULT_MAX_IMAGES_PER_ENTITY = 10;
 
@@ -120,7 +121,7 @@ export class CommunityImagesService {
 
   async validateProfessional(userId: string): Promise<void> {
     const profile = await this.prisma.professionalProfile.findUnique({
-      where: { userId },
+      where: withoutDeleted({ userId }),
       select: {
         isActive: true,
         profileStatus: true,

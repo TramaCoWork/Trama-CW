@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProfessionalDashboardDto } from './dto/professional-dashboard.dto';
+import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 @Injectable()
 export class DashboardService {
@@ -9,7 +10,7 @@ export class DashboardService {
 
   async getProfessionalDashboard(userId: string): Promise<ProfessionalDashboardDto> {
     const profile = await this.prisma.professionalProfile.findUnique({
-      where: { userId },
+      where: withoutDeleted({ userId }),
       select: { id: true, trialEndDate: true },
     });
 
@@ -83,14 +84,14 @@ export class DashboardService {
 
   async getMe(userId: string) {
     return this.prisma.user.findUnique({
-      where: { id: userId },
+      where: withoutDeleted({ id: userId }),
       include: { profile: true },
     });
   }
 
   async getContacts(userId: string) {
     const profile = await this.prisma.professionalProfile.findFirst({
-      where: { userId },
+      where: withoutDeleted({ userId }),
     });
 
     if (!profile) {

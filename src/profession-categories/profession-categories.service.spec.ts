@@ -284,7 +284,7 @@ describe('ProfessionCategoriesService', () => {
       select: { id: true, level: true },
     });
     expect(mockPrisma.professionalProfile.count).toHaveBeenCalledWith({
-      where: { professionCategories: { some: { id: 30 } }, isActive: true },
+      where: { deletedAt: null, professionCategories: { some: { id: 30 } }, isActive: true },
     });
     expect(mockPrisma.document.count).toHaveBeenCalledWith({ where: { professionId: 30 } });
     expect(mockPrisma.professionCategory.update).toHaveBeenCalledWith({
@@ -306,7 +306,7 @@ describe('ProfessionCategoriesService', () => {
       select: { id: true, level: true },
     });
     expect(mockPrisma.professionalProfile.count).toHaveBeenCalledWith({
-      where: { professionCategories: { some: { id: 30 } }, isActive: true },
+      where: { deletedAt: null, professionCategories: { some: { id: 30 } }, isActive: true },
     });
     expect(mockPrisma.document.count).toHaveBeenCalledWith({ where: { professionId: 30 } });
     expect(mockPrisma.professionCategory.update).not.toHaveBeenCalled();

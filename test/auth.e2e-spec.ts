@@ -67,6 +67,20 @@ describe('Auth (e2e)', () => {
         .send({ email: 'pro@test.com', password: 'wrongpassword' })
         .expect(401);
     });
+
+    it('should reject login after user soft-delete', async () => {
+      const { access_token, userId } = await registerProfessional(app, 'deleted-login@test.com', 'password123');
+
+      await request(app.getHttpServer())
+        .delete(`/users/${userId}`)
+        .set('Authorization', `Bearer ${access_token}`)
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: 'deleted-login@test.com', password: 'password123' })
+        .expect(401);
+    });
   });
 
   describe('POST /auth/professional-register', () => {

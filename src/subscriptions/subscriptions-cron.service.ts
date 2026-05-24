@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { PaymentStrategyFactory } from './strategies/payment-strategy.factory';
+import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 @Injectable()
 export class SubscriptionsCronService {
@@ -72,7 +73,7 @@ export class SubscriptionsCronService {
 
           // Desactivar perfil
           await this.prisma.professionalProfile.updateMany({
-            where: { userId: sub.userId },
+            where: withoutDeleted({ userId: sub.userId }),
             data: {
               profileStatus: 'waiting_payment',
               isActive: false,
@@ -81,7 +82,7 @@ export class SubscriptionsCronService {
 
           // Obtener nombre del profesional
           const profile = await this.prisma.professionalProfile.findFirst({
-            where: { userId: sub.userId },
+            where: withoutDeleted({ userId: sub.userId }),
             select: { name: true },
           });
 

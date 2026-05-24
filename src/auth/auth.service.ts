@@ -14,6 +14,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ProfessionalRegisterDto } from './dto/professional-register.dto';
 import { User, UserRole, ProfileStatus } from '@prisma/client';
+import { withoutDeleted } from '../common/filters/soft-delete.filter';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 
@@ -51,7 +52,7 @@ export class AuthService {
 
   async register(dto: RegisterDto): Promise<TokenResponse> {
     const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: withoutDeleted({ email: dto.email }),
     });
 
     if (existing) {
@@ -76,7 +77,7 @@ export class AuthService {
 
   async login(dto: LoginDto): Promise<TokenResponse> {
     const user = await this.prisma.user.findUnique({
-      where: { email: dto.email, role: UserRole.professional },
+      where: withoutDeleted({ email: dto.email, role: UserRole.professional }),
     });
 
     if (!user) {
@@ -97,7 +98,7 @@ export class AuthService {
 
     // Verificar si el trial expiró y desactivar perfil
     const profile = await this.prisma.professionalProfile.findUnique({
-      where: { userId: user.id },
+      where: withoutDeleted({ userId: user.id }),
     });
 
     if (
@@ -107,7 +108,7 @@ export class AuthService {
       profile.trialEndDate < new Date()
     ) {
       await this.prisma.professionalProfile.update({
-        where: { id: profile.id },
+        where: withoutDeleted({ id: profile.id }),
         data: {
           profileStatus: 'waiting_payment',
           isActive: false,
@@ -121,7 +122,7 @@ export class AuthService {
 
   async adminLogin(dto: LoginDto): Promise<TokenResponse> {
     const user = await this.prisma.user.findUnique({
-      where: { email: dto.email, role: UserRole.admin },
+      where: withoutDeleted({ email: dto.email, role: UserRole.admin }),
     });
 
     if (!user) {
@@ -206,7 +207,7 @@ export class AuthService {
     }
 
     const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
+      where: withoutDeleted({ id: payload.sub }),
     });
 
     if (!user) {
@@ -218,7 +219,7 @@ export class AuthService {
     }
 
     await this.prisma.user.update({
-      where: { id: payload.sub },
+      where: withoutDeleted({ id: payload.sub }),
       data: { emailVerified: true },
     });
 
@@ -227,7 +228,7 @@ export class AuthService {
 
   async resendVerification(email: string): Promise<{ message: string }> {
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: withoutDeleted({ email }),
     });
 
     if (!user) {
@@ -249,7 +250,7 @@ export class AuthService {
 
   async forgotPassword(email: string): Promise<{ message: string }> {
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: withoutDeleted({ email }),
       include: { profile: true },
     });
 
@@ -262,7 +263,7 @@ export class AuthService {
       const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
       await this.prisma.user.update({
-        where: { id: user.id },
+        where: withoutDeleted({ id: user.id }),
         data: { resetToken: hashedToken, resetTokenExpiry: expiry },
       });
 
@@ -284,7 +285,7 @@ export class AuthService {
     newPassword: string,
   ): Promise<{ message: string }> {
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: withoutDeleted({ id: userId }),
     });
 
     if (!user || !user.resetToken || !user.resetTokenExpiry) {
@@ -310,7 +311,7 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
     await this.prisma.user.update({
-      where: { id: userId },
+      where: withoutDeleted({ id: userId }),
       data: {
         passwordHash,
         resetToken: null,
@@ -328,7 +329,7 @@ export class AuthService {
     newPassword: string,
   ): Promise<{ message: string }> {
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: withoutDeleted({ id: userId }),
     });
 
     if (!user) {
@@ -347,7 +348,7 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
     await this.prisma.user.update({
-      where: { id: userId },
+      where: withoutDeleted({ id: userId }),
       data: { passwordHash },
     });
 

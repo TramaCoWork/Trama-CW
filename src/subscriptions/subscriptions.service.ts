@@ -11,6 +11,7 @@ import { PaymentStrategyFactory } from './strategies/payment-strategy.factory';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { SubscriptionStatus } from '@prisma/client';
 import { WebhookPaymentData } from './strategies/payment-strategy.interface';
+import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 @Injectable()
 export class SubscriptionsService {
@@ -46,7 +47,7 @@ export class SubscriptionsService {
 
     // Obtener email del usuario autenticado
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: withoutDeleted({ id: userId }),
       select: { email: true },
     });
     if (!user) {
@@ -181,7 +182,7 @@ export class SubscriptionsService {
 
     if (computedTrialEnd) {
       await this.prisma.professionalProfile.updateMany({
-        where: { userId: subscription.userId },
+        where: withoutDeleted({ userId: subscription.userId }),
         data: { trialEndDate: computedTrialEnd },
       });
     }
@@ -191,7 +192,7 @@ export class SubscriptionsService {
     // Reactivar perfil profesional cuando la suscripción se activa
     if (status === 'active') {
       await this.prisma.professionalProfile.updateMany({
-        where: { userId: subscription.userId },
+        where: withoutDeleted({ userId: subscription.userId }),
         data: {
           profileStatus: 'active',
           isActive: true,
@@ -236,7 +237,7 @@ export class SubscriptionsService {
 
     // Activar perfil profesional
     await this.prisma.professionalProfile.updateMany({
-      where: { userId: subscription.userId },
+      where: withoutDeleted({ userId: subscription.userId }),
       data: {
         profileStatus: 'active',
         isActive: true,

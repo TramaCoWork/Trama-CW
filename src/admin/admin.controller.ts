@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  HttpCode,
   Post,
   Patch,
   Param,
@@ -268,5 +269,26 @@ export class AdminController {
   @ApiResponse({ status: 200, description: 'Lista de pagos' })
   async getPayments() {
     return this.adminService.getPayments();
+  }
+
+  @Get('users/deleted')
+  @ApiOperation({ summary: 'Listar usuarios soft-deleted' })
+  @ApiQuery({ name: 'skip', required: false, type: Number, description: 'Offset (default: 0)' })
+  @ApiQuery({ name: 'take', required: false, type: Number, description: 'Limit (default: 20)' })
+  @ApiResponse({ status: 200, description: 'Lista de usuarios soft-deleted' })
+  async listSoftDeletedUsers(
+    @Query('skip') skip = 0,
+    @Query('take') take = 20,
+  ) {
+    return this.adminService.listSoftDeletedUsers(Number(skip), Number(take));
+  }
+
+  @Post('users/:id/restore')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Restaurar usuario soft-deleted' })
+  @ApiParam({ name: 'id', description: 'ID del usuario' })
+  @ApiResponse({ status: 200, description: 'Usuario restaurado' })
+  async restoreSoftDeletedUser(@Param('id', ParseUUIDPipe) id: string) {
+    return this.adminService.restoreSoftDeletedUser(id);
   }
 }

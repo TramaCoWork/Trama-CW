@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProfessionalProfile, ProfessionCategory } from '@prisma/client';
+import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 type ProfileWithRelations = ProfessionalProfile & {
   professionCategories: ProfessionCategory[];
@@ -33,7 +34,7 @@ export class OnboardingService {
 
   async getChecklist(userId: string) {
     const profile = await this.prisma.professionalProfile.findFirst({
-      where: { userId },
+      where: withoutDeleted({ userId }),
       include: {
         professionCategories: true,
         educations: true,
@@ -68,7 +69,7 @@ export class OnboardingService {
 
   async completeOnboarding(userId: string) {
     const profile = await this.prisma.professionalProfile.findFirst({
-      where: { userId },
+      where: withoutDeleted({ userId }),
     });
 
     if (!profile) {
@@ -82,7 +83,7 @@ export class OnboardingService {
     }
 
     const updatedProfile = await this.prisma.professionalProfile.update({
-      where: { id: profile.id },
+      where: withoutDeleted({ id: profile.id }),
       data: { profileStatus: 'active' },
     });
 

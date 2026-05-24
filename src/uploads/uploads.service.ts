@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { STORAGE_SERVICE } from './storage.interface';
 import type { StorageService } from './storage.interface';
 import { UploadDocumentDto } from './dto/upload-document.dto';
+import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -35,7 +36,7 @@ export class UploadsService {
     }
 
     const profile = await this.prisma.professionalProfile.findUnique({
-      where: { userId },
+      where: withoutDeleted({ userId }),
     });
 
     if (!profile) {
@@ -138,7 +139,7 @@ export class UploadsService {
     }
 
     const profile = await this.prisma.professionalProfile.findUnique({
-      where: { userId },
+      where: withoutDeleted({ userId }),
     });
 
     if (!profile) {
@@ -154,7 +155,7 @@ export class UploadsService {
     const { url } = await this.storage.upload(file, `photos/${profile.id}`);
 
     await this.prisma.professionalProfile.update({
-      where: { id: profile.id },
+      where: withoutDeleted({ id: profile.id }),
       data: { photo: url },
     });
 
@@ -167,7 +168,7 @@ export class UploadsService {
     }
 
     const profile = await this.prisma.professionalProfile.findUnique({
-      where: { id: profileId },
+      where: withoutDeleted({ id: profileId }),
     });
 
     if (!profile) {
@@ -182,7 +183,7 @@ export class UploadsService {
     const { url } = await this.storage.upload(file, `photos/${profile.id}`);
 
     await this.prisma.professionalProfile.update({
-      where: { id: profile.id },
+      where: withoutDeleted({ id: profile.id }),
       data: { photo: url },
     });
 
@@ -191,7 +192,7 @@ export class UploadsService {
 
   async getPhotoFile(profileId: string) {
     const profile = await this.prisma.professionalProfile.findUnique({
-      where: { id: profileId },
+      where: withoutDeleted({ id: profileId }),
     });
 
     if (!profile || !profile.photo) {
@@ -216,7 +217,7 @@ export class UploadsService {
 
   async deletePhoto(userId: string) {
     const profile = await this.prisma.professionalProfile.findUnique({
-      where: { userId },
+      where: withoutDeleted({ userId }),
     });
 
     if (!profile) {
@@ -231,7 +232,7 @@ export class UploadsService {
     await this.storage.delete(relativePath);
 
     await this.prisma.professionalProfile.update({
-      where: { id: profile.id },
+      where: withoutDeleted({ id: profile.id }),
       data: { photo: null },
     });
 
@@ -257,7 +258,7 @@ export class UploadsService {
     }
 
     const profile = await this.prisma.professionalProfile.findUnique({
-      where: { userId },
+      where: withoutDeleted({ userId }),
     });
 
     if (!profile) {
@@ -285,7 +286,7 @@ export class UploadsService {
     );
 
     await this.prisma.professionalProfile.update({
-      where: { id: profile.id },
+      where: withoutDeleted({ id: profile.id }),
       data: {
         identityFrontUrl: frontResult.url,
         identityBackUrl: backResult.url,
@@ -300,7 +301,7 @@ export class UploadsService {
 
   async getIdentityFiles(profileId: string) {
     const profile = await this.prisma.professionalProfile.findUnique({
-      where: { id: profileId },
+      where: withoutDeleted({ id: profileId }),
     });
 
     if (!profile) {
@@ -318,7 +319,7 @@ export class UploadsService {
 
   async getIdentityFile(profileId: string, side: 'front' | 'back') {
     const profile = await this.prisma.professionalProfile.findUnique({
-      where: { id: profileId },
+      where: withoutDeleted({ id: profileId }),
     });
 
     if (!profile) {

@@ -8,6 +8,7 @@ import { Prisma, PrivateMessage } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { sanitizeMarkdown } from '../community/utils/sanitize-markdown';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 type ConversationSummary = {
   otherUserId: string;
@@ -71,7 +72,7 @@ export class MessagesService {
       conversationMessages.map(async (message) => {
         const otherUserId = message.senderId === userId ? message.receiverId : message.senderId;
         const otherUser = await this.prisma.user.findUnique({
-          where: { id: otherUserId },
+          where: withoutDeleted({ id: otherUserId }),
           select: {
             email: true,
             profile: {
@@ -220,6 +221,7 @@ export class MessagesService {
 
     const profiles = await this.prisma.professionalProfile.findMany({
       where: {
+        deletedAt: null,
         userId: { not: userId },
         isActive: true,
         profileStatus: 'active',

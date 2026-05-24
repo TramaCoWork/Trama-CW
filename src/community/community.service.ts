@@ -8,6 +8,7 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UserRole, PostStatus } from '@prisma/client';
 import { sanitizeMarkdown } from './utils/sanitize-markdown';
+import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 const GENERAL_CHANNEL = 'general';
 
@@ -22,7 +23,7 @@ export class CommunityService {
    */
   async getChannels(userId: string) {
     const profile = await this.prisma.professionalProfile.findUnique({
-      where: { userId },
+      where: withoutDeleted({ userId }),
       include: { rubro: true },
     });
 
@@ -42,7 +43,7 @@ export class CommunityService {
    */
   private async getUserRubroSlug(userId: string): Promise<string | null> {
     const profile = await this.prisma.professionalProfile.findUnique({
-      where: { userId },
+      where: withoutDeleted({ userId }),
       include: { rubro: true },
     });
     return profile?.rubro?.slug ?? null;

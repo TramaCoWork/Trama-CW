@@ -21,6 +21,7 @@ import { ValidateProfileDto } from './dto/validate-profile.dto';
 import { VerifyDocumentDto } from './dto/verify-document.dto';
 import { AdminRegisterProfessionalDto } from './dto/admin-register-professional.dto';
 import { AdminUpdateProfessionalDto } from './dto/admin-update-professional.dto';
+import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 @Injectable()
 export class AdminService {
@@ -32,7 +33,7 @@ export class AdminService {
 
   async registerProfessional(dto: AdminRegisterProfessionalDto) {
     const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: withoutDeleted({ email: dto.email }),
     });
     if (existing) throw new ConflictException('Email already in use');
 
@@ -141,6 +142,7 @@ export class AdminService {
     } = filters;
 
     const where: Prisma.ProfessionalProfileWhereInput = {};
+    where.deletedAt = null;
 
     if (profileStatus) where.profileStatus = profileStatus;
     if (isActive !== undefined) where.isActive = isActive;
@@ -178,6 +180,7 @@ export class AdminService {
   async getPendingProfessionals() {
     return this.prisma.professionalProfile.findMany({
       where: {
+        deletedAt: null,
         OR: [
           { isActive: false },
           { profileStatus: { in: ['incomplete', 'onboarding'] } },
@@ -191,7 +194,7 @@ export class AdminService {
 
   async getPendingReview() {
     return this.prisma.professionalProfile.findMany({
-      where: { profileStatus: 'pending_review' },
+      where: { profileStatus: 'pending_review', deletedAt: null },
       include: {
         user: { select: { id: true, email: true } },
         documents: true,
@@ -209,7 +212,7 @@ export class AdminService {
     const profile = await this.findProfileOrThrow(id);
 
     return this.prisma.professionalProfile.update({
-      where: { id },
+      where: withoutDeleted({ id }),
       data: {
         isActive: true,
         profileStatus: 'active',
@@ -242,7 +245,7 @@ export class AdminService {
     const isApproved = dto.status === 'manual_approved';
     const trialDays = this.configService.get<number>('TRIAL_DAYS', 0);
     await this.prisma.professionalProfile.update({
-      where: { id: profile.id },
+      where: withoutDeleted({ id: profile.id }),
       data: {
         profileStatus: isApproved ? 'active' : 'rejected',
         isActive: isApproved,
@@ -255,7 +258,7 @@ export class AdminService {
 
     // Enviar email de notificacion
     const user = await this.prisma.user.findUnique({
-      where: { id: profile.userId },
+      where: withoutDeleted({ id: profile.userId }),
       select: { email: true },
     });
 
@@ -300,7 +303,7 @@ export class AdminService {
     await this.findProfileOrThrow(professionalProfileId);
 
     return this.prisma.professionalProfile.update({
-      where: { id: professionalProfileId },
+      where: withoutDeleted({ id: professionalProfileId }),
       data: { trialEndDate },
     });
   }
@@ -331,13 +334,13 @@ export class AdminService {
 
     if (dto.emailVerified !== undefined) {
       await this.prisma.user.update({
-        where: { id: profile.userId },
+        where: withoutDeleted({ id: profile.userId }),
         data: { emailVerified: dto.emailVerified },
       });
     }
 
     return this.prisma.professionalProfile.update({
-      where: { id },
+      where: withoutDeleted({ id }),
       data,
       include: {
         user: { select: { id: true, email: true, emailVerified: true } },
@@ -371,6 +374,51 @@ export class AdminService {
         user: { select: { id: true, email: true } },
       },
     });
+  }
+
+  async listSoftDeletedUsers(skip = 0, take = 20) {
+    const where = { deletedAt: { not: null } };
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          email: true,
+          deletedAt: true,
+          role: true,
+        },
+        skip,
+        take,
+        orderBy: { deletedAt: 'desc' },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return { data, total, skip, take };
+  }
+
+  async restoreSoftDeletedUser(userId: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, deletedAt: { not: null } },
+      include: { profile: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Soft-deleted user not found');
+    }
+
+    const [restoredUser] = await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { deletedAt: null },
+      }),
+      this.prisma.professionalProfile.updateMany({
+        where: { userId, deletedAt: { not: null } },
+        data: { deletedAt: null },
+      }),
+    ]);
+
+    return restoredUser;
   }
 
   // ─── Verificacion de documentos ───────────────────────────────────────────
@@ -554,7 +602,7 @@ export class AdminService {
 
   async findOneProfessional(id: string) {
     const profile = await this.prisma.professionalProfile.findUnique({
-      where: { id },
+      where: withoutDeleted({ id }),
       include: {
         user: {
           select: {
@@ -585,7 +633,7 @@ export class AdminService {
 
   private async findProfileOrThrow(id: string) {
     const profile = await this.prisma.professionalProfile.findUnique({
-      where: { id },
+      where: withoutDeleted({ id }),
     });
 
     if (!profile) {

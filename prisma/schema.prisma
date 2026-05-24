@@ -134,6 +134,7 @@ model User {
   emailVerified    Boolean   @default(false) @map("email_verified")
   resetToken       String?   @map("reset_token")
   resetTokenExpiry DateTime? @map("reset_token_expiry")
+  deletedAt        DateTime? @map("deleted_at")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
@@ -150,6 +151,7 @@ model User {
   sentMessages PrivateMessage[] @relation("MessageSender")
   receivedMessages PrivateMessage[] @relation("MessageReceiver")
 
+  @@index([deletedAt])
   @@map("users")
 }
 
@@ -169,6 +171,7 @@ model ProfessionalProfile {
   isActive      Boolean       @default(false) @map("is_active")
   profileStatus ProfileStatus @default(incomplete) @map("profile_status")
   completionPct Int           @default(0) @map("completion_pct")
+  deletedAt     DateTime?     @map("deleted_at")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
@@ -232,6 +235,7 @@ model ProfessionalProfile {
 
   @@index([city], name: "professionals_city")
   @@index([isActive], name: "professionals_active")
+  @@index([deletedAt], name: "professionals_deleted_at")
   @@index([city, workModality, isActive], name: "professionals_search")
   @@index([rubroId, isActive], name: "professionals_rubro")
   @@map("professional_profiles")
