@@ -44,6 +44,11 @@ export class AdminUpdateProfessionalDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsString()
+  pricePerHour?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsInt()
   rubroId?: number;
 

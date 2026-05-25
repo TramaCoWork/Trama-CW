@@ -332,6 +332,7 @@ export class AdminService {
     if (dto.photo !== undefined) data.photo = dto.photo;
     if (dto.document !== undefined) data.dni = dto.document;
     if (dto.whatsapp !== undefined) data.whatsapp = dto.whatsapp;
+    if (dto.pricePerHour !== undefined) data.pricePerHour = dto.pricePerHour;
     if (dto.isActive !== undefined || dto.is_active !== undefined) {
       data.isActive = dto.isActive ?? dto.is_active;
     }
