@@ -162,8 +162,6 @@ model ProfessionalProfile {
   bio           String?       @db.Text
   photo         String?
   services      String[]
-  priceMin      Decimal?      @map("price_min") @db.Decimal(10, 2)
-  priceMax      Decimal?      @map("price_max") @db.Decimal(10, 2)
   city          String?
   address       String?
   whatsapp      String?

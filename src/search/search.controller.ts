@@ -12,8 +12,6 @@ export class SearchController {
   @ApiOperation({ summary: 'Buscar profesionales con filtros avanzados' })
   @ApiQuery({ name: 'rubro', required: false, description: 'Slug del rubro (nivel 1 de taxonomia)' })
   @ApiQuery({ name: 'city', required: false, description: 'Ciudad (busqueda parcial)' })
-  @ApiQuery({ name: 'price_min', required: false, description: 'Precio minimo' })
-  @ApiQuery({ name: 'price_max', required: false, description: 'Precio maximo' })
   @ApiQuery({ name: 'modality', required: false, enum: ['presencial', 'online', 'ambas'], description: 'Modalidad de trabajo' })
   @ApiQuery({ name: 'industry', required: false, description: 'Rubro / industria (busqueda parcial)' })
   @ApiQuery({ name: 'years_min', required: false, type: Number, description: 'Anos de experiencia minimos' })

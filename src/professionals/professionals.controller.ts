@@ -44,8 +44,6 @@ class ProfessionalItem {
   @ApiProperty({ required: false, nullable: true }) bio: string | null;
   @ApiProperty({ required: false, nullable: true }) photo: string | null;
   @ApiProperty({ type: [String] }) services: string[];
-  @ApiProperty({ required: false, nullable: true }) priceMin: string | null;
-  @ApiProperty({ required: false, nullable: true }) priceMax: string | null;
   @ApiProperty({ required: false, nullable: true }) city: string | null;
   @ApiProperty({ required: false, nullable: true }) address: string | null;
   @ApiProperty({ required: false, nullable: true }) whatsapp: string | null;

@@ -6,8 +6,6 @@ export interface SearchQuery {
   rubro?: string;
   sub_rubro?: string;
   city?: string;
-  price_min?: string;
-  price_max?: string;
   modality?: string;
   industry?: string;
   years_min?: string;
@@ -34,14 +32,6 @@ export class SearchService {
 
     if (query.rubro) {
       where.rubro = { slug: query.rubro };
-    }
-
-    if (query.price_min !== undefined) {
-      where.priceMin = { gte: new Prisma.Decimal(query.price_min) };
-    }
-
-    if (query.price_max !== undefined) {
-      where.priceMax = { lte: new Prisma.Decimal(query.price_max) };
     }
 
     if (query.modality) {

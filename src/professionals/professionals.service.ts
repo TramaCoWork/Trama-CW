@@ -128,10 +128,6 @@ export class ProfessionalsService {
       bio: dto.bio,
       photo: dto.photo,
       services: dto.services ?? [],
-      priceMin:
-        dto.priceMin != null ? new Prisma.Decimal(dto.priceMin) : undefined,
-      priceMax:
-        dto.priceMax != null ? new Prisma.Decimal(dto.priceMax) : undefined,
       city: dto.city,
       address: dto.address,
       rubro: dto.rubroId ? { connect: { id: dto.rubroId } } : undefined,
@@ -161,10 +157,6 @@ export class ProfessionalsService {
 
     const updateData: Prisma.ProfessionalProfileUpdateInput = {
       ...rest,
-      priceMin:
-        dto.priceMin != null ? new Prisma.Decimal(dto.priceMin) : undefined,
-      priceMax:
-        dto.priceMax != null ? new Prisma.Decimal(dto.priceMax) : undefined,
       ...(rubroId ? { rubro: { connect: { id: rubroId } } } : {}),
       ...(professionCategoryIds
         ? {
@@ -493,7 +485,7 @@ export class ProfessionalsService {
       Boolean(profile.bio),
       Boolean(profile.photo),
       Array.isArray(profile.services) && profile.services.length > 0,
-      profile.priceMin !== null || profile.pricePerHour !== null,
+      profile.pricePerHour !== null,
       Boolean(profile.city),
       Boolean(profile.rubroId),
       Array.isArray(profile.professionCategories) &&

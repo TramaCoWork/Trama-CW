@@ -1,6 +1,5 @@
 import {
   IsArray,
-  IsDecimal,
   IsEmail,
   IsInt,
   IsOptional,
@@ -41,22 +40,6 @@ export class CreateProfessionalDto {
   @IsArray()
   @IsString({ each: true })
   services: string[];
-
-  @ApiPropertyOptional({
-    example: '50.00',
-    description: 'Precio minimo (decimal)',
-  })
-  @IsOptional()
-  @IsDecimal()
-  priceMin?: string;
-
-  @ApiPropertyOptional({
-    example: '150.00',
-    description: 'Precio maximo (decimal)',
-  })
-  @IsOptional()
-  @IsDecimal()
-  priceMax?: string;
 
   @ApiPropertyOptional({
     example: 'Buenos Aires',

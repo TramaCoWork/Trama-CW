@@ -43,11 +43,4 @@ describe('Search (e2e)', () => {
     expect(Array.isArray(res.body)).toBe(true);
   });
 
-  it('GET /search with price range should work', async () => {
-    const res = await request(app.getHttpServer())
-      .get('/search?price_min=100&price_max=500')
-      .expect(200);
-
-    expect(Array.isArray(res.body)).toBe(true);
-  });
 });
