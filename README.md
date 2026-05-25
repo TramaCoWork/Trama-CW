@@ -174,15 +174,57 @@ Los templates disponibles son:
 
 ## Testing
 
-El proyecto incluye **55 tests E2E** que corren contra una base de datos real (sin mocks).
+El proyecto incluye **tests E2E** que corren contra una base de datos real (sin mocks).
 
-### Ejecutar tests
+### Running E2E Tests Locally
+
+Comando estándar:
 
 ```bash
 docker compose --profile test run --rm test
 ```
 
-Esto levanta una base de datos de test separada (`db-test` en puerto 5433, usa tmpfs para velocidad), aplica migraciones, ejecuta seeds, y corre todos los tests.
+En Windows, si aparece el error `docker-credential-desktop: executable file not found`, usá config local del proyecto para Docker:
+
+```powershell
+$env:DOCKER_CONFIG=".docker"
+docker compose --profile test run --rm test
+```
+
+Opcionalmente, también podés agregar `C:\Program Files\Docker\Docker\resources\bin` al PATH de Windows para que Docker encuentre el credential helper.
+
+Este flujo levanta una base de datos de test separada (`db-test` en puerto 5433, usa tmpfs para velocidad), aplica migraciones, ejecuta seeds y corre los tests E2E.
+
+### CI flow (PRs to `main`)
+
+El workflow `.github/workflows/ci-pr.yml` corre en cada Pull Request a `main` y ejecuta E2E con PostgreSQL 16-alpine como service container.
+
+Orden de ejecución en CI:
+
+1. `npm ci --legacy-peer-deps`
+2. `npx prisma generate`
+3. `npx prisma migrate deploy`
+4. `npx ts-node --compiler-options '{"module":"CommonJS"}' prisma/seed-dev.ts`
+5. `npx jest --config test/jest-e2e.json --forceExit --detectOpenHandles`
+
+El merge a `main` debe quedar bloqueado hasta que este check esté en verde.
+
+### Branch protection (GitHub)
+
+Para exigir CI antes de mergear:
+
+1. GitHub repository → **Settings** → **Branches**
+2. **Add branch protection rule** para `main`
+3. Activar **Require status checks to pass before merging**
+4. Seleccionar el check de CI de PR (workflow `CI — Tests`)
+
+### Troubleshooting
+
+- Error `docker-credential-desktop: executable file not found`:
+  - Ejecutá tests con `DOCKER_CONFIG=.docker` (PowerShell: `$env:DOCKER_CONFIG=".docker"`)
+  - O agregá `C:\Program Files\Docker\Docker\resources\bin` al PATH
+- Si Docker en Windows no detecta cambios de archivos por bind mounts, reiniciá el contenedor app:
+  - `docker compose restart app`
 
 ### Cobertura de tests
 

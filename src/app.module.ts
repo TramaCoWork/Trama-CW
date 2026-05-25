@@ -89,7 +89,13 @@ import { AppController } from './app.controller';
         TURNSTILE_SECRET_KEY: Joi.string().optional(),
       }),
     }),
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 60,
+        skipIf: () => process.env.NODE_ENV === 'test',
+      },
+    ]),
     ScheduleModule.forRoot(),
     WinstonModule.forRootAsync({
       imports: [ConfigModule],

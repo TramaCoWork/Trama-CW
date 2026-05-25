@@ -1,8 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { AppModule } from '../src/app.module';
+import { PrismaService } from '../src/prisma/prisma.service';
+import { seedTestCategories } from './test-seeds';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const request = require('supertest');
+
+let testRubroId: number | null = null;
 
 export async function createTestApp(): Promise<INestApplication> {
   const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -20,7 +24,19 @@ export async function createTestApp(): Promise<INestApplication> {
   );
 
   await app.init();
+
+  const prismaService = app.get(PrismaService);
+  testRubroId = await seedTestCategories(prismaService);
+
   return app;
+}
+
+export function getTestRubroId(): number {
+  if (testRubroId === null) {
+    throw new Error('Test rubro not seeded. Call createTestApp() first.');
+  }
+
+  return testRubroId;
 }
 
 export async function registerUser(
@@ -29,10 +45,17 @@ export async function registerUser(
   password: string,
   role: 'client' | 'professional' | 'admin' = 'client',
 ): Promise<{ access_token: string; userId: string }> {
+  const prisma = app.get(PrismaService);
+
   const res = await request(app.getHttpServer())
     .post('/auth/register')
     .send({ email, password, role })
     .expect(201);
+
+  await prisma.user.update({
+    where: { id: res.body.userId },
+    data: { emailVerified: true },
+  });
 
   return res.body;
 }
@@ -43,12 +66,8 @@ export async function registerProfessional(
   password: string,
   name: string = 'Test Professional',
 ): Promise<{ access_token: string; userId: string }> {
-  // Get first rubro to use as default
-  const rubrosRes = await request(app.getHttpServer())
-    .get('/profession-categories/rubros')
-    .expect(200);
-
-  const rubroId = rubrosRes.body.length > 0 ? rubrosRes.body[0].id : 1;
+  const prisma = app.get(PrismaService);
+  const rubroId = getTestRubroId();
 
   const res = await request(app.getHttpServer())
     .post('/auth/professional-register')
@@ -60,6 +79,11 @@ export async function registerProfessional(
       rubroId,
     })
     .expect(201);
+
+  await prisma.user.update({
+    where: { id: res.body.userId },
+    data: { emailVerified: true },
+  });
 
   return res.body;
 }

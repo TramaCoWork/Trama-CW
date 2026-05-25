@@ -84,12 +84,12 @@ describe('Users soft-delete (e2e)', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
 
-    expect(deletedUsers.body.some((u: { id: string }) => u.id === userId)).toBe(true);
+    expect(deletedUsers.body.data.some((u: { id: string }) => u.id === userId)).toBe(true);
 
     await request(app.getHttpServer())
       .post(`/admin/users/${userId}/restore`)
       .set('Authorization', `Bearer ${adminToken}`)
-      .expect(201);
+      .expect(200);
 
     await request(app.getHttpServer())
       .post('/auth/login')

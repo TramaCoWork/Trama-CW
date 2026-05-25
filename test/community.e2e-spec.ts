@@ -21,11 +21,14 @@ describe('Community (e2e)', () => {
 
   describe('GET /community/posts', () => {
     it('should return posts', async () => {
+      const { access_token } = await registerUser(app, 'user@test.com', 'password123');
+
       const res = await request(app.getHttpServer())
         .get('/community/posts')
+        .set('Authorization', `Bearer ${access_token}`)
         .expect(200);
 
-      expect(Array.isArray(res.body)).toBe(true);
+      expect(Array.isArray(res.body.data)).toBe(true);
     });
   });
 
