@@ -281,10 +281,24 @@ export class AdminService {
   async getProfileDocuments(profileId: string) {
     await this.findProfileOrThrow(profileId);
 
-    return this.prisma.document.findMany({
+    const documents = await this.prisma.document.findMany({
       where: { professionalId: profileId },
       orderBy: { uploadedAt: 'desc' },
+      include: {
+        education: true,
+        certification: true,
+        profession: true,
+      },
     });
+
+    return documents.map(({ education, certification, profession, ...document }) => ({
+      ...document,
+      professionName: profession?.name ?? null,
+      educationTitle: education?.title ?? null,
+      educationInstitution: education?.institution ?? null,
+      educationYear: education?.year ?? null,
+      certificationName: certification?.name ?? null,
+    }));
   }
 
   async getValidationHistory(profileId: string) {
