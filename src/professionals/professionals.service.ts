@@ -31,7 +31,7 @@ export class ProfessionalsService {
         AND u.email_verified = true
         AND (pp.trial_end_date IS NULL OR pp.trial_end_date >= NOW())
       ORDER BY RANDOM()
-      LIMIT 6
+      LIMIT 8
     `;
 
     const profiles = await this.prisma.professionalProfile.findMany({
