@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { withoutDeleted } from '../common/filters/soft-delete.filter';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 
@@ -23,13 +24,15 @@ export class SubscriptionPlansService {
 
   async findAllActive() {
     return this.prisma.subscriptionPlan.findMany({
-      where: { isActive: true },
+      where: withoutDeleted({ isActive: true }),
       orderBy: { createdAt: 'asc' },
     });
   }
 
   async findOne(id: string) {
-    const plan = await this.prisma.subscriptionPlan.findUnique({ where: { id } });
+    const plan = await this.prisma.subscriptionPlan.findFirst({
+      where: withoutDeleted({ id }),
+    });
     if (!plan) throw new NotFoundException('Plan no encontrado');
     return plan;
   }
@@ -47,6 +50,25 @@ export class SubscriptionPlansService {
     return this.prisma.subscriptionPlan.update({
       where: { id },
       data: { isActive: false },
+    });
+  }
+
+  /** Borrado lógico: marca el plan como eliminado sin borrar la fila. */
+  async remove(id: string) {
+    await this.findOne(id);
+    return this.prisma.subscriptionPlan.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  /** Revierte el borrado lógico de un plan. */
+  async restore(id: string) {
+    const plan = await this.prisma.subscriptionPlan.findUnique({ where: { id } });
+    if (!plan) throw new NotFoundException('Plan no encontrado');
+    return this.prisma.subscriptionPlan.update({
+      where: { id },
+      data: { deletedAt: null },
     });
   }
 }

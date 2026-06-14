@@ -61,8 +61,17 @@ export class SubscriptionPlansController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.admin)
-  @ApiOperation({ summary: 'Desactivar plan (admin)' })
-  deactivate(@Param('id', ParseUUIDPipe) id: string) {
-    return this.service.deactivate(id);
+  @ApiOperation({ summary: 'Eliminar plan — borrado lógico (admin)' })
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.remove(id);
+  }
+
+  @Patch(':id/restore')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.admin)
+  @ApiOperation({ summary: 'Restaurar un plan eliminado (admin)' })
+  restore(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.restore(id);
   }
 }

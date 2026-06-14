@@ -482,9 +482,11 @@ model SubscriptionPlan {
   isActive      Boolean       @default(true) @map("is_active")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
+  deletedAt     DateTime?     @map("deleted_at")
 
   subscriptions Subscription[]
 
+  @@index([deletedAt], name: "subscription_plans_deleted_at")
   @@map("subscription_plans")
 }
 

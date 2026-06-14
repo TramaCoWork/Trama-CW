@@ -555,7 +555,7 @@ export class AdminService {
   }) {
     const { page, sizePage, isActive, frequencyType, hasTrial } = filters;
 
-    const where: Prisma.SubscriptionPlanWhereInput = {};
+    const where: Prisma.SubscriptionPlanWhereInput = { deletedAt: null };
 
     if (isActive !== undefined) where.isActive = isActive;
     if (frequencyType) where.frequencyType = frequencyType;
