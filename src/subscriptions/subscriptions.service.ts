@@ -341,7 +341,7 @@ export class SubscriptionsService {
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         userId,
-        status: { in: ['authorized', 'active'] },
+        status: { in: ['pending', 'authorized', 'active'] },
       },
     });
     if (!subscription) {
