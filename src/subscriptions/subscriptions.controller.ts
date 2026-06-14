@@ -12,6 +12,8 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { SubscriptionsService } from './subscriptions.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
+import { BricksPayDto } from './dto/bricks-pay.dto';
+import { BricksSubscribeDto } from './dto/bricks-subscribe.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
@@ -30,6 +32,30 @@ export class SubscriptionsController {
     @Body(ValidationPipe) dto: CreateSubscriptionDto,
   ) {
     return this.service.create(user.userId, dto);
+  }
+
+  @Get('bricks/config')
+  @ApiOperation({ summary: 'Public key de MercadoPago para inicializar Checkout Bricks' })
+  getBricksConfig() {
+    return this.service.getBricksConfig();
+  }
+
+  @Post('bricks/pay')
+  @ApiOperation({ summary: 'Procesar pago con Checkout Bricks (token del front)' })
+  payWithBricks(
+    @CurrentUser() user: CurrentUserType,
+    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: BricksPayDto,
+  ) {
+    return this.service.payWithBricks(user.userId, dto);
+  }
+
+  @Post('bricks/subscribe')
+  @ApiOperation({ summary: 'Suscripción con cobro automático (Bricks on-site + PreApproval)' })
+  subscribeWithBricks(
+    @CurrentUser() user: CurrentUserType,
+    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: BricksSubscribeDto,
+  ) {
+    return this.service.subscribeWithBricks(user.userId, dto);
   }
 
   @Get('me')

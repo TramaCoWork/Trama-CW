@@ -53,6 +53,8 @@ import { AppController } from './app.controller';
         GMAIL_USER: Joi.string().optional(),
         GMAIL_APP_PASSWORD: Joi.string().optional(),
         MERCADOPAGO_ACCESS_TOKEN: Joi.string().optional(),
+        MERCADOPAGO_PUBLIC_KEY: Joi.string().optional(),
+        MERCADOPAGO_WEBHOOK_SECRET: Joi.string().optional(),
         SUBSCRIPTION_NOTIFICATION_URL: Joi.string().optional(),
         TRIAL_DAYS: Joi.number().default(0),
         PAYMENT_MODE: Joi.string().valid('subscription', 'checkout').default('subscription'),

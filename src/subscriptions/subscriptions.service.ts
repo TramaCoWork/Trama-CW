@@ -7,8 +7,13 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionPlansService } from '../subscription-plans/subscription-plans.service';
+import { MercadoPagoService } from '../mercadopago/mercadopago.service';
 import { PaymentStrategyFactory } from './strategies/payment-strategy.factory';
+import { MpBricksStrategy } from './strategies/mp-bricks.strategy';
+import { MpBricksSubscriptionStrategy } from './strategies/mp-bricks-subscription.strategy';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
+import { BricksPayDto } from './dto/bricks-pay.dto';
+import { BricksSubscribeDto } from './dto/bricks-subscribe.dto';
 import { SubscriptionStatus } from '@prisma/client';
 import { WebhookPaymentData } from './strategies/payment-strategy.interface';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
@@ -22,6 +27,9 @@ export class SubscriptionsService {
     private readonly config: ConfigService,
     private readonly plansService: SubscriptionPlansService,
     private readonly strategyFactory: PaymentStrategyFactory,
+    private readonly mercadopago: MercadoPagoService,
+    private readonly bricksStrategy: MpBricksStrategy,
+    private readonly bricksSubscriptionStrategy: MpBricksSubscriptionStrategy,
   ) {}
 
   async create(userId: string, dto: CreateSubscriptionDto) {
@@ -88,6 +96,227 @@ export class SubscriptionsService {
       paymentStrategy: strategy.code,
       initPoint,
       createdAt: subscription.createdAt,
+    };
+  }
+
+  // ─── Checkout Bricks ────────────────────────────────────────────────────────
+
+  /** Config pública para inicializar Checkout Bricks en el front. */
+  getBricksConfig() {
+    return { publicKey: this.mercadopago.getPublicKey() };
+  }
+
+  /**
+   * Procesa un pago con Checkout Bricks: recibe el token tokenizado por el front,
+   * crea el pago en MP (resultado sincrónico) y activa la suscripción si se aprueba.
+   * La confirmación por webhook es idempotente.
+   */
+  async payWithBricks(userId: string, dto: BricksPayDto) {
+    // Bloquear solo si ya hay una suscripción vigente (no si quedó pending/cancelled)
+    const active = await this.prisma.subscription.findFirst({
+      where: { userId, status: { in: ['authorized', 'active'] } },
+    });
+    if (active) {
+      throw new ConflictException('Ya tenés una suscripción activa');
+    }
+
+    const plan = await this.plansService.findOne(dto.planId);
+    if (!plan.isActive) {
+      throw new NotFoundException('Plan no encontrado o inactivo');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: withoutDeleted({ id: userId }),
+      select: { email: true },
+    });
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    const payerEmail = dto.payerEmail ?? user.email;
+
+    // Reusar una suscripción pendiente (reintento o renovación del cron) o crear una nueva
+    const pending = await this.prisma.subscription.findFirst({
+      where: { userId, status: 'pending' },
+    });
+
+    const subscription = pending
+      ? await this.prisma.subscription.update({
+          where: { id: pending.id },
+          data: { planId: plan.id, mpPayerEmail: payerEmail, paymentStrategy: 'mp_bricks' },
+        })
+      : await this.prisma.subscription.create({
+          data: {
+            userId,
+            planId: plan.id,
+            mpPayerEmail: payerEmail,
+            status: 'pending',
+            paymentStrategy: 'mp_bricks',
+          },
+        });
+
+    const notificationUrl = this.config.getOrThrow<string>('SUBSCRIPTION_NOTIFICATION_URL');
+
+    const result = await this.bricksStrategy.payWithToken({
+      subscriptionId: subscription.id,
+      plan,
+      payerEmail,
+      notificationUrl,
+      token: dto.token,
+      paymentMethodId: dto.paymentMethodId,
+      paymentType: dto.paymentType,
+      issuerId: dto.issuerId,
+      installments: dto.installments,
+      identification:
+        dto.identificationType && dto.identificationNumber
+          ? { type: dto.identificationType, number: dto.identificationNumber }
+          : undefined,
+    });
+
+    // Guardar el id del pago de MP como externalId de la suscripción
+    await this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: { externalId: result.paymentId },
+    });
+
+    if (result.status === 'approved') {
+      await this.activateFromCheckoutPayment(subscription.id, result.data);
+      const updated = await this.prisma.subscription.findUnique({
+        where: { id: subscription.id },
+        select: { endDate: true },
+      });
+      return {
+        subscriptionId: subscription.id,
+        status: 'approved',
+        paymentStatus: result.status,
+        statusDetail: result.statusDetail,
+        endDate: updated?.endDate,
+        message: 'Pago aprobado. Tu suscripción está activa.',
+      };
+    }
+
+    if (result.status === 'in_process' || result.status === 'pending') {
+      // El pago quedó en revisión: la activación llegará por webhook.
+      return {
+        subscriptionId: subscription.id,
+        status: 'pending',
+        paymentStatus: result.status,
+        statusDetail: result.statusDetail,
+        message: 'Tu pago está en revisión. Te avisaremos cuando se acredite.',
+      };
+    }
+
+    // Rechazado: registrar el intento y liberar la suscripción para reintento
+    await this.registerPaymentBySubscriptionId(subscription.id, result.data);
+    await this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: { status: 'cancelled', cancellationReason: result.statusDetail ?? 'payment_rejected' },
+    });
+
+    return {
+      subscriptionId: subscription.id,
+      status: 'rejected',
+      paymentStatus: result.status,
+      statusDetail: result.statusDetail,
+      message: 'El pago fue rechazado. Probá con otro medio de pago.',
+    };
+  }
+
+  /**
+   * Crea una suscripción con cobro automático mensual usando Checkout Bricks on-site
+   * (PreApproval con card_token_id). La frecuencia y el monto salen del plan.
+   * MP cobra automáticamente cada período; los webhooks los maneja MpSubscriptionStrategy.
+   */
+  async subscribeWithBricks(userId: string, dto: BricksSubscribeDto) {
+    const active = await this.prisma.subscription.findFirst({
+      where: { userId, status: { in: ['authorized', 'active'] } },
+    });
+    if (active) {
+      throw new ConflictException('Ya tenés una suscripción activa');
+    }
+
+    const plan = await this.plansService.findOne(dto.planId);
+    if (!plan.isActive) {
+      throw new NotFoundException('Plan no encontrado o inactivo');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: withoutDeleted({ id: userId }),
+      select: { email: true },
+    });
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    const payerEmail = dto.payerEmail ?? user.email;
+    const backUrl = dto.backUrl ?? this.config.get<string>('FRONTEND_URL', 'http://localhost:4321');
+
+    // Reusar una suscripción pendiente o crear una nueva
+    const pending = await this.prisma.subscription.findFirst({
+      where: { userId, status: 'pending' },
+    });
+
+    const subscription = pending
+      ? await this.prisma.subscription.update({
+          where: { id: pending.id },
+          data: { planId: plan.id, mpPayerEmail: payerEmail, paymentStrategy: 'mp_bricks_subscription' },
+        })
+      : await this.prisma.subscription.create({
+          data: {
+            userId,
+            planId: plan.id,
+            mpPayerEmail: payerEmail,
+            status: 'pending',
+            paymentStrategy: 'mp_bricks_subscription',
+          },
+        });
+
+    const notificationUrl = this.config.getOrThrow<string>('SUBSCRIPTION_NOTIFICATION_URL');
+    const result = await this.bricksSubscriptionStrategy.payWithCardToken({
+      subscriptionId: subscription.id,
+      plan, // ← frecuencia, monto y moneda salen del plan
+      payerEmail,
+      cardTokenId: dto.token,
+      backUrl,
+      notificationUrl,
+    });
+
+    const statusMap: Record<string, SubscriptionStatus> = {
+      authorized: SubscriptionStatus.authorized,
+      active: SubscriptionStatus.active,
+      pending: SubscriptionStatus.pending,
+      paused: SubscriptionStatus.paused,
+      cancelled: SubscriptionStatus.cancelled,
+    };
+    const mappedStatus = statusMap[result.status] ?? SubscriptionStatus.pending;
+    const isActive = mappedStatus === 'authorized' || mappedStatus === 'active';
+
+    await this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        externalId: result.externalId,
+        status: mappedStatus,
+        startDate: isActive ? new Date() : undefined,
+        nextPaymentDate: result.nextPaymentDate ? new Date(result.nextPaymentDate) : undefined,
+      },
+    });
+
+    // Activar perfil si la suscripción quedó autorizada/activa
+    if (isActive) {
+      await this.prisma.professionalProfile.updateMany({
+        where: withoutDeleted({ userId }),
+        data: { profileStatus: 'active', isActive: true, trialEndDate: null },
+      });
+    }
+
+    return {
+      subscriptionId: subscription.id,
+      status: mappedStatus,
+      preapprovalId: result.externalId,
+      nextPaymentDate: result.nextPaymentDate,
+      message: isActive
+        ? 'Suscripción activa. El cobro se hará automáticamente según la frecuencia del plan.'
+        : 'Suscripción creada, pendiente de confirmación.',
     };
   }
 
@@ -200,6 +429,20 @@ export class SubscriptionsService {
         },
       });
       this.logger.log(`Profile reactivated for user ${subscription.userId}`);
+    }
+
+    // Dar de baja el perfil cuando MP pausa/cancela el preapproval (e.g. tras fallar el cobro mensual)
+    if (status === 'paused' || status === 'cancelled' || status === 'expired') {
+      await this.prisma.professionalProfile.updateMany({
+        where: withoutDeleted({ userId: subscription.userId }),
+        data: {
+          profileStatus: 'waiting_payment',
+          isActive: false,
+        },
+      });
+      this.logger.warn(
+        `Profile deactivated for user ${subscription.userId} (subscription ${status})`,
+      );
     }
   }
 

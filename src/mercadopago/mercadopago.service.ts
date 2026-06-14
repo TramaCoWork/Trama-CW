@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MercadoPagoConfig, PreApproval, Payment, Preference } from 'mercadopago';
+import { randomUUID } from 'node:crypto';
 
 @Injectable()
 export class MercadoPagoService {
@@ -33,7 +34,15 @@ export class MercadoPagoService {
     this.preApproval = new PreApproval(this.client);
     this.payment = new Payment(this.client);
     this.preference = new Preference(this.client);
-    this.logger.log('MercadoPago SDK inicializado correctamente');
+
+    const env = token.startsWith('TEST-')
+      ? 'TEST'
+      : token.startsWith('APP_USR-')
+        ? 'PRODUCCIÓN'
+        : 'DESCONOCIDO';
+    this.logger.log(
+      `MercadoPago SDK inicializado correctamente | access_token: ${token.slice(0, 8)}... (${env})`,
+    );
   }
 
   // ─── Checkout Pro (Preference) ─────────────────────────────────────────────
@@ -73,6 +82,181 @@ export class MercadoPagoService {
     });
 
     this.logger.log(`Preference created: ${result.id} | init_point: ${result.init_point}`);
+    return result;
+  }
+
+  // ─── Checkout Bricks (Payments API) ────────────────────────────────────────
+
+  /** Devuelve la public key de MercadoPago para inicializar Bricks en el front. */
+  getPublicKey(): string {
+    const publicKey = this.config.get<string>('MERCADOPAGO_PUBLIC_KEY');
+    if (!publicKey) {
+      throw new Error(
+        'MERCADOPAGO_PUBLIC_KEY no está configurado. Configuralo en las variables de entorno para usar Checkout Bricks.',
+      );
+    }
+    return publicKey;
+  }
+
+  /**
+   * Crea una orden de pago (Orders API) a partir del token generado por Checkout Bricks.
+   * MP responde sincrónicamente con el estado del pago dentro de la orden.
+   *
+   * Se usa la Orders API (/v1/orders) y NO la legacy /v1/payments: las cuentas nuevas
+   * sólo procesan tarjeta por este endpoint. El X-Idempotency-Key lo genera el backend.
+   */
+  async createOrderFromToken(data: {
+    token: string;
+    amount: number;
+    installments: number;
+    paymentMethodId: string;
+    paymentType?: string; // credit_card | debit_card
+    payerEmail: string;
+    payerIdentification?: { type: string; number: string };
+    externalReference: string;
+  }) {
+    const accessToken = this.config.get<string>('MERCADOPAGO_ACCESS_TOKEN');
+    if (!accessToken) throw new Error('MERCADOPAGO_ACCESS_TOKEN no configurado');
+
+    const amount = data.amount.toFixed(2);
+
+    const payer: any = { email: data.payerEmail };
+    if (data.payerIdentification) {
+      payer.identification = {
+        type: data.payerIdentification.type,
+        number: data.payerIdentification.number,
+      };
+    }
+
+    const body = {
+      type: 'online',
+      total_amount: amount,
+      external_reference: data.externalReference,
+      transactions: {
+        payments: [
+          {
+            amount,
+            payment_method: {
+              id: data.paymentMethodId,
+              type: data.paymentType ?? 'credit_card',
+              token: data.token,
+              installments: data.installments,
+            },
+          },
+        ],
+      },
+      payer,
+    };
+
+    // El card token es único por intento, de un solo uso y estable ante reintentos
+    // del mismo request → idempotencia real. Fallback a UUID si faltara.
+    const idempotencyKey = data.token || randomUUID();
+    this.logger.log(
+      `Creating MP order | externalRef=${data.externalReference} | idempotencyKey=${idempotencyKey}`,
+    );
+
+    const response = await fetch('https://api.mercadopago.com/v1/orders', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'X-Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      this.logger.error(
+        `MP order create failed: ${response.status} | ${JSON.stringify(result?.errors ?? result)}`,
+      );
+      throw new Error(
+        `MercadoPago Orders API error: ${response.status} - ${JSON.stringify(result?.errors ?? result)}`,
+      );
+    }
+
+    const payment = result?.transactions?.payments?.[0];
+    this.logger.log(
+      `MP order created: ${result.id} | payment ${payment?.id} | status ${payment?.status}/${payment?.status_detail}`,
+    );
+    return result;
+  }
+
+  /**
+   * Crea una suscripción con cobro automático (PreApproval) a partir del card token
+   * generado por Checkout Bricks. Con `card_token_id` + `status: authorized`, MP autoriza
+   * y cobra automáticamente cada período SIN redirect (a diferencia de createPreapproval).
+   */
+  async createPreapprovalWithCardToken(data: {
+    reason: string;
+    cardTokenId: string;
+    amount: number;
+    currencyId: string;
+    frequency: number;
+    frequencyType: 'days' | 'months';
+    trialDays?: number;
+    payerEmail: string;
+    externalReference: string;
+    backUrl: string;
+    notificationUrl: string;
+  }) {
+    const accessToken = this.config.get<string>('MERCADOPAGO_ACCESS_TOKEN');
+    if (!accessToken) throw new Error('MERCADOPAGO_ACCESS_TOKEN no configurado');
+
+    const autoRecurring: any = {
+      frequency: data.frequency,
+      frequency_type: data.frequencyType,
+      transaction_amount: data.amount,
+      currency_id: data.currencyId,
+      // start_date debe ser futuro (MP rechaza fechas pasadas). Un margen chico hace que
+      // el primer cobro ocurra casi de inmediato en vez de diferirse +1 período.
+      start_date: new Date(Date.now() + 2 * 60 * 1000).toISOString(),
+    };
+    if (data.trialDays && data.trialDays > 0) {
+      autoRecurring.free_trial = { frequency: data.trialDays, frequency_type: 'days' };
+    }
+
+    const body = {
+      reason: data.reason,
+      external_reference: data.externalReference,
+      payer_email: data.payerEmail,
+      card_token_id: data.cardTokenId,
+      auto_recurring: autoRecurring,
+      back_url: data.backUrl,
+      notification_url: data.notificationUrl,
+      status: 'authorized',
+    };
+
+    const idempotencyKey = data.cardTokenId || randomUUID();
+    this.logger.log(
+      `Creating MP preapproval (card token) | externalRef=${data.externalReference} | idempotencyKey=${idempotencyKey}`,
+    );
+
+    const response = await fetch('https://api.mercadopago.com/preapproval', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'X-Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      this.logger.error(
+        `MP preapproval (card token) failed: ${response.status} | ${JSON.stringify(result?.errors ?? result)}`,
+      );
+      throw new Error(
+        `MercadoPago PreApproval API error: ${response.status} - ${JSON.stringify(result?.errors ?? result)}`,
+      );
+    }
+
+    this.logger.log(
+      `MP preapproval created: ${result.id} | status ${result.status} | next ${result.next_payment_date}`,
+    );
     return result;
   }
 

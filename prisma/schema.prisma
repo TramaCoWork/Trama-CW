@@ -623,3 +623,19 @@ model PrivateMessage {
   @@index([senderId, receiverId, sentAt], name: "private_messages_sender_receiver_sent_at")
   @@map("private_messages")
 }
+
+// ─── Eventos de webhook (auditoría de notificaciones entrantes) ────────────────
+
+model WebhookEvent {
+  id         String   @id @default(uuid())
+  provider   String   @default("mercadopago")
+  eventType  String?  @map("event_type") // payment, subscription_preapproval, etc.
+  resourceId String?  @map("resource_id") // data.id de MP
+  status     String // processed | failed | ignored
+  error      String?  @db.Text
+  payload    Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([status, createdAt], name: "webhook_events_status_created")
+  @@map("webhook_events")
+}

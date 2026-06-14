@@ -61,14 +61,19 @@ export class SubscriptionsCronService {
             continue;
           }
 
-          // Actualizar suscripción: volver a pending con nuevo initPoint
+          // Actualizar suscripción: volver a pending con nuevo initPoint.
+          // Solo sobrescribir externalId si la strategy lo regeneró (e.g. checkout);
+          // Bricks lo conserva hasta el próximo cobro.
+          const renewalData: any = {
+            status: 'pending',
+            initPoint: result.initPoint,
+          };
+          if (result.externalId) {
+            renewalData.externalId = result.externalId;
+          }
           await this.prisma.subscription.update({
             where: { id: sub.id },
-            data: {
-              status: 'pending',
-              initPoint: result.initPoint,
-              externalId: result.externalId,
-            },
+            data: renewalData,
           });
 
           // Desactivar perfil

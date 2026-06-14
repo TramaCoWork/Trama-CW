@@ -31,7 +31,8 @@ export interface CancelResult {
  */
 export interface RenewalResult {
   initPoint: string;
-  externalId: string;
+  /** Id externo del gateway. Opcional: algunas strategies (e.g. Bricks) no lo regeneran en la renovación. */
+  externalId?: string;
 }
 
 /**
