@@ -83,6 +83,7 @@ jobs:
           COMMUNITY_MAX_IMAGES_PER_ENTITY=10
           FRONTEND_URL=${{ secrets.FRONTEND_URL }}
           MERCADOPAGO_ACCESS_TOKEN=${{ secrets.MERCADOPAGO_ACCESS_TOKEN }}
+          MERCADOPAGO_WEBHOOK_SECRET=${{ secrets.MERCADOPAGO_WEBHOOK_SECRET }}
           SUBSCRIPTION_NOTIFICATION_URL=${{ vars.SUBSCRIPTION_NOTIFICATION_URL }}
           MAIL_PROVIDER=smtp
           MAIL_FROM=Trama CoWork <no-responder@tramacowork.com>
