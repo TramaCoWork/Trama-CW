@@ -14,6 +14,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { SubscriptionsService } from './subscriptions.service';
 import { PaymentStrategyFactory } from './strategies/payment-strategy.factory';
 import { PrismaService } from '../prisma/prisma.service';
+import { MercadoPagoService } from '../mercadopago/mercadopago.service';
 
 @ApiTags('Subscriptions Webhook')
 @Controller('subscriptions')
@@ -25,6 +26,7 @@ export class SubscriptionsWebhookController {
     private readonly strategyFactory: PaymentStrategyFactory,
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly mercadopago: MercadoPagoService,
   ) {}
 
   @Post('webhook')
@@ -58,6 +60,8 @@ export class SubscriptionsWebhookController {
       let handled = false;
       if (eventType === 'payment') {
         handled = await this.handlePayment(resourceId);
+      } else if (eventType === 'subscription_authorized_payment') {
+        handled = await this.handleAuthorizedPayment(resourceId);
       } else {
         handled = await this.handleGatewayEvent(eventType, resourceId);
       }
@@ -149,6 +153,40 @@ export class SubscriptionsWebhookController {
 
     this.logger.log(`No strategy handled gateway event: ${eventType} / ${dataId}`);
     return false;
+  }
+
+  /**
+   * Cobro recurrente real de una suscripción (evento `subscription_authorized_payment`).
+   * El `data.id` es un authorized_payment; lo consultamos para obtener el `preapproval_id`
+   * (= externalId de nuestra suscripción) y el pago concreto, y lo registramos.
+   * @returns true si se registró un pago concreto
+   */
+  private async handleAuthorizedPayment(authorizedPaymentId?: string): Promise<boolean> {
+    if (!authorizedPaymentId) return false;
+
+    const ap: any = await this.mercadopago.getAuthorizedPayment(authorizedPaymentId);
+    const preapprovalId: string | undefined = ap?.preapproval_id;
+    const payment = ap?.payment;
+
+    // Si todavía no hay un pago concreto asociado (e.g. status "scheduled"), no hay nada que registrar.
+    if (!preapprovalId || !payment?.id) {
+      this.logger.log(
+        `Authorized payment ${authorizedPaymentId} sin pago concreto aún (preapproval=${preapprovalId ?? 'none'}, status=${ap?.status ?? 'none'})`,
+      );
+      return false;
+    }
+
+    const status = payment.status as string;
+    await this.subscriptionsService.registerPayment({
+      subscriptionExternalId: preapprovalId,
+      paymentExternalId: String(payment.id),
+      amount: ap.transaction_amount ?? payment.transaction_amount ?? 0,
+      status: status === 'approved' ? 'sub_approved' : 'sub_rejected',
+      failureReason: status !== 'approved' ? (payment.status_detail ?? status) : undefined,
+      statusDetail: payment.status_detail ?? null,
+      metadata: ap,
+    });
+    return true;
   }
 
   /** @returns true si alguna strategy manejó el pago */

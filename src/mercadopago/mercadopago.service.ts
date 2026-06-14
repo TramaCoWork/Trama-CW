@@ -394,4 +394,33 @@ export class MercadoPagoService {
     this.ensureInitialized();
     return this.payment!.get({ id: paymentId });
   }
+
+  /**
+   * Consulta un "authorized payment" (cobro recurrente de una suscripción).
+   * Es el recurso que notifica el webhook `subscription_authorized_payment` y trae
+   * `preapproval_id`, el `payment` asociado (id/status) y el `transaction_amount`.
+   * El SDK no lo expone, así que se consulta el endpoint REST directo.
+   */
+  async getAuthorizedPayment(authorizedPaymentId: string) {
+    const accessToken = this.config.get<string>('MERCADOPAGO_ACCESS_TOKEN');
+    if (!accessToken) throw new Error('MERCADOPAGO_ACCESS_TOKEN no configurado');
+
+    const response = await fetch(
+      `https://api.mercadopago.com/authorized_payments/${authorizedPaymentId}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      this.logger.error(
+        `MP authorized_payment fetch failed: ${response.status} | ${JSON.stringify(result?.errors ?? result)}`,
+      );
+      throw new Error(
+        `MercadoPago authorized_payments API error: ${response.status} - ${JSON.stringify(result?.errors ?? result)}`,
+      );
+    }
+
+    return result;
+  }
 }
