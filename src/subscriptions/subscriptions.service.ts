@@ -18,6 +18,13 @@ import { SubscriptionStatus } from '@prisma/client';
 import { WebhookPaymentData } from './strategies/payment-strategy.interface';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
+/**
+ * Días de gracia que se suman al vencimiento de la suscripción tras un pago aprobado.
+ * Dan margen para que el próximo cobro automático se concrete antes de cortar el acceso
+ * (ej. reintentos de MercadoPago ante un problema de cobro).
+ */
+const SUBSCRIPTION_GRACE_DAYS = 5;
+
 @Injectable()
 export class SubscriptionsService {
   private readonly logger = new Logger(SubscriptionsService.name);
@@ -459,14 +466,9 @@ export class SubscriptionsService {
     // Registrar pago
     await this.registerPaymentBySubscriptionId(subscriptionId, data);
 
-    // Calcular endDate según frecuencia del plan
+    // Calcular endDate según frecuencia del plan + días de gracia
     const now = new Date();
-    const endDate = new Date(now);
-    if (subscription.plan.frequencyType === 'months') {
-      endDate.setMonth(endDate.getMonth() + subscription.plan.frequency);
-    } else {
-      endDate.setDate(endDate.getDate() + subscription.plan.frequency);
-    }
+    const endDate = this.computePaidUntil(subscription.plan, now);
 
     // Activar suscripción
     await this.prisma.subscription.update({
@@ -515,13 +517,69 @@ export class SubscriptionsService {
 
     const subscription = await this.prisma.subscription.findUnique({
       where: { externalId: data.subscriptionExternalId },
+      include: { plan: true },
     });
     if (!subscription) {
       this.logger.warn(`Subscription not found for payment: ${data.subscriptionExternalId}`);
       return;
     }
 
-    return this._createPaymentRecord(subscription.id, data);
+    const payment = await this._createPaymentRecord(subscription.id, data);
+
+    // Un pago aprobado extiende la vigencia: un período del plan + gracia.
+    if (data.status === 'sub_approved') {
+      await this._renewSubscriptionVigency(subscription, subscription.plan);
+    }
+
+    return payment;
+  }
+
+  /**
+   * Calcula hasta cuándo queda paga una suscripción: un período del plan
+   * (frecuencia + tipo) más los días de gracia.
+   */
+  private computePaidUntil(
+    plan: { frequency: number; frequencyType: string },
+    from: Date = new Date(),
+  ): Date {
+    const endDate = new Date(from);
+    if (plan.frequencyType === 'months') {
+      endDate.setMonth(endDate.getMonth() + plan.frequency);
+    } else {
+      endDate.setDate(endDate.getDate() + plan.frequency);
+    }
+    endDate.setDate(endDate.getDate() + SUBSCRIPTION_GRACE_DAYS);
+    return endDate;
+  }
+
+  /**
+   * Avanza el vencimiento de la suscripción tras un pago aprobado, la marca activa
+   * y reactiva el perfil profesional.
+   */
+  private async _renewSubscriptionVigency(
+    subscription: { id: string; userId: string; startDate: Date | null },
+    plan: { frequency: number; frequencyType: string },
+  ) {
+    const now = new Date();
+    const endDate = this.computePaidUntil(plan, now);
+
+    await this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        status: 'active',
+        startDate: subscription.startDate ?? now,
+        endDate,
+      },
+    });
+
+    await this.prisma.professionalProfile.updateMany({
+      where: withoutDeleted({ userId: subscription.userId }),
+      data: { profileStatus: 'active', isActive: true, trialEndDate: null },
+    });
+
+    this.logger.log(
+      `Subscription ${subscription.id} vigency extended until ${endDate.toISOString()} (paid)`,
+    );
   }
 
   async registerPaymentBySubscriptionId(subscriptionId: string, data: WebhookPaymentData) {
