@@ -16,6 +16,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
+import { AuthService } from '../auth/auth.service';
 import { CreateJobDto } from './dto/create-job.dto';
 import { ValidateProfileDto } from './dto/validate-profile.dto';
 import { VerifyDocumentDto } from './dto/verify-document.dto';
@@ -29,7 +30,25 @@ export class AdminService {
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
+    private readonly authService: AuthService,
   ) {}
+
+  /**
+   * Reenvía el email de verificación al usuario de un perfil profesional.
+   * Se usa desde el panel admin cuando el profesional aún no verificó su email.
+   */
+  async resendProfessionalVerification(profileId: string) {
+    const profile = await this.prisma.professionalProfile.findUnique({
+      where: withoutDeleted({ id: profileId }),
+      include: { user: { select: { id: true } } },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Professional profile not found');
+    }
+
+    return this.authService.resendVerificationByUserId(profile.user.id);
+  }
 
   async registerProfessional(dto: AdminRegisterProfessionalDto) {
     const existing = await this.prisma.user.findUnique({
@@ -161,7 +180,7 @@ export class AdminService {
       this.prisma.professionalProfile.findMany({
         where,
         include: {
-          user: { select: { id: true, email: true } },
+          user: { select: { id: true, email: true, emailVerified: true } },
           rubro: true,
           country: true,
           province: true,

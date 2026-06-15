@@ -100,6 +100,17 @@ export class AdminController {
     return this.adminService.approveProfessional(id);
   }
 
+  @Post('professionals/:id/resend-verification')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Reenviar el email de verificación de cuenta al profesional' })
+  @ApiParam({ name: 'id', description: 'ID del perfil profesional' })
+  @ApiResponse({ status: 200, description: 'Email de verificación reenviado' })
+  @ApiResponse({ status: 400, description: 'El email ya fue verificado' })
+  @ApiResponse({ status: 404, description: 'Profesional no encontrado' })
+  async resendProfessionalVerification(@Param('id', ParseUUIDPipe) id: string) {
+    return this.adminService.resendProfessionalVerification(id);
+  }
+
   @Post('professionals/:id/validate')
   @ApiOperation({ summary: 'Validar perfil profesional (aprobar o rechazar con notas y documentos revisados)' })
   @ApiResponse({ status: 201, description: 'Validacion registrada, estado del perfil actualizado' })

@@ -355,6 +355,29 @@ export class AuthService {
     return { message: 'Contraseña actualizada exitosamente' };
   }
 
+  /**
+   * Reenvía el email de verificación a un usuario por su id (uso admin).
+   * A diferencia de `resendVerification`, no oculta la existencia del usuario:
+   * lanza error si no existe o si ya está verificado.
+   */
+  async resendVerificationByUserId(userId: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: withoutDeleted({ id: userId }),
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    if (user.emailVerified) {
+      throw new BadRequestException('El email ya fue verificado');
+    }
+
+    this.sendVerificationEmail(user.id, user.email);
+
+    return { message: 'Email de verificación reenviado' };
+  }
+
   private sendVerificationEmail(
     userId: string,
     email: string,
