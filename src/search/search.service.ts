@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ProfessionalProfile, Prisma } from '@prisma/client';
 
 export interface SearchQuery {
+  q?: string;
   rubro?: string;
   sub_rubro?: string;
   city?: string;
@@ -78,6 +79,37 @@ export class SearchService {
 
     if (query.provinceId) {
       where.provinceId = parseInt(query.provinceId);
+    }
+
+    // Búsqueda de texto libre sobre name, services y profession_categories.name.
+    // Insensible a acentos y mayúsculas vía unaccent + lower de PostgreSQL
+    // (Prisma no soporta unaccent, por eso se resuelve con SQL crudo y luego se
+    // combina por IDs respetando los filtros de visibilidad del where principal).
+    if (query.q?.trim()) {
+      const pattern = `%${query.q.trim()}%`;
+
+      const [profileRows, categoryRows] = await Promise.all([
+        this.prisma.$queryRaw<{ id: string }[]>`
+          SELECT id FROM professional_profiles
+          WHERE unaccent(lower(name)) LIKE unaccent(lower(${pattern}))
+             OR EXISTS (
+               SELECT 1 FROM unnest(services) AS service
+               WHERE unaccent(lower(service)) LIKE unaccent(lower(${pattern}))
+             )
+        `,
+        this.prisma.$queryRaw<{ id: number }[]>`
+          SELECT id FROM profession_categories
+          WHERE unaccent(lower(name)) LIKE unaccent(lower(${pattern}))
+        `,
+      ]);
+
+      const profileIds = profileRows.map((row) => row.id);
+      const categoryIds = categoryRows.map((row) => row.id);
+
+      where.OR = [
+        { id: { in: profileIds } },
+        { professionCategories: { some: { id: { in: categoryIds } } } },
+      ];
     }
 
     return this.prisma.professionalProfile.findMany({

@@ -10,6 +10,7 @@ export class SearchController {
 
   @Get()
   @ApiOperation({ summary: 'Buscar profesionales con filtros avanzados' })
+  @ApiQuery({ name: 'q', required: false, description: 'Texto libre: busca en nombre, servicios y profesiones (sin distinguir acentos ni mayusculas)' })
   @ApiQuery({ name: 'rubro', required: false, description: 'Slug del rubro (nivel 1 de taxonomia)' })
   @ApiQuery({ name: 'city', required: false, description: 'Ciudad (busqueda parcial)' })
   @ApiQuery({ name: 'modality', required: false, enum: ['presencial', 'online', 'ambas'], description: 'Modalidad de trabajo' })
