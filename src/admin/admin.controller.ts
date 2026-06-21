@@ -1,5 +1,7 @@
 import {
+  ForbiddenException,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Post,
@@ -19,6 +21,8 @@ import { VerifyDocumentDto } from './dto/verify-document.dto';
 import { SetTrialDateDto } from './dto/set-trial-date.dto';
 import { AdminRegisterProfessionalDto } from './dto/admin-register-professional.dto';
 import { AdminUpdateProfessionalDto } from './dto/admin-update-professional.dto';
+import { AdminCreateUserDto } from './dto/admin-create-user.dto';
+import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -33,6 +37,12 @@ import { UserRole, ProfileStatus, SubscriptionPaymentStatus, FrequencyType, Subs
 @Roles(UserRole.admin)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
+
+  private assertCanMutateUser(user: CurrentUserType, targetUserId: string) {
+    if (user.userId === targetUserId) {
+      throw new ForbiddenException('You cannot modify your own account');
+    }
+  }
 
   @Get('professionals')
   @ApiOperation({ summary: 'Listar todos los profesionales (incluye inactivos y todos los estados)' })
@@ -282,6 +292,24 @@ export class AdminController {
     return this.adminService.getPayments();
   }
 
+  @Post('users')
+  @ApiOperation({ summary: 'Crear usuario (admin)' })
+  @ApiResponse({ status: 201, description: 'Usuario creado exitosamente' })
+  @ApiResponse({ status: 409, description: 'Email ya en uso' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos' })
+  async createAdminUser(
+    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: AdminCreateUserDto,
+  ) {
+    return this.adminService.createAdminUser(dto);
+  }
+
+  @Get('users')
+  @ApiOperation({ summary: 'Listar usuarios activos' })
+  @ApiResponse({ status: 200, description: 'Lista de usuarios activos' })
+  async listAdminUsers() {
+    return this.adminService.listAdminUsers();
+  }
+
   @Get('users/deleted')
   @ApiOperation({ summary: 'Listar usuarios soft-deleted' })
   @ApiQuery({ name: 'skip', required: false, type: Number, description: 'Offset (default: 0)' })
@@ -301,5 +329,44 @@ export class AdminController {
   @ApiResponse({ status: 200, description: 'Usuario restaurado' })
   async restoreSoftDeletedUser(@Param('id', ParseUUIDPipe) id: string) {
     return this.adminService.restoreSoftDeletedUser(id);
+  }
+
+  @Get('users/:id')
+  @ApiOperation({ summary: 'Obtener usuario activo por ID' })
+  @ApiParam({ name: 'id', description: 'ID del usuario' })
+  @ApiResponse({ status: 200, description: 'Usuario encontrado' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+  async getAdminUserById(@Param('id', ParseUUIDPipe) id: string) {
+    return this.adminService.getAdminUserById(id);
+  }
+
+  @Patch('users/:id')
+  @ApiOperation({ summary: 'Actualizar usuario (admin)' })
+  @ApiParam({ name: 'id', description: 'ID del usuario' })
+  @ApiResponse({ status: 200, description: 'Usuario actualizado' })
+  @ApiResponse({ status: 403, description: 'No puedes modificar tu propia cuenta' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+  async updateAdminUser(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: AdminUpdateUserDto,
+  ) {
+    this.assertCanMutateUser(user, id);
+    return this.adminService.updateAdminUser(user.userId, id, dto);
+  }
+
+  @Delete('users/:id')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Eliminar usuario (soft-delete)' })
+  @ApiParam({ name: 'id', description: 'ID del usuario' })
+  @ApiResponse({ status: 200, description: 'Usuario eliminado' })
+  @ApiResponse({ status: 403, description: 'No puedes eliminar tu propia cuenta' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+  async softDeleteAdminUser(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    this.assertCanMutateUser(user, id);
+    return this.adminService.softDeleteAdminUser(user.userId, id);
   }
 }

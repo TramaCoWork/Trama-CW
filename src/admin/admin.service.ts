@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -22,6 +23,8 @@ import { ValidateProfileDto } from './dto/validate-profile.dto';
 import { VerifyDocumentDto } from './dto/verify-document.dto';
 import { AdminRegisterProfessionalDto } from './dto/admin-register-professional.dto';
 import { AdminUpdateProfessionalDto } from './dto/admin-update-professional.dto';
+import { AdminCreateUserDto } from './dto/admin-create-user.dto';
+import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 @Injectable()
@@ -135,6 +138,200 @@ export class AdminService {
       message: 'Profesional registrado exitosamente',
       user,
     };
+  }
+
+  async createAdminUser(dto: AdminCreateUserDto) {
+    const existing = await this.prisma.user.findUnique({
+      where: withoutDeleted({ email: dto.email }),
+    });
+
+    if (existing) {
+      throw new ConflictException('Email already in use');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          email: dto.email,
+          passwordHash,
+          role: dto.role ?? UserRole.client,
+          emailVerified: true,
+        },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          emailVerified: true,
+          createdAt: true,
+          updatedAt: true,
+          deletedAt: true,
+        },
+      });
+
+      return {
+        message: 'User created successfully',
+        user,
+      };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Email already in use');
+      }
+      throw error;
+    }
+  }
+
+  async listAdminUsers() {
+    return this.prisma.user.findMany({
+      where: withoutDeleted(),
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        emailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        deletedAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getAdminUserById(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: withoutDeleted({ id }),
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        emailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        deletedAt: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  assertCanMutateUser(authenticatedUserId: string, targetUserId: string) {
+    if (authenticatedUserId === targetUserId) {
+      throw new ForbiddenException('You cannot modify your own account');
+    }
+  }
+
+  async updateAdminUser(
+    authenticatedUserId: string,
+    id: string,
+    dto: AdminUpdateUserDto,
+  ) {
+    this.assertCanMutateUser(authenticatedUserId, id);
+
+    const currentUser = await this.prisma.user.findUnique({
+      where: withoutDeleted({ id }),
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        emailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        deletedAt: true,
+      },
+    });
+
+    if (!currentUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (dto.email !== undefined) {
+      const existing = await this.prisma.user.findUnique({
+        where: withoutDeleted({ email: dto.email }),
+        select: { id: true },
+      });
+
+      if (existing && existing.id !== id) {
+        throw new ConflictException('Email already in use');
+      }
+    }
+
+    const data: Prisma.UserUpdateInput = {};
+
+    if (dto.email !== undefined) {
+      data.email = dto.email;
+    }
+
+    if (dto.role !== undefined) {
+      data.role = dto.role;
+    }
+
+    if (dto.password !== undefined) {
+      data.passwordHash = await bcrypt.hash(dto.password, 10);
+    }
+
+    if (Object.keys(data).length === 0) {
+      return currentUser;
+    }
+
+    try {
+      return await this.prisma.user.update({
+        where: withoutDeleted({ id }),
+        data,
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          emailVerified: true,
+          createdAt: true,
+          updatedAt: true,
+          deletedAt: true,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Email already in use');
+      }
+      throw error;
+    }
+  }
+
+  async softDeleteAdminUser(authenticatedUserId: string, id: string) {
+    this.assertCanMutateUser(authenticatedUserId, id);
+
+    const user = await this.prisma.user.findUnique({
+      where: withoutDeleted({ id }),
+      include: { profile: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const deletedAt = new Date();
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: withoutDeleted({ id }),
+        data: { deletedAt },
+      }),
+      this.prisma.professionalProfile.updateMany({
+        where: withoutDeleted({ userId: id }),
+        data: { deletedAt },
+      }),
+    ]);
+
+    return { message: 'User deleted successfully' };
   }
 
   // ─── Profesionales pendientes ────────────────────────────────────────────
