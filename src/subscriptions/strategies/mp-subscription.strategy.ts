@@ -1,5 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { MercadoPagoService } from '../../mercadopago/mercadopago.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import {
   PaymentStrategy,
   CreatePaymentData,
@@ -14,9 +16,23 @@ export class MpSubscriptionStrategy implements PaymentStrategy {
   readonly code = 'mp_subscription';
   private readonly logger = new Logger(MpSubscriptionStrategy.name);
 
-  constructor(private readonly mercadopago: MercadoPagoService) {}
+  constructor(
+    private readonly mercadopago: MercadoPagoService,
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
 
   async createPayment(data: CreatePaymentData): Promise<CreatePaymentResult> {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { id: data.subscriptionId },
+      select: { userId: true },
+    });
+    if (!subscription) {
+      throw new NotFoundException('Suscripción no encontrada');
+    }
+
+    const backUrl = this.config.getOrThrow<string>('FRONTEND_URL');
+
     const mpResult = await this.mercadopago.createPreapproval({
       reason: data.plan.name,
       amount: Number(data.plan.amount),
@@ -25,9 +41,9 @@ export class MpSubscriptionStrategy implements PaymentStrategy {
       frequencyType: data.plan.frequencyType as 'days' | 'months',
       trialDays: data.plan.trialDays,
       payerEmail: data.payerEmail,
-      backUrl: data.backUrl,
+      backUrl,
       notificationUrl: data.notificationUrl,
-      externalReference: data.subscriptionId,
+      externalReference: `${subscription.userId}-${data.subscriptionId}`,
     });
 
     this.logger.log(`Preapproval created: ${data.subscriptionId} -> MP: ${mpResult.id} (subscription mode)`);

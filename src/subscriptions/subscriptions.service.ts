@@ -3,6 +3,7 @@ import {
   ConflictException,
   NotFoundException,
   Logger,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -44,18 +45,26 @@ export class SubscriptionsService {
     const existing = await this.prisma.subscription.findFirst({
       where: {
         userId,
-        status: { in: ['pending', 'authorized', 'active'] },
+        status: { in: ['authorized', 'active'] },
       },
     });
     if (existing) {
       throw new ConflictException('Ya tenés una suscripción activa');
     }
 
-    // Validar plan activo
-    const plan = await this.plansService.findOne(dto.planId);
-    if (!plan.isActive) {
-      throw new NotFoundException('Plan no encontrado o inactivo');
+    const pending = await this.prisma.subscription.findFirst({
+      where: {
+        userId,
+        planId: dto.planId,
+        status: 'pending',
+      },
+    });
+    if (pending) {
+      return { initPoint: pending.initPoint, subscriptionId: pending.id };
     }
+
+    // Validar plan activo
+    const plan = await this.plansService.findOneActive(dto.planId);
 
     // Resolver strategy (desde DTO o default)
     const strategy = this.strategyFactory.getStrategy(dto.paymentStrategy);
@@ -82,28 +91,50 @@ export class SubscriptionsService {
 
     // Delegar creación del pago al strategy
     const notificationUrl = this.config.getOrThrow<string>('SUBSCRIPTION_NOTIFICATION_URL');
-    const { initPoint, externalId } = await strategy.createPayment({
-      subscriptionId: subscription.id,
-      plan,
-      payerEmail: user.email,
-      backUrl: dto.backUrl,
-      notificationUrl,
-    });
+    let initPoint: string;
+    let externalId: string;
+
+    try {
+      const mpResult = await strategy.createPayment({
+        subscriptionId: subscription.id,
+        plan,
+        payerEmail: user.email,
+        backUrl: dto.backUrl,
+        notificationUrl,
+      });
+      initPoint = mpResult.initPoint;
+      externalId = mpResult.externalId;
+    } catch (error) {
+      await this.prisma.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          status: 'cancelled',
+          cancellationReason: 'mp_preapproval_failed',
+        },
+      });
+      this.logger.error(`MP preapproval failed for subscription ${subscription.id}: ${error?.message ?? error}`);
+      throw new InternalServerErrorException('No se pudo iniciar la suscripción');
+    }
 
     // Actualizar con externalId e initPoint
-    await this.prisma.subscription.update({
-      where: { id: subscription.id },
-      data: { externalId, initPoint },
-    });
+    try {
+      await this.prisma.subscription.update({
+        where: { id: subscription.id },
+        data: { externalId, initPoint },
+      });
+    } catch {
+      await this.prisma.webhookEvent.create({
+        data: {
+          provider: 'mercadopago',
+          status: 'failed',
+          resourceId: externalId,
+          error: 'DB update failed post-MP',
+        },
+      });
+      throw new InternalServerErrorException('No se pudo iniciar la suscripción');
+    }
 
-    return {
-      id: subscription.id,
-      planId: plan.id,
-      status: 'pending',
-      paymentStrategy: strategy.code,
-      initPoint,
-      createdAt: subscription.createdAt,
-    };
+    return { initPoint, subscriptionId: subscription.id };
   }
 
   // ─── Checkout Bricks ────────────────────────────────────────────────────────
@@ -127,10 +158,7 @@ export class SubscriptionsService {
       throw new ConflictException('Ya tenés una suscripción activa');
     }
 
-    const plan = await this.plansService.findOne(dto.planId);
-    if (!plan.isActive) {
-      throw new NotFoundException('Plan no encontrado o inactivo');
-    }
+    const plan = await this.plansService.findOneActive(dto.planId);
 
     const user = await this.prisma.user.findUnique({
       where: withoutDeleted({ id: userId }),
@@ -242,10 +270,7 @@ export class SubscriptionsService {
       throw new ConflictException('Ya tenés una suscripción activa');
     }
 
-    const plan = await this.plansService.findOne(dto.planId);
-    if (!plan.isActive) {
-      throw new NotFoundException('Plan no encontrado o inactivo');
-    }
+    const plan = await this.plansService.findOneActive(dto.planId);
 
     const user = await this.prisma.user.findUnique({
       where: withoutDeleted({ id: userId }),

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
 import { CreatePlanDto } from './dto/create-plan.dto';
@@ -34,6 +34,14 @@ export class SubscriptionPlansService {
       where: withoutDeleted({ id }),
     });
     if (!plan) throw new NotFoundException('Plan no encontrado');
+    return plan;
+  }
+
+  async findOneActive(id: string) {
+    const plan = await this.findOne(id);
+    if (!plan.isActive) {
+      throw new BadRequestException('Plan no está activo');
+    }
     return plan;
   }
 

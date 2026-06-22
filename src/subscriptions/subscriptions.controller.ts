@@ -7,6 +7,7 @@ import {
   Query,
   UseGuards,
   ValidationPipe,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { SubscriptionsService } from './subscriptions.service';
@@ -74,6 +75,20 @@ export class SubscriptionsController {
     @Query('sizePage') sizePage = 10,
   ) {
     return this.service.findMyPayments(user.userId, Number(page), Number(sizePage));
+  }
+
+  @Get('init-link')
+  @ApiOperation({ summary: 'Inicializar link de suscripción con MercadoPago' })
+  @ApiQuery({ name: 'planId', required: true, type: String, format: 'uuid' })
+  initLink(
+    @CurrentUser() user: CurrentUserType,
+    @Query('planId', new ParseUUIDPipe({ version: '4' })) planId: string,
+  ) {
+    return this.service.create(user.userId, {
+      planId,
+      backUrl: '',
+      paymentStrategy: 'mp_subscription',
+    });
   }
 
   @Patch('me/cancel')
