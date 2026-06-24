@@ -27,6 +27,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { LocationsModule } from './locations/locations.module';
 import { CatalogsModule } from './catalogs/catalogs.module';
 import { DiscountsModule } from './discounts/discounts.module';
+import { DiscountPlansModule } from './discount-plans/discount-plans.module';
 import { BackgroundJobsModule } from './background-jobs/background-jobs.module';
 import { ContactModule } from './contact/contact.module';
 import { MessagesModule } from './messages/messages.module';
@@ -127,6 +128,7 @@ import { AppController } from './app.controller';
     LocationsModule,
     CatalogsModule,
     DiscountsModule,
+    DiscountPlansModule,
     BackgroundJobsModule,
     ContactModule,
     MessagesModule,
