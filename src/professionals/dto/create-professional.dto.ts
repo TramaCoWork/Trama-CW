@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsEmail,
   IsInt,
   IsOptional,
@@ -101,4 +102,13 @@ export class CreateProfessionalDto {
   @IsOptional()
   @IsEmail()
   emailContact?: string;
+
+  @ApiPropertyOptional({
+    example: false,
+    default: false,
+    description: 'Ocultar perfil en listados y búsqueda pública',
+  })
+  @IsOptional()
+  @IsBoolean()
+  hideProfile?: boolean;
 }

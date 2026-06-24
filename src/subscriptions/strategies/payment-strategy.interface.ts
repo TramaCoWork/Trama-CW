@@ -40,6 +40,7 @@ export interface RenewalResult {
  */
 export interface WebhookPaymentData {
   paymentExternalId: string;
+  webhookEventId?: string;
   amount: number;
   status: 'sub_approved' | 'sub_rejected';
   failureReason?: string;

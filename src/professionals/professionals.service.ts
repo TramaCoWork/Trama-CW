@@ -27,6 +27,7 @@ export class ProfessionalsService {
       SELECT pp.id FROM professional_profiles pp
       JOIN users u ON u.id = pp.user_id
       WHERE pp.is_active = true
+        AND pp.hide_profile = false
         AND pp.profile_status = 'active'
         AND u.email_verified = true
         AND (pp.trial_end_date IS NULL OR pp.trial_end_date >= NOW())
@@ -49,6 +50,7 @@ export class ProfessionalsService {
     const where = {
       deletedAt: null,
       isActive: true,
+      hideProfile: false,
       profileStatus: 'active' as const,
       user: { emailVerified: true },
       OR: [{ trialEndDate: null }, { trialEndDate: { gte: new Date() } }],
@@ -93,6 +95,7 @@ export class ProfessionalsService {
         deletedAt: null,
         id,
         isActive: true,
+        hideProfile: false,
         profileStatus: 'active',
         user: { emailVerified: true },
         OR: [{ trialEndDate: null }, { trialEndDate: { gte: new Date() } }],
@@ -136,6 +139,7 @@ export class ProfessionalsService {
       },
       whatsapp: dto.whatsapp,
       emailContact,
+      hideProfile: dto.hideProfile ?? false,
     };
 
     const profile = await this.prisma.professionalProfile.create({

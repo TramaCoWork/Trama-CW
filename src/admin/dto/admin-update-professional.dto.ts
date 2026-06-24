@@ -75,6 +75,11 @@ export class AdminUpdateProfessionalDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
+  hideProfile?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
   emailVerified?: boolean;
 
   @ApiPropertyOptional({ enum: ProfileStatus })

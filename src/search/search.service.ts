@@ -24,7 +24,10 @@ export class SearchService {
     const where: Prisma.ProfessionalProfileWhereInput = {
       deletedAt: null,
       isActive: true,
+      hideProfile: false,
+      profileStatus: 'active',
       user: { emailVerified: true },
+      OR: [{ trialEndDate: null }, { trialEndDate: { gte: new Date() } }],
     };
 
     if (query.city) {

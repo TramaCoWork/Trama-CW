@@ -180,6 +180,7 @@ export class AuthService {
             services: [],
             ...(dto.rubroId ? { rubroId: dto.rubroId } : {}),
             profileStatus: ProfileStatus.onboarding,
+            hideProfile: false,
           },
         },
       },

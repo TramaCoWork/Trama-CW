@@ -166,6 +166,7 @@ model ProfessionalProfile {
   address       String?
   whatsapp      String?
   emailContact  String?       @map("email_contact")
+  hideProfile   Boolean       @default(false) @map("hide_profile")
   isActive      Boolean       @default(false) @map("is_active")
   profileStatus ProfileStatus @default(incomplete) @map("profile_status")
   completionPct Int           @default(0) @map("completion_pct")

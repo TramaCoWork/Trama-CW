@@ -111,6 +111,7 @@ export class AdminService {
               whatsapp: dto.whatsapp,
               profileStatus: dto.profileStatus ?? ProfileStatus.active,
               isActive: dto.isActive ?? dto.is_active ?? false,
+              hideProfile: dto.hideProfile ?? false,
               trialEndDate: dto.trialEndDate
                 ? new Date(dto.trialEndDate)
                 : null,
@@ -552,6 +553,7 @@ export class AdminService {
     if (dto.isActive !== undefined || dto.is_active !== undefined) {
       data.isActive = dto.isActive ?? dto.is_active;
     }
+    if (dto.hideProfile !== undefined) data.hideProfile = dto.hideProfile;
     if (dto.rubroId !== undefined) data.rubro = { connect: { id: dto.rubroId } };
     if (dto.countryId !== undefined) data.country = { connect: { id: dto.countryId } };
     if (dto.provinceId !== undefined) data.province = { connect: { id: dto.provinceId } };

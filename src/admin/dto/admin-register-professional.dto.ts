@@ -100,4 +100,9 @@ export class AdminRegisterProfessionalDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ example: false, default: false })
+  @IsOptional()
+  @IsBoolean()
+  hideProfile?: boolean;
 }

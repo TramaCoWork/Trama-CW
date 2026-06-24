@@ -224,6 +224,7 @@ export class MessagesService {
         deletedAt: null,
         userId: { not: userId },
         isActive: true,
+        hideProfile: false,
         profileStatus: 'active',
         user: { emailVerified: true },
         name: { contains: cleanTerm, mode: 'insensitive' },

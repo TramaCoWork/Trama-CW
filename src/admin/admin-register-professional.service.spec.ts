@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProfileStatus, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { AuthService } from '../auth/auth.service';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminService } from './admin.service';
@@ -26,6 +27,7 @@ describe('AdminService.registerProfessional', () => {
 
   const mockMail = {};
   const mockConfig = { get: jest.fn() };
+  const mockAuth = {};
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -34,6 +36,7 @@ describe('AdminService.registerProfessional', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: MailService, useValue: mockMail },
         { provide: ConfigService, useValue: mockConfig },
+        { provide: AuthService, useValue: mockAuth },
       ],
     }).compile();
 
@@ -156,5 +159,6 @@ describe('AdminService.registerProfessional', () => {
     expect(createData.emailVerified).toBe(true);
     expect(createData.profile.create.profileStatus).toBe(ProfileStatus.active);
     expect(createData.profile.create.services).toEqual([]);
+    expect(createData.profile.create.hideProfile).toBe(false);
   });
 });

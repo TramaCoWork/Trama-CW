@@ -58,6 +58,15 @@ export class ContactService {
       throw new NotFoundException('Profesional no encontrado.');
     }
 
+    if (
+      profile.hideProfile ||
+      !profile.isActive ||
+      profile.profileStatus !== 'active' ||
+      (profile.trialEndDate !== null && profile.trialEndDate < new Date())
+    ) {
+      throw new NotFoundException('Profesional no encontrado.');
+    }
+
     const professionalEmail = profile.emailContact ?? profile.user.email;
 
     await this.mailService.sendProfessionalContact(professionalEmail, {

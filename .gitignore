@@ -41,3 +41,6 @@ vault/memory/.engine/.index-state.json
 
 # CodeGraph — índice local del código (no commitear)
 .codegraph/
+
+# Defensa: si quedó algún node_modules legacy del install viejo
+vault/memory/.engine/node_modules/

@@ -53,26 +53,39 @@ export class SubscriptionsWebhookController {
 
     this.logger.log(`Webhook received: ${JSON.stringify(body)}`);
 
-    let status: 'processed' | 'failed' | 'ignored' = 'ignored';
-    let errorMsg: string | undefined;
+    const webhookEventId = await this.persistEvent(
+      eventType,
+      resourceId,
+      'processed',
+      undefined,
+      body,
+    );
 
     try {
-      let handled = false;
       if (eventType === 'payment') {
-        handled = await this.handlePayment(resourceId);
+        await this.handlePayment(resourceId, webhookEventId ?? undefined);
       } else if (eventType === 'subscription_authorized_payment') {
-        handled = await this.handleAuthorizedPayment(resourceId);
+        await this.handleAuthorizedPayment(resourceId, webhookEventId ?? undefined);
       } else {
-        handled = await this.handleGatewayEvent(eventType, resourceId);
+        await this.handleGatewayEvent(eventType, resourceId);
       }
-      status = handled ? 'processed' : 'ignored';
     } catch (error) {
-      status = 'failed';
-      errorMsg = error?.message ?? String(error);
+      const errorMsg = error?.message ?? String(error);
       this.logger.error(`Webhook processing error: ${errorMsg}`, error?.stack);
-    }
 
-    await this.persistEvent(eventType, resourceId, status, errorMsg, body);
+      if (webhookEventId) {
+        await this.prisma.webhookEvent
+          .update({
+            where: { id: webhookEventId },
+            data: { status: 'failed', error: errorMsg },
+          })
+          .catch((updateError) =>
+            this.logger.error(
+              `Failed to mark webhook event ${webhookEventId} as failed: ${updateError.message}`,
+            ),
+          );
+      }
+    }
 
     // Siempre responder 200 para que MP no reintente
     return { received: true };
@@ -119,9 +132,9 @@ export class SubscriptionsWebhookController {
     status: string,
     error: string | undefined,
     payload: any,
-  ) {
-    await this.prisma.webhookEvent
-      .create({
+  ): Promise<string | null> {
+    try {
+      const createdEvent = await this.prisma.webhookEvent.create({
         data: {
           provider: 'mercadopago',
           eventType: eventType ?? null,
@@ -130,8 +143,14 @@ export class SubscriptionsWebhookController {
           error: error ?? null,
           payload: payload ?? undefined,
         },
-      })
-      .catch((e) => this.logger.error(`Failed to persist webhook event: ${e.message}`));
+        select: { id: true },
+      });
+
+      return createdEvent.id;
+    } catch (e) {
+      this.logger.error(`Failed to persist webhook event: ${e.message}`);
+      return null;
+    }
   }
 
   /** @returns true si alguna strategy manejó el evento */
@@ -161,7 +180,10 @@ export class SubscriptionsWebhookController {
    * (= externalId de nuestra suscripción) y el pago concreto, y lo registramos.
    * @returns true si se registró un pago concreto
    */
-  private async handleAuthorizedPayment(authorizedPaymentId?: string): Promise<boolean> {
+  private async handleAuthorizedPayment(
+    authorizedPaymentId?: string,
+    webhookEventId?: string,
+  ): Promise<boolean> {
     if (!authorizedPaymentId) return false;
 
     const ap: any = await this.mercadopago.getAuthorizedPayment(authorizedPaymentId);
@@ -180,6 +202,7 @@ export class SubscriptionsWebhookController {
     await this.subscriptionsService.registerPayment({
       subscriptionExternalId: preapprovalId,
       paymentExternalId: String(payment.id),
+      webhookEventId,
       amount: ap.transaction_amount ?? payment.transaction_amount ?? 0,
       status: status === 'approved' ? 'sub_approved' : 'sub_rejected',
       failureReason: status !== 'approved' ? (payment.status_detail ?? status) : undefined,
@@ -190,7 +213,7 @@ export class SubscriptionsWebhookController {
   }
 
   /** @returns true si alguna strategy manejó el pago */
-  private async handlePayment(paymentId?: string): Promise<boolean> {
+  private async handlePayment(paymentId?: string, webhookEventId?: string): Promise<boolean> {
     if (!paymentId) return false;
 
     for (const strategy of this.strategyFactory.getAllStrategies()) {
@@ -199,17 +222,25 @@ export class SubscriptionsWebhookController {
         const { subscriptionId, data, shouldActivate } = result;
 
         // Si el subscriptionId tiene prefijo "ext:", buscar por externalId
-        if (subscriptionId.startsWith('ext:')) {
-          const externalId = subscriptionId.slice(4);
-          await this.subscriptionsService.registerPayment({
-            subscriptionExternalId: externalId,
-            ...data,
-          });
-        } else if (shouldActivate && data.status === 'sub_approved') {
-          await this.subscriptionsService.activateFromCheckoutPayment(subscriptionId, data);
-        } else {
-          await this.subscriptionsService.registerPaymentBySubscriptionId(subscriptionId, data);
-        }
+          if (subscriptionId.startsWith('ext:')) {
+            const externalId = subscriptionId.slice(4);
+            await this.subscriptionsService.registerPayment({
+              subscriptionExternalId: externalId,
+              ...data,
+              webhookEventId,
+            });
+          } else if (shouldActivate && data.status === 'sub_approved') {
+            await this.subscriptionsService.activateFromCheckoutPayment(
+              subscriptionId,
+              data,
+              webhookEventId,
+            );
+          } else {
+            await this.subscriptionsService.registerPaymentBySubscriptionId(subscriptionId, {
+              ...data,
+              webhookEventId,
+            });
+          }
         return true;
       }
     }

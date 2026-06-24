@@ -478,7 +478,11 @@ export class SubscriptionsService {
     }
   }
 
-  async activateFromCheckoutPayment(subscriptionId: string, data: WebhookPaymentData) {
+  async activateFromCheckoutPayment(
+    subscriptionId: string,
+    data: WebhookPaymentData,
+    webhookEventId?: string,
+  ) {
     const subscription = await this.prisma.subscription.findUnique({
       where: { id: subscriptionId },
       include: { plan: true },
@@ -489,7 +493,10 @@ export class SubscriptionsService {
     }
 
     // Registrar pago
-    await this.registerPaymentBySubscriptionId(subscriptionId, data);
+    await this.registerPaymentBySubscriptionId(subscriptionId, {
+      ...data,
+      webhookEventId: webhookEventId ?? data.webhookEventId,
+    });
 
     // Calcular endDate según frecuencia del plan + días de gracia
     const now = new Date();
@@ -521,6 +528,7 @@ export class SubscriptionsService {
   async registerPayment(data: {
     subscriptionExternalId: string;
     paymentExternalId: string;
+    webhookEventId?: string;
     amount: number;
     status: 'sub_approved' | 'sub_rejected';
     failureReason?: string;
@@ -629,6 +637,7 @@ export class SubscriptionsService {
       data: {
         subscriptionId,
         externalId: data.paymentExternalId,
+        webhookEventId: data.webhookEventId ?? null,
         amount: data.amount,
         status: data.status,
         attemptNumber: attemptCount + 1,
