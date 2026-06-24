@@ -540,10 +540,12 @@ model SubscriptionPayment {
 
   // Raw completo de MP para auditoría
   metadata       Json?
+  webhookEventId String?                    @map("webhook_event_id")
   createdAt      DateTime                  @default(now()) @map("created_at")
   updatedAt      DateTime                  @updatedAt @map("updated_at")
 
   subscription Subscription @relation(fields: [subscriptionId], references: [id])
+  webhookEvent WebhookEvent? @relation(fields: [webhookEventId], references: [id], onDelete: SetNull)
 
   @@map("subscription_payments")
 }
@@ -638,6 +640,8 @@ model WebhookEvent {
   error      String?  @db.Text
   payload    Json?
   createdAt  DateTime @default(now()) @map("created_at")
+
+  payments SubscriptionPayment[]
 
   @@index([status, createdAt], name: "webhook_events_status_created")
   @@map("webhook_events")
