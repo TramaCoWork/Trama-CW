@@ -5,6 +5,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -19,6 +20,8 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { AuthService } from '../auth/auth.service';
+import { MercadoPagoService } from '../mercadopago/mercadopago.service';
+import { UpdateSubscriptionAmountDto } from './dto/update-subscription-amount.dto';
 import { CreateJobDto } from './dto/create-job.dto';
 import { ValidateProfileDto } from './dto/validate-profile.dto';
 import { VerifyDocumentDto } from './dto/verify-document.dto';
@@ -37,6 +40,7 @@ export class AdminService {
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
     private readonly authService: AuthService,
+    private readonly mercadopago: MercadoPagoService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
 
@@ -904,5 +908,57 @@ export class AdminService {
       where: { id: profile.id },
       data: { identityFrontUrl: null, identityBackUrl: null },
     });
+  }
+
+  // ─── Subscription amount ─────────────────────────────────────────────────
+
+  /**
+   * Actualiza el monto de cobro de una suscripción activa en Mercado Pago
+   * y limpia los campos de descuento en la DB.
+   * Solo aplica a suscripciones con PreApproval (mp_subscription / mp_bricks_subscription).
+   */
+  async updateSubscriptionAmount(id: string, dto: UpdateSubscriptionAmountDto) {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { id },
+      include: { plan: true },
+    });
+
+    if (!subscription) {
+      throw new NotFoundException('Suscripción no encontrada');
+    }
+
+    if (!subscription.externalId) {
+      throw new UnprocessableEntityException(
+        'Esta suscripción no tiene un PreApproval activo en Mercado Pago',
+      );
+    }
+
+    const validStrategies = ['mp_subscription', 'mp_bricks_subscription'];
+    if (!subscription.paymentStrategy || !validStrategies.includes(subscription.paymentStrategy)) {
+      throw new UnprocessableEntityException(
+        `La estrategia de pago "${subscription.paymentStrategy}" no soporta actualización de monto`,
+      );
+    }
+
+    // Actualizar en MP
+    await this.mercadopago.updatePreapprovalAmount(subscription.externalId, dto.amount);
+
+    // Limpiar descuento y registrar nuevo monto en DB
+    const updated = await this.prisma.subscription.update({
+      where: { id },
+      data: {
+        discountPlanId: null,
+        discountedAmount: null,
+        discountAppliedAt: null,
+        discountExpiresAt: null,
+      },
+    });
+
+    return {
+      subscriptionId: updated.id,
+      preapprovalId: subscription.externalId,
+      newAmount: dto.amount,
+      updatedAt: updated.updatedAt,
+    };
   }
 }

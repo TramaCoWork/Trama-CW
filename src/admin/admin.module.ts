@@ -5,9 +5,10 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { MailModule } from '../mail/mail.module';
 import { AuthModule } from '../auth/auth.module';
 import { UploadsModule } from '../uploads/uploads.module';
+import { MercadoPagoModule } from '../mercadopago/mercadopago.module';
 
 @Module({
-  imports: [PrismaModule, MailModule, AuthModule, UploadsModule],
+  imports: [PrismaModule, MailModule, AuthModule, UploadsModule, MercadoPagoModule],
   controllers: [AdminController],
   providers: [AdminService],
 })

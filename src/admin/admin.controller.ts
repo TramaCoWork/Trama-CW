@@ -12,8 +12,9 @@ import {
   UseGuards,
   ValidationPipe,
   ParseUUIDPipe,
+  UsePipes,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { CreateJobDto } from './dto/create-job.dto';
 import { ValidateProfileDto } from './dto/validate-profile.dto';
@@ -29,6 +30,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
 import { UserRole, ProfileStatus, SubscriptionPaymentStatus, FrequencyType, SubscriptionStatus } from '@prisma/client';
+import { UpdateSubscriptionAmountDto } from './dto/update-subscription-amount.dto';
 
 @ApiTags('Admin')
 @ApiBearerAuth()
@@ -368,5 +370,20 @@ export class AdminController {
   ) {
     this.assertCanMutateUser(user, id);
     return this.adminService.softDeleteAdminUser(user.userId, id);
+  }
+
+  @Patch('subscriptions/:id/amount')
+  @ApiOperation({ summary: 'Actualizar monto de cobro de una suscripción activa en Mercado Pago' })
+  @ApiParam({ name: 'id', type: String, description: 'UUID de la suscripción' })
+  @ApiBody({ type: UpdateSubscriptionAmountDto })
+  @ApiResponse({ status: 200, description: 'Monto actualizado en MP y descuento limpiado en DB' })
+  @ApiResponse({ status: 404, description: 'Suscripción no encontrada' })
+  @ApiResponse({ status: 422, description: 'Suscripción sin PreApproval activo o estrategia incompatible' })
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  updateSubscriptionAmount(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateSubscriptionAmountDto,
+  ) {
+    return this.adminService.updateSubscriptionAmount(id, dto);
   }
 }
