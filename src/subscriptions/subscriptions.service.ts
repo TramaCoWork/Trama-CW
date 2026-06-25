@@ -191,7 +191,7 @@ export class SubscriptionsService {
       where: { userId, status: 'pending' },
     });
 
-    let bricksDiscountFields: Awaited<ReturnType<typeof this._resolveDiscount>> = null;
+    let bricksDiscountFields = null as ({ discountPlanId: string; originalAmount: Prisma.Decimal; discountedAmount: Prisma.Decimal; discountAppliedAt: Date; discountExpiresAt: Date | null } | null);
 
     const subscription = pending
       ? await this.prisma.subscription.update({
@@ -226,7 +226,7 @@ export class SubscriptionsService {
     const notificationUrl = this.config.getOrThrow<string>('SUBSCRIPTION_NOTIFICATION_URL');
 
     // Si hay descuento, MP recibe el monto ya descontado (original - discountAmount)
-    const bricksEffectivePlan = bricksDiscountFields?.discountedAmount
+    const bricksEffectivePlan = (bricksDiscountFields != null && bricksDiscountFields.discountedAmount != null)
       ? { ...plan, amount: bricksDiscountFields.discountedAmount }
       : plan;
 
@@ -326,7 +326,7 @@ export class SubscriptionsService {
       where: { userId, status: 'pending' },
     });
 
-    let subscribeDiscountFields: Awaited<ReturnType<typeof this._resolveDiscount>> = null;
+    let subscribeDiscountFields = null as ({ discountPlanId: string; originalAmount: Prisma.Decimal; discountedAmount: Prisma.Decimal; discountAppliedAt: Date; discountExpiresAt: Date | null } | null);
 
     const subscription = pending
       ? await this.prisma.subscription.update({
@@ -360,7 +360,7 @@ export class SubscriptionsService {
 
     const notificationUrl = this.config.getOrThrow<string>('SUBSCRIPTION_NOTIFICATION_URL');
     // Si hay descuento, MP recibe el monto ya descontado (original - discountAmount)
-    const subscribeEffectivePlan = subscribeDiscountFields?.discountedAmount
+    const subscribeEffectivePlan = (subscribeDiscountFields != null && subscribeDiscountFields.discountedAmount != null)
       ? { ...plan, amount: subscribeDiscountFields.discountedAmount }
       : plan;
 
