@@ -89,6 +89,7 @@ export class SubscriptionsService {
         mpPayerEmail: user.email,
         status: 'pending',
         paymentStrategy: strategy.code,
+        originalAmount: plan.amount,
         ...discountFields,
       },
     });
@@ -207,6 +208,7 @@ export class SubscriptionsService {
               mpPayerEmail: payerEmail,
               status: 'pending',
               paymentStrategy: 'mp_bricks',
+              originalAmount: plan.amount,
               ...bricksDiscountFields,
             },
           });
@@ -342,6 +344,7 @@ export class SubscriptionsService {
               mpPayerEmail: payerEmail,
               status: 'pending',
               paymentStrategy: 'mp_bricks_subscription',
+              originalAmount: plan.amount,
               ...subscribeDiscountFields,
             },
           });
