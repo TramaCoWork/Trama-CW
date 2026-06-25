@@ -191,13 +191,15 @@ export class SubscriptionsService {
       where: { userId, status: 'pending' },
     });
 
+    let bricksDiscountFields: Awaited<ReturnType<typeof this._resolveDiscount>> = null;
+
     const subscription = pending
       ? await this.prisma.subscription.update({
           where: { id: pending.id },
           data: { planId: plan.id, mpPayerEmail: payerEmail, paymentStrategy: 'mp_bricks' },
         })
       : await (async () => {
-          const dFields = await this._resolveDiscount(plan.id, plan);
+          bricksDiscountFields = await this._resolveDiscount(plan.id, plan);
           const sub = await this.prisma.subscription.create({
             data: {
               userId,
@@ -205,13 +207,13 @@ export class SubscriptionsService {
               mpPayerEmail: payerEmail,
               status: 'pending',
               paymentStrategy: 'mp_bricks',
-              ...dFields,
+              ...bricksDiscountFields,
             },
           });
-          if (dFields?.discountPlanId) {
+          if (bricksDiscountFields?.discountPlanId) {
             try {
               await this.prisma.discountPlan.update({
-                where: { id: dFields.discountPlanId },
+                where: { id: bricksDiscountFields.discountPlanId },
                 data: { currentUses: { increment: 1 } },
               });
             } catch (e) {
@@ -223,9 +225,14 @@ export class SubscriptionsService {
 
     const notificationUrl = this.config.getOrThrow<string>('SUBSCRIPTION_NOTIFICATION_URL');
 
+    // Si hay descuento, MP recibe el monto ya descontado (original - discountAmount)
+    const bricksEffectivePlan = bricksDiscountFields?.discountedAmount
+      ? { ...plan, amount: bricksDiscountFields.discountedAmount }
+      : plan;
+
     const result = await this.bricksStrategy.payWithToken({
       subscriptionId: subscription.id,
-      plan,
+      plan: bricksEffectivePlan,
       payerEmail,
       notificationUrl,
       token: dto.token,
@@ -319,13 +326,15 @@ export class SubscriptionsService {
       where: { userId, status: 'pending' },
     });
 
+    let subscribeDiscountFields: Awaited<ReturnType<typeof this._resolveDiscount>> = null;
+
     const subscription = pending
       ? await this.prisma.subscription.update({
           where: { id: pending.id },
           data: { planId: plan.id, mpPayerEmail: payerEmail, paymentStrategy: 'mp_bricks_subscription' },
         })
       : await (async () => {
-          const dFields = await this._resolveDiscount(plan.id, plan);
+          subscribeDiscountFields = await this._resolveDiscount(plan.id, plan);
           const sub = await this.prisma.subscription.create({
             data: {
               userId,
@@ -333,13 +342,13 @@ export class SubscriptionsService {
               mpPayerEmail: payerEmail,
               status: 'pending',
               paymentStrategy: 'mp_bricks_subscription',
-              ...dFields,
+              ...subscribeDiscountFields,
             },
           });
-          if (dFields?.discountPlanId) {
+          if (subscribeDiscountFields?.discountPlanId) {
             try {
               await this.prisma.discountPlan.update({
-                where: { id: dFields.discountPlanId },
+                where: { id: subscribeDiscountFields.discountPlanId },
                 data: { currentUses: { increment: 1 } },
               });
             } catch (e) {
@@ -350,9 +359,14 @@ export class SubscriptionsService {
         })();
 
     const notificationUrl = this.config.getOrThrow<string>('SUBSCRIPTION_NOTIFICATION_URL');
+    // Si hay descuento, MP recibe el monto ya descontado (original - discountAmount)
+    const subscribeEffectivePlan = subscribeDiscountFields?.discountedAmount
+      ? { ...plan, amount: subscribeDiscountFields.discountedAmount }
+      : plan;
+
     const result = await this.bricksSubscriptionStrategy.payWithCardToken({
       subscriptionId: subscription.id,
-      plan, // ← frecuencia, monto y moneda salen del plan
+      plan: subscribeEffectivePlan, // ← frecuencia, monto y moneda salen del plan
       payerEmail,
       cardTokenId: dto.token,
       backUrl,
