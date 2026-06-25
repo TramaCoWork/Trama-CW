@@ -111,10 +111,15 @@ export class SubscriptionsService {
     let initPoint: string;
     let externalId: string;
 
+    // Si hay descuento, MP recibe el monto ya descontado (original - discountAmount)
+    const effectivePlan = (discountFields != null && discountFields.discountedAmount != null)
+      ? { ...plan, amount: discountFields.discountedAmount }
+      : plan;
+
     try {
       const mpResult = await strategy.createPayment({
         subscriptionId: subscription.id,
-        plan,
+        plan: effectivePlan,
         payerEmail: user.email,
         backUrl: dto.backUrl,
         notificationUrl,

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -26,6 +27,8 @@ import { AdminUpdateProfessionalDto } from './dto/admin-update-professional.dto'
 import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
+import type { StorageService } from '../uploads/storage.interface';
+import { STORAGE_SERVICE } from '../uploads/storage.interface';
 
 @Injectable()
 export class AdminService {
@@ -34,6 +37,7 @@ export class AdminService {
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
     private readonly authService: AuthService,
+    @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
 
   /**
@@ -473,6 +477,11 @@ export class AdminService {
       },
     });
 
+    // Borrar fotos de DNI una vez confirmada la identidad
+    if (isApproved) {
+      await this._deleteIdentityFiles(profile);
+    }
+
     // Enviar email de notificacion
     const user = await this.prisma.user.findUnique({
       where: withoutDeleted({ id: profile.userId }),
@@ -874,5 +883,26 @@ export class AdminService {
     }
 
     return profile;
+  }
+
+  // ─── Identity files ──────────────────────────────────────────────────────
+
+  /**
+   * Borra las fotos de DNI (frente y dorso) del storage y limpia las URLs
+   * del perfil en la DB. Se llama solo al confirmar la identidad del profesional.
+   */
+  private async _deleteIdentityFiles(profile: { id: string; identityFrontUrl: string | null; identityBackUrl: string | null }) {
+    const toDelete: string[] = [];
+    if (profile.identityFrontUrl) toDelete.push(profile.identityFrontUrl.replace('/uploads/', ''));
+    if (profile.identityBackUrl)  toDelete.push(profile.identityBackUrl.replace('/uploads/', ''));
+
+    if (toDelete.length === 0) return;
+
+    await Promise.allSettled(toDelete.map((p) => this.storage.delete(p)));
+
+    await this.prisma.professionalProfile.update({
+      where: { id: profile.id },
+      data: { identityFrontUrl: null, identityBackUrl: null },
+    });
   }
 }
