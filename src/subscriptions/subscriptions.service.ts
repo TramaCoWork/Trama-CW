@@ -197,7 +197,7 @@ export class SubscriptionsService {
       where: { userId, status: 'pending' },
     });
 
-    let bricksDiscountFields = null as ({ discountPlanId: string; originalAmount: Prisma.Decimal; discountedAmount: Prisma.Decimal; discountAppliedAt: Date; discountExpiresAt: Date | null } | null);
+    let bricksDiscountFields = null as ({ discountPlanId: string; discountedAmount: Prisma.Decimal; discountAppliedAt: Date; discountExpiresAt: Date | null } | null);
 
     const subscription = pending
       ? await this.prisma.subscription.update({
@@ -333,7 +333,7 @@ export class SubscriptionsService {
       where: { userId, status: 'pending' },
     });
 
-    let subscribeDiscountFields = null as ({ discountPlanId: string; originalAmount: Prisma.Decimal; discountedAmount: Prisma.Decimal; discountAppliedAt: Date; discountExpiresAt: Date | null } | null);
+    let subscribeDiscountFields = null as ({ discountPlanId: string; discountedAmount: Prisma.Decimal; discountAppliedAt: Date; discountExpiresAt: Date | null } | null);
 
     const subscription = pending
       ? await this.prisma.subscription.update({
@@ -791,7 +791,6 @@ export class SubscriptionsService {
     plan: { amount: Prisma.Decimal; frequency: number; frequencyType: string },
   ): Promise<{
     discountPlanId: string;
-    originalAmount: Prisma.Decimal;
     discountedAmount: Prisma.Decimal;
     discountAppliedAt: Date;
     discountExpiresAt: Date | null;
@@ -821,7 +820,6 @@ export class SubscriptionsService {
 
     return {
       discountPlanId: discountPlan.id,
-      originalAmount,
       discountedAmount,
       discountAppliedAt: now,
       discountExpiresAt: this.computeDiscountExpiry(
