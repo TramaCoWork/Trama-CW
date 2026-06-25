@@ -23,18 +23,61 @@ export class SubscriptionPlansService {
   }
 
   async findAllActive() {
-    return this.prisma.subscriptionPlan.findMany({
+    const now = new Date();
+    const plans = await this.prisma.subscriptionPlan.findMany({
       where: withoutDeleted({ isActive: true }),
       orderBy: { createdAt: 'asc' },
+      include: {
+        discountPlans: {
+          where: {
+            isActive: true,
+            deletedAt: null,
+            fromDate: { lte: now },
+            toDate: { gte: now },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+
+    return plans.map((plan) => {
+      const { discountPlans, ...rest } = plan;
+      const discount = discountPlans[0] ?? null;
+      // Verificar límite de usos: maxUses null = sin límite; si maxUses <= currentUses = agotado
+      const activeDiscount =
+        discount && (discount.maxUses === null || discount.currentUses < discount.maxUses)
+          ? discount
+          : null;
+      return { ...rest, discount: activeDiscount };
     });
   }
 
   async findOne(id: string) {
+    const now = new Date();
     const plan = await this.prisma.subscriptionPlan.findFirst({
       where: withoutDeleted({ id }),
+      include: {
+        discountPlans: {
+          where: {
+            isActive: true,
+            deletedAt: null,
+            fromDate: { lte: now },
+            toDate: { gte: now },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
     });
     if (!plan) throw new NotFoundException('Plan no encontrado');
-    return plan;
+    const { discountPlans, ...rest } = plan;
+    const discount = discountPlans[0] ?? null;
+    const activeDiscount =
+      discount && (discount.maxUses === null || discount.currentUses < discount.maxUses)
+        ? discount
+        : null;
+    return { ...rest, discount: activeDiscount };
   }
 
   async findOneActive(id: string) {

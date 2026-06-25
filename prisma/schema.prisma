@@ -138,18 +138,18 @@ model User {
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  profile    ProfessionalProfile?
-  payments   Payment[]
-  subscriptions Subscription[]
-  posts      CommunityPost[]
-  comments   CommunityComment[]
-  communityImages CommunityImage[]
-  jobApplies JobApplication[]
-  reviews    ProfileValidation[]
-   verifiedDocuments Document[] @relation("DocumentVerifier")
-  createdDiscounts Discount[] @relation("DiscountCreator")
-  sentMessages PrivateMessage[] @relation("MessageSender")
-  receivedMessages PrivateMessage[] @relation("MessageReceiver")
+  profile           ProfessionalProfile?
+  payments          Payment[]
+  subscriptions     Subscription[]
+  posts             CommunityPost[]
+  comments          CommunityComment[]
+  communityImages   CommunityImage[]
+  jobApplies        JobApplication[]
+  reviews           ProfileValidation[]
+  verifiedDocuments Document[]           @relation("DocumentVerifier")
+  createdDiscounts  Discount[]           @relation("DiscountCreator")
+  sentMessages      PrivateMessage[]     @relation("MessageSender")
+  receivedMessages  PrivateMessage[]     @relation("MessageReceiver")
 
   @@index([deletedAt])
   @@map("users")
@@ -175,62 +175,62 @@ model ProfessionalProfile {
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
   // ─── Rubro principal (nivel 1, obligatorio al registrarse) ──────────────
-  rubroId       Int?          @map("rubro_id")
+  rubroId Int? @map("rubro_id")
 
   // ─── Geolocalización ───────────────────────────────────────────────────────
-  countryId     Int?          @map("country_id")
-  provinceId    Int?          @map("province_id")
+  countryId  Int? @map("country_id")
+  provinceId Int? @map("province_id")
 
   // ─── Datos personales (seccion 1) ──────────────────────────────────────────
-  dni              String?
-  birthDate        DateTime?     @map("birth_date")
-  linkedin         String?
-  pricePerHour     Decimal?      @map("price_per_hour") @db.Decimal(10, 2)
-  workModality     WorkModality? @map("work_modality")
+  dni          String?
+  birthDate    DateTime?     @map("birth_date")
+  linkedin     String?
+  pricePerHour Decimal?      @map("price_per_hour") @db.Decimal(10, 2)
+  workModality WorkModality? @map("work_modality")
 
   // ─── Perfil profesional (seccion 2) ────────────────────────────────────────
-  currentOccupation String?      @map("current_occupation")
-  workType          WorkType?    @map("work_type")
-  workTypeOther     String?      @map("work_type_other")
+  currentOccupation String?   @map("current_occupation")
+  workType          WorkType? @map("work_type")
+  workTypeOther     String?   @map("work_type_other")
   industry          String?
-  yearsExperience   Int?         @map("years_experience")
+  yearsExperience   Int?      @map("years_experience")
 
   // ─── Intereses y uso (secciones 6-7) ───────────────────────────────────────
-  interestsInTrama  String[]     @map("interests_in_trama")
-  usageFrequency    UsageFrequency? @map("usage_frequency")
-  spaceTypes        String[]     @map("space_types")
+  interestsInTrama String[]        @map("interests_in_trama")
+  usageFrequency   UsageFrequency? @map("usage_frequency")
+  spaceTypes       String[]        @map("space_types")
 
   // ─── Pregunta filtro (seccion 8) ───────────────────────────────────────────
-  tramaMotivation   String?      @map("trama_motivation") @db.VarChar(300)
+  tramaMotivation String? @map("trama_motivation") @db.VarChar(300)
 
   // ─── Consentimiento (seccion 9) ────────────────────────────────────────────
-  termsAccepted       Boolean   @default(false) @map("terms_accepted")
-  dataConsentAccepted Boolean   @default(false) @map("data_consent_accepted")
+  termsAccepted       Boolean @default(false) @map("terms_accepted")
+  dataConsentAccepted Boolean @default(false) @map("data_consent_accepted")
 
   // ─── Control de onboarding ─────────────────────────────────────────────────
-  isFirstTime    Boolean   @default(true)  @map("is_first_time")
-  currentStep    Int       @default(1)     @map("current_step")
-  submittedAt    DateTime? @map("submitted_at")
+  isFirstTime Boolean   @default(true) @map("is_first_time")
+  currentStep Int       @default(1) @map("current_step")
+  submittedAt DateTime? @map("submitted_at")
 
   // ─── Trial / Suscripcion ────────────────────────────────────────────────────
-  trialEndDate   DateTime? @map("trial_end_date")
+  trialEndDate DateTime? @map("trial_end_date")
 
   // ─── Documentos de identidad (archivos fisicos, sin tabla Document) ────────
-  identityFrontUrl  String?  @map("identity_front_url")
-  identityBackUrl   String?  @map("identity_back_url")
+  identityFrontUrl String? @map("identity_front_url")
+  identityBackUrl  String? @map("identity_back_url")
 
   // ─── Relaciones ────────────────────────────────────────────────────────────
-  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rubro               ProfessionCategory?   @relation("ProfessionalRubro", fields: [rubroId], references: [id])
-  country             Country?              @relation(fields: [countryId], references: [id])
-  province            Province?             @relation(fields: [provinceId], references: [id])
-  contacts            ContactLog[]
-  educations          Education[]
-  certifications      Certification[]
-  documents           Document[]
-   validations         ProfileValidation[]
+  user                 User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rubro                ProfessionCategory?  @relation("ProfessionalRubro", fields: [rubroId], references: [id])
+  country              Country?             @relation(fields: [countryId], references: [id])
+  province             Province?            @relation(fields: [provinceId], references: [id])
+  contacts             ContactLog[]
+  educations           Education[]
+  certifications       Certification[]
+  documents            Document[]
+  validations          ProfileValidation[]
   professionCategories ProfessionCategory[]
-  discounts           Discount[]
+  discounts            Discount[]
 
   @@index([city], name: "professionals_city")
   @@index([isActive], name: "professionals_active")
@@ -286,14 +286,14 @@ model JobApplication {
 }
 
 model CommunityPost {
-  id          String    @id @default(uuid())
-  userId      String    @map("user_id")
+  id          String     @id @default(uuid())
+  userId      String     @map("user_id")
   channelSlug String     @default("general") @map("channel_slug")
   status      PostStatus @default(published)
   content     String     @db.Text
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  deletedAt   DateTime?  @map("deleted_at")
 
   user     User               @relation(fields: [userId], references: [id])
   comments CommunityComment[]
@@ -348,15 +348,15 @@ model ContactLog {
 // ─── Formacion academica (seccion 3) ──────────────────────────────────────────
 
 model Education {
-  id              String         @id @default(uuid())
-  professionalId  String         @map("professional_id")
-  level           EducationLevel
-  title           String
-  institution     String
-  year            Int?
-  professionId    Int?           @map("profession_id")
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
+  id             String         @id @default(uuid())
+  professionalId String         @map("professional_id")
+  level          EducationLevel
+  title          String
+  institution    String
+  year           Int?
+  professionId   Int?           @map("profession_id")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
 
   professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   profession   ProfessionCategory? @relation("EducationProfession", fields: [professionId], references: [id])
@@ -368,14 +368,14 @@ model Education {
 // ─── Certificaciones (seccion 4) ──────────────────────────────────────────────
 
 model Certification {
-  id              String   @id @default(uuid())
-  professionalId  String   @map("professional_id")
-  name            String
-  institution     String
-  year            Int?
-  professionId    Int?     @map("profession_id")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(uuid())
+  professionalId String   @map("professional_id")
+  name           String
+  institution    String
+  year           Int?
+  professionId   Int?     @map("profession_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   profession   ProfessionCategory? @relation("CertificationProfession", fields: [professionId], references: [id])
@@ -387,28 +387,28 @@ model Certification {
 // ─── Documentos (archivos subidos) ────────────────────────────────────────────
 
 model Document {
-  id              String       @id @default(uuid())
-  professionalId  String       @map("professional_id")
-  type            DocumentType
-  fileUrl         String       @map("file_url")
-  originalName    String       @map("original_name")
-  mimeType        String       @map("mime_type")
-  sizeBytes       Int          @map("size_bytes")
-  uploadedAt      DateTime     @default(now()) @map("uploaded_at")
+  id             String       @id @default(uuid())
+  professionalId String       @map("professional_id")
+  type           DocumentType
+  fileUrl        String       @map("file_url")
+  originalName   String       @map("original_name")
+  mimeType       String       @map("mime_type")
+  sizeBytes      Int          @map("size_bytes")
+  uploadedAt     DateTime     @default(now()) @map("uploaded_at")
 
   // Relacion opcional con Education o Certification
-  educationId     String?      @map("education_id")
-  certificationId String?      @map("certification_id")
+  educationId     String? @map("education_id")
+  certificationId String? @map("certification_id")
 
   // Relacion opcional con profesion (para validar que el documento corresponde a una profesion)
-  professionId    Int?         @map("profession_id")
+  professionId Int? @map("profession_id")
 
   // Verificacion del documento
-  verificationStatus  DocumentVerificationStatus @default(pending) @map("verification_status")
-  verifiedBy          String?          @map("verified_by")
-  verifiedAt          DateTime?        @map("verified_at")
-  verificationNotes   String?          @map("verification_notes") @db.Text
-  verificationType    ValidationType?  @map("verification_type")
+  verificationStatus DocumentVerificationStatus @default(pending) @map("verification_status")
+  verifiedBy         String?                    @map("verified_by")
+  verifiedAt         DateTime?                  @map("verified_at")
+  verificationNotes  String?                    @map("verification_notes") @db.Text
+  verificationType   ValidationType?            @map("verification_type")
 
   professional  ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   education     Education?          @relation(fields: [educationId], references: [id], onDelete: SetNull)
@@ -493,22 +493,23 @@ model SubscriptionPlan {
 }
 
 model DiscountPlan {
-  id                 String           @id @default(uuid())
-  subscriptionPlanId String           @map("subscription_plan_id")
-  discountAmount     Decimal          @map("discount_amount") @db.Decimal(10, 2)
-  description        String?          @db.Text
-  isActive           Boolean          @default(true) @map("is_active")
-  fromDate           DateTime         @map("from_date")
-  toDate             DateTime         @map("to_date")
-  billingCycles      Int?             @map("billing_cycles")
-  maxUses            Int?             @map("max_uses")
-  currentUses        Int              @default(0) @map("current_uses")
-  perUserLimit       Int?             @map("per_user_limit")
-  deletedAt          DateTime?        @map("deleted_at")
-  createdAt          DateTime         @default(now()) @map("created_at")
-  updatedAt          DateTime         @updatedAt @map("updated_at")
+  id                 String    @id @default(uuid())
+  subscriptionPlanId String    @map("subscription_plan_id")
+  discountAmount     Decimal   @map("discount_amount") @db.Decimal(10, 2)
+  description        String?   @db.Text
+  isActive           Boolean   @default(true) @map("is_active")
+  fromDate           DateTime  @map("from_date")
+  toDate             DateTime  @map("to_date")
+  billingCycles      Int?      @map("billing_cycles")
+  maxUses            Int?      @map("max_uses")
+  currentUses        Int       @default(0) @map("current_uses")
+  perUserLimit       Int?      @map("per_user_limit")
+  deletedAt          DateTime? @map("deleted_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
 
   subscriptionPlan SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
+  subscriptions    Subscription[]
 
   @@index([subscriptionPlanId, isActive, fromDate, toDate], name: "discount_plans_active_dates")
   @@index([deletedAt], name: "discount_plans_deleted_at")
@@ -519,25 +520,33 @@ model DiscountPlan {
 // ─── Suscripciones ────────────────────────────────────────────────────────────
 
 model Subscription {
-  id              String             @id @default(uuid())
-  userId          String             @map("user_id")
-  planId          String             @map("plan_id")
-  externalId      String?            @unique @map("external_id")
-  status          SubscriptionStatus @default(pending)
-  startDate       DateTime?          @map("start_date")
-  endDate         DateTime?          @map("end_date")
-  nextPaymentDate DateTime?          @map("next_payment_date")
-  mpPayerEmail    String?            @map("mp_payer_email")
-  initPoint       String?            @map("init_point") @db.Text
-  cancellationReason String?         @map("cancellation_reason") @db.Text
-  paymentStrategy    String?         @map("payment_strategy")
-  metadata        Json?
-  createdAt       DateTime           @default(now()) @map("created_at")
-  updatedAt       DateTime           @updatedAt @map("updated_at")
+  id                 String             @id @default(uuid())
+  userId             String             @map("user_id")
+  planId             String             @map("plan_id")
+  externalId         String?            @unique @map("external_id")
+  status             SubscriptionStatus @default(pending)
+  startDate          DateTime?          @map("start_date")
+  endDate            DateTime?          @map("end_date")
+  nextPaymentDate    DateTime?          @map("next_payment_date")
+  mpPayerEmail       String?            @map("mp_payer_email")
+  initPoint          String?            @map("init_point") @db.Text
+  cancellationReason String?            @map("cancellation_reason") @db.Text
+  paymentStrategy    String?            @map("payment_strategy")
+  metadata           Json?
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
 
-  user     User             @relation(fields: [userId], references: [id])
-  plan     SubscriptionPlan @relation(fields: [planId], references: [id])
-  payments SubscriptionPayment[]
+  // ─── Campos de descuento ──────────────────────────────────────────────────
+  discountPlanId    String?   @map("discount_plan_id")
+  originalAmount    Decimal?  @map("original_amount") @db.Decimal(10, 2)
+  discountedAmount  Decimal?  @map("discounted_amount") @db.Decimal(10, 2)
+  discountAppliedAt DateTime? @map("discount_applied_at")
+  discountExpiresAt DateTime? @map("discount_expires_at")
+
+  user         User                  @relation(fields: [userId], references: [id])
+  plan         SubscriptionPlan      @relation(fields: [planId], references: [id])
+  discountPlan DiscountPlan?         @relation(fields: [discountPlanId], references: [id], onDelete: SetNull)
+  payments     SubscriptionPayment[]
 
   @@index([userId, status], name: "subscriptions_user_status")
   @@map("subscriptions")
@@ -557,19 +566,19 @@ model SubscriptionPayment {
   failureReason  String?                   @map("failure_reason")
 
   // Datos del medio de pago (extraídos de MP)
-  paymentMethod      String?   @map("payment_method")        // credit_card, debit_card, account_money, etc.
-  paymentMethodId    String?   @map("payment_method_id")     // visa, master, amex, etc.
-  cardLastFourDigits String?   @map("card_last_four_digits")
+  paymentMethod      String? @map("payment_method") // credit_card, debit_card, account_money, etc.
+  paymentMethodId    String? @map("payment_method_id") // visa, master, amex, etc.
+  cardLastFourDigits String? @map("card_last_four_digits")
   installments       Int?
-  statusDetail       String?   @map("status_detail")         // accredited, cc_rejected_other_reason, etc.
+  statusDetail       String? @map("status_detail") // accredited, cc_rejected_other_reason, etc.
 
   // Raw completo de MP para auditoría
   metadata       Json?
-  webhookEventId String?                    @map("webhook_event_id")
-  createdAt      DateTime                  @default(now()) @map("created_at")
-  updatedAt      DateTime                  @updatedAt @map("updated_at")
+  webhookEventId String?  @map("webhook_event_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
-  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+  subscription Subscription  @relation(fields: [subscriptionId], references: [id])
   webhookEvent WebhookEvent? @relation(fields: [webhookEventId], references: [id], onDelete: SetNull)
 
   @@map("subscription_payments")
@@ -578,14 +587,14 @@ model SubscriptionPayment {
 // ─── Geolocalización ──────────────────────────────────────────────────────────
 
 model Country {
-  id        Int        @id @default(autoincrement())
-  name      String     @unique
-  code      String     @unique               // ISO 3166-1 alpha-2 (ej: "AR")
-  isActive  Boolean    @default(true) @map("is_active")
-  createdAt DateTime   @default(now()) @map("created_at")
-  updatedAt DateTime   @updatedAt @map("updated_at")
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  code      String   @unique // ISO 3166-1 alpha-2 (ej: "AR")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  provinces    Province[]
+  provinces     Province[]
   professionals ProfessionalProfile[]
 
   @@map("countries")
@@ -609,43 +618,43 @@ model Province {
 // ─── Descuentos ───────────────────────────────────────────────────────────────
 
 model Discount {
-  id              String    @id @default(uuid())
-  professionalId  String    @map("professional_id")
+  id             String @id @default(uuid())
+  professionalId String @map("professional_id")
 
   // Uno de los dos debe tener valor. Se aplica percentage si tiene valor, sino fixedAmount
-  percentage      Decimal?  @db.Decimal(5, 2)
-  fixedAmount     Decimal?  @map("fixed_amount") @db.Decimal(10, 2)
+  percentage  Decimal? @db.Decimal(5, 2)
+  fixedAmount Decimal? @map("fixed_amount") @db.Decimal(10, 2)
 
-  startDate       DateTime  @map("start_date")
-  endDate         DateTime  @map("end_date")
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
 
   // Control de aplicación
-  applied         Boolean   @default(false)
-  appliedAt       DateTime? @map("applied_at")
-  restored        Boolean   @default(false)
-  restoredAt      DateTime? @map("restored_at")
+  applied    Boolean   @default(false)
+  appliedAt  DateTime? @map("applied_at")
+  restored   Boolean   @default(false)
+  restoredAt DateTime? @map("restored_at")
 
   // Auditoría
-  createdBy       String    @map("created_by")
-  notes           String?   @db.Text
-  createdAt       DateTime  @default(now()) @map("created_at")
+  createdBy String   @map("created_by")
+  notes     String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
 
-  professional    ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
-  creator         User                @relation("DiscountCreator", fields: [createdBy], references: [id])
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  creator      User                @relation("DiscountCreator", fields: [createdBy], references: [id])
 
   @@index([professionalId, startDate, endDate], name: "discounts_professional_dates")
   @@map("discounts")
 }
 
 model PrivateMessage {
-  id                String   @id @default(uuid())
-  senderId          String   @map("sender_id")
-  receiverId        String   @map("receiver_id")
-  content           String   @db.Text
-  sentAt            DateTime @default(now()) @map("sent_at")
+  id                String    @id @default(uuid())
+  senderId          String    @map("sender_id")
+  receiverId        String    @map("receiver_id")
+  content           String    @db.Text
+  sentAt            DateTime  @default(now()) @map("sent_at")
   readAt            DateTime? @map("read_at")
-  deletedBySender   Boolean  @default(false) @map("deleted_by_sender")
-  deletedByReceiver Boolean  @default(false) @map("deleted_by_receiver")
+  deletedBySender   Boolean   @default(false) @map("deleted_by_sender")
+  deletedByReceiver Boolean   @default(false) @map("deleted_by_receiver")
 
   sender   User @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
   receiver User @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)

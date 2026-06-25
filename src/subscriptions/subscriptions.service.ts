@@ -15,7 +15,7 @@ import { MpBricksSubscriptionStrategy } from './strategies/mp-bricks-subscriptio
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { BricksPayDto } from './dto/bricks-pay.dto';
 import { BricksSubscribeDto } from './dto/bricks-subscribe.dto';
-import { SubscriptionStatus } from '@prisma/client';
+import { SubscriptionStatus, Prisma } from '@prisma/client';
 import { WebhookPaymentData } from './strategies/payment-strategy.interface';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
@@ -78,6 +78,9 @@ export class SubscriptionsService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
+    // Buscar descuento activo para el plan
+    const discountFields = await this._resolveDiscount(plan.id, plan);
+
     // Crear registro en DB con el strategy code
     const subscription = await this.prisma.subscription.create({
       data: {
@@ -86,8 +89,21 @@ export class SubscriptionsService {
         mpPayerEmail: user.email,
         status: 'pending',
         paymentStrategy: strategy.code,
+        ...discountFields,
       },
     });
+
+    // Incrementar usos del descuento (best-effort)
+    if (discountFields?.discountPlanId) {
+      try {
+        await this.prisma.discountPlan.update({
+          where: { id: discountFields.discountPlanId },
+          data: { currentUses: { increment: 1 } },
+        });
+      } catch (e) {
+        this.logger.warn(`Failed to increment discount currentUses: ${e?.message}`);
+      }
+    }
 
     // Delegar creación del pago al strategy
     const notificationUrl = this.config.getOrThrow<string>('SUBSCRIPTION_NOTIFICATION_URL');
@@ -180,15 +196,30 @@ export class SubscriptionsService {
           where: { id: pending.id },
           data: { planId: plan.id, mpPayerEmail: payerEmail, paymentStrategy: 'mp_bricks' },
         })
-      : await this.prisma.subscription.create({
-          data: {
-            userId,
-            planId: plan.id,
-            mpPayerEmail: payerEmail,
-            status: 'pending',
-            paymentStrategy: 'mp_bricks',
-          },
-        });
+      : await (async () => {
+          const dFields = await this._resolveDiscount(plan.id, plan);
+          const sub = await this.prisma.subscription.create({
+            data: {
+              userId,
+              planId: plan.id,
+              mpPayerEmail: payerEmail,
+              status: 'pending',
+              paymentStrategy: 'mp_bricks',
+              ...dFields,
+            },
+          });
+          if (dFields?.discountPlanId) {
+            try {
+              await this.prisma.discountPlan.update({
+                where: { id: dFields.discountPlanId },
+                data: { currentUses: { increment: 1 } },
+              });
+            } catch (e) {
+              this.logger.warn(`Failed to increment discount currentUses: ${e?.message}`);
+            }
+          }
+          return sub;
+        })();
 
     const notificationUrl = this.config.getOrThrow<string>('SUBSCRIPTION_NOTIFICATION_URL');
 
@@ -293,15 +324,30 @@ export class SubscriptionsService {
           where: { id: pending.id },
           data: { planId: plan.id, mpPayerEmail: payerEmail, paymentStrategy: 'mp_bricks_subscription' },
         })
-      : await this.prisma.subscription.create({
-          data: {
-            userId,
-            planId: plan.id,
-            mpPayerEmail: payerEmail,
-            status: 'pending',
-            paymentStrategy: 'mp_bricks_subscription',
-          },
-        });
+      : await (async () => {
+          const dFields = await this._resolveDiscount(plan.id, plan);
+          const sub = await this.prisma.subscription.create({
+            data: {
+              userId,
+              planId: plan.id,
+              mpPayerEmail: payerEmail,
+              status: 'pending',
+              paymentStrategy: 'mp_bricks_subscription',
+              ...dFields,
+            },
+          });
+          if (dFields?.discountPlanId) {
+            try {
+              await this.prisma.discountPlan.update({
+                where: { id: dFields.discountPlanId },
+                data: { currentUses: { increment: 1 } },
+              });
+            } catch (e) {
+              this.logger.warn(`Failed to increment discount currentUses: ${e?.message}`);
+            }
+          }
+          return sub;
+        })();
 
     const notificationUrl = this.config.getOrThrow<string>('SUBSCRIPTION_NOTIFICATION_URL');
     const result = await this.bricksSubscriptionStrategy.payWithCardToken({
@@ -686,5 +732,82 @@ export class SubscriptionsService {
     ]);
 
     return { data, total, page, sizePage };
+  }
+
+  // ─── Discount helpers ──────────────────────────────────────────────────────
+
+  /**
+   * Calcula la fecha de expiración del descuento:
+   * appliedAt + (billingCycles × frequency) en la unidad de frequencyType.
+   * Retorna null si billingCycles es null (sin límite de ciclos).
+   */
+  private computeDiscountExpiry(
+    from: Date,
+    billingCycles: number | null,
+    frequency: number,
+    frequencyType: string,
+  ): Date | null {
+    if (billingCycles === null || billingCycles === undefined) return null;
+    const total = billingCycles * frequency;
+    const result = new Date(from);
+    if (frequencyType === 'months') {
+      result.setMonth(result.getMonth() + total);
+    } else if (frequencyType === 'years') {
+      result.setFullYear(result.getFullYear() + total);
+    } else {
+      result.setDate(result.getDate() + total);
+    }
+    return result;
+  }
+
+  /**
+   * Busca un DiscountPlan activo y vigente para el plan dado.
+   * Retorna los campos de descuento listos para spread en subscription.create, o null.
+   */
+  private async _resolveDiscount(
+    planId: string,
+    plan: { amount: Prisma.Decimal; frequency: number; frequencyType: string },
+  ): Promise<{
+    discountPlanId: string;
+    originalAmount: Prisma.Decimal;
+    discountedAmount: Prisma.Decimal;
+    discountAppliedAt: Date;
+    discountExpiresAt: Date | null;
+  } | null> {
+    const now = new Date();
+    const discountPlan = await this.prisma.discountPlan.findFirst({
+      where: {
+        subscriptionPlanId: planId,
+        isActive: true,
+        deletedAt: null,
+        fromDate: { lte: now },
+        toDate: { gte: now },
+      },
+    });
+
+    if (!discountPlan) return null;
+
+    // Verificar límite de usos (post-query JS check)
+    if (discountPlan.maxUses !== null && discountPlan.currentUses >= discountPlan.maxUses) {
+      return null;
+    }
+
+    const originalAmount = plan.amount;
+    const discountedAmount = new Prisma.Decimal(plan.amount.toString()).minus(
+      discountPlan.discountAmount.toString(),
+    );
+
+    return {
+      discountPlanId: discountPlan.id,
+      originalAmount,
+      discountedAmount,
+      discountAppliedAt: now,
+      discountExpiresAt: this.computeDiscountExpiry(
+        now,
+        discountPlan.billingCycles,
+        plan.frequency,
+        plan.frequencyType,
+      ),
+    };
   }
 }
