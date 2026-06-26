@@ -22,6 +22,7 @@ import { MailService } from '../mail/mail.service';
 import { AuthService } from '../auth/auth.service';
 import { MercadoPagoService } from '../mercadopago/mercadopago.service';
 import { UpdateSubscriptionAmountDto } from './dto/update-subscription-amount.dto';
+import { UpdateReferralCodeDto } from '../auth/dto/update-referral-code.dto';
 import { CreateJobDto } from './dto/create-job.dto';
 import { ValidateProfileDto } from './dto/validate-profile.dto';
 import { VerifyDocumentDto } from './dto/verify-document.dto';
@@ -960,5 +961,37 @@ export class AdminService {
       newAmount: dto.amount,
       updatedAt: updated.updatedAt,
     };
+  }
+
+  // ─── Referral code (admin) ────────────────────────────────────────────────
+
+  /** Devuelve el referralCode de cualquier usuario (por userId). */
+  async getUserReferralCode(userId: string): Promise<{ referralCode: string | null }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { referralCode: true },
+    });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    return { referralCode: user.referralCode };
+  }
+
+  /** Setea o cambia el referralCode de cualquier usuario. Valida unicidad. */
+  async setUserReferralCode(userId: string, dto: UpdateReferralCodeDto): Promise<{ referralCode: string }> {
+    const code = dto.referralCode.trim();
+
+    const existing = await this.prisma.user.findFirst({
+      where: { referralCode: code },
+    });
+    if (existing && existing.id !== userId) {
+      throw new ConflictException('Ese código de referido ya está en uso por otro usuario');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { referralCode: code },
+      select: { referralCode: true },
+    });
+
+    return { referralCode: updated.referralCode! };
   }
 }

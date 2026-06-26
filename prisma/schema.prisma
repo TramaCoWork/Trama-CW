@@ -137,6 +137,8 @@ model User {
   deletedAt        DateTime? @map("deleted_at")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
+  referralCode      String?   @unique @map("referral_code")
+  referralByUserId  String?   @map("referral_by_user_id")
 
   profile           ProfessionalProfile?
   payments          Payment[]
@@ -150,6 +152,8 @@ model User {
   createdDiscounts  Discount[]           @relation("DiscountCreator")
   sentMessages      PrivateMessage[]     @relation("MessageSender")
   receivedMessages  PrivateMessage[]     @relation("MessageReceiver")
+  referredBy        User?   @relation("UserReferrals", fields: [referralByUserId], references: [id])
+  referrals         User[]  @relation("UserReferrals")
 
   @@index([deletedAt])
   @@map("users")

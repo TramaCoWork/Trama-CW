@@ -31,6 +31,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
 import { UserRole, ProfileStatus, SubscriptionPaymentStatus, FrequencyType, SubscriptionStatus } from '@prisma/client';
 import { UpdateSubscriptionAmountDto } from './dto/update-subscription-amount.dto';
+import { UpdateReferralCodeDto } from '../auth/dto/update-referral-code.dto';
 
 @ApiTags('Admin')
 @ApiBearerAuth()
@@ -385,5 +386,29 @@ export class AdminController {
     @Body() dto: UpdateSubscriptionAmountDto,
   ) {
     return this.adminService.updateSubscriptionAmount(id, dto);
+  }
+
+  @Get('users/:id/referral-code')
+  @ApiOperation({ summary: 'Obtener el código de referido de un usuario' })
+  @ApiParam({ name: 'id', type: String, description: 'UUID del usuario' })
+  @ApiResponse({ status: 200, description: 'Código de referido del usuario' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+  getUserReferralCode(@Param('id', ParseUUIDPipe) id: string) {
+    return this.adminService.getUserReferralCode(id);
+  }
+
+  @Patch('users/:id/referral-code')
+  @ApiOperation({ summary: 'Setear o cambiar el código de referido de un usuario' })
+  @ApiParam({ name: 'id', type: String, description: 'UUID del usuario' })
+  @ApiBody({ type: UpdateReferralCodeDto })
+  @ApiResponse({ status: 200, description: 'Código actualizado exitosamente' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+  @ApiResponse({ status: 409, description: 'Código ya en uso por otro usuario' })
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  setUserReferralCode(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateReferralCodeDto,
+  ) {
+    return this.adminService.setUserReferralCode(id, dto);
   }
 }

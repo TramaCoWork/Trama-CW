@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, IsString } from 'class-validator';
+import { IsInt, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { RegisterDto } from './register.dto';
 
@@ -48,4 +48,13 @@ export class ProfessionalRegisterDto extends RegisterDto {
   @IsOptional()
   @IsString()
   whatsapp?: string;
+
+  @ApiPropertyOptional({
+    example: 'seba@gmail.com',
+    description: 'Código de referido (referralCode del usuario que refirió)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  referralCode?: string;
 }

@@ -9,6 +9,7 @@ import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateReferralCodeDto } from './dto/update-referral-code.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { CurrentUserType } from './decorators/current-user.decorator';
@@ -111,5 +112,29 @@ export class AuthController {
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   changePassword(@CurrentUser() user: CurrentUserType, @Body() dto: ChangePasswordDto) {
     return this.authService.changePassword(user.userId, dto.currentPassword, dto.newPassword);
+  }
+
+  @Get('me/referral-code')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Obtener el código de referido del usuario autenticado' })
+  @ApiResponse({ status: 200, description: 'Código de referido del usuario' })
+  getMyReferralCode(@CurrentUser() user: CurrentUserType) {
+    return this.authService.getMyReferralCode(user.userId);
+  }
+
+  @Patch('me/referral-code')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Actualizar el código de referido del usuario autenticado' })
+  @ApiBody({ type: UpdateReferralCodeDto })
+  @ApiResponse({ status: 200, description: 'Código actualizado exitosamente' })
+  @ApiResponse({ status: 409, description: 'Código ya en uso por otro usuario' })
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  updateMyReferralCode(
+    @CurrentUser() user: CurrentUserType,
+    @Body() dto: UpdateReferralCodeDto,
+  ) {
+    return this.authService.updateMyReferralCode(user.userId, dto);
   }
 }

@@ -13,6 +13,7 @@ import { MailService } from '../mail/mail.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ProfessionalRegisterDto } from './dto/professional-register.dto';
+import { UpdateReferralCodeDto } from './dto/update-referral-code.dto';
 import { User, UserRole, ProfileStatus } from '@prisma/client';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
 import * as bcrypt from 'bcrypt';
@@ -163,12 +164,17 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
+    // Resolver referralByUserId si viene un código de referido
+    const referralByUserId = dto.referralCode
+      ? await this.findUserByReferralCode(dto.referralCode)
+      : null;
 
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
         passwordHash,
         role: UserRole.professional,
+        ...(referralByUserId && { referralByUserId }),
         profile: {
           create: {
             name: dto.name,
@@ -221,7 +227,11 @@ export class AuthService {
 
     await this.prisma.user.update({
       where: withoutDeleted({ id: payload.sub }),
-      data: { emailVerified: true },
+      data: {
+        emailVerified: true,
+        // Setear referralCode con el email si aún no tiene uno
+        ...(!user.referralCode && { referralCode: user.email }),
+      },
     });
 
     return { message: 'Email verificado exitosamente' };
@@ -403,5 +413,50 @@ export class AuthService {
       access_token: this.jwtService.sign(payload),
       userId: user.id,
     };
+  }
+
+  /**
+   * Busca un usuario por su referralCode y retorna su id.
+   * Retorna null si el código no existe o el usuario está eliminado.
+   */
+  async findUserByReferralCode(code: string): Promise<string | null> {
+    if (!code || !code.trim()) return null;
+    const user = await this.prisma.user.findFirst({
+      where: withoutDeleted({ referralCode: code.trim() }),
+      select: { id: true },
+    });
+    return user?.id ?? null;
+  }
+
+  // ─── Referral code ───────────────────────────────────────────────────────
+
+  /** Devuelve el referralCode del usuario autenticado. */
+  async getMyReferralCode(userId: string): Promise<{ referralCode: string | null }> {
+    const user = await this.prisma.user.findUnique({
+      where: withoutDeleted({ id: userId }),
+      select: { referralCode: true },
+    });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    return { referralCode: user.referralCode };
+  }
+
+  /** Actualiza el referralCode del usuario autenticado. Valida unicidad. */
+  async updateMyReferralCode(userId: string, dto: UpdateReferralCodeDto): Promise<{ referralCode: string }> {
+    const code = dto.referralCode.trim();
+
+    const existing = await this.prisma.user.findFirst({
+      where: { referralCode: code },
+    });
+    if (existing && existing.id !== userId) {
+      throw new ConflictException('Ese código de referido ya está en uso');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: withoutDeleted({ id: userId }),
+      data: { referralCode: code },
+      select: { referralCode: true },
+    });
+
+    return { referralCode: updated.referralCode! };
   }
 }
