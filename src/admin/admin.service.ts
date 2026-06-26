@@ -599,6 +599,18 @@ export class AdminService {
     });
   }
 
+  async changeProfessionalPassword(profileId: string, password: string) {
+    const profile = await this.findProfileOrThrow(profileId);
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await this.prisma.user.update({
+      where: withoutDeleted({ id: profile.userId }),
+      data: { passwordHash },
+    });
+
+    return { message: 'Password updated' };
+  }
+
   // ─── Jobs ────────────────────────────────────────────────────────────────
 
   async createJob(dto: CreateJobDto) {

@@ -22,6 +22,7 @@ import { VerifyDocumentDto } from './dto/verify-document.dto';
 import { SetTrialDateDto } from './dto/set-trial-date.dto';
 import { AdminRegisterProfessionalDto } from './dto/admin-register-professional.dto';
 import { AdminUpdateProfessionalDto } from './dto/admin-update-professional.dto';
+import { AdminChangeProfessionalPasswordDto } from './dto/admin-change-professional-password.dto';
 import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -198,6 +199,20 @@ export class AdminController {
     @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: AdminUpdateProfessionalDto,
   ) {
     return this.adminService.updateProfessional(id, dto);
+  }
+
+  @Patch('professionals/:id/password')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.admin)
+  @ApiOperation({ summary: 'Actualizar contraseña de un profesional (admin)' })
+  @ApiParam({ name: 'id', description: 'ID del perfil profesional' })
+  @ApiResponse({ status: 200, description: 'Contraseña actualizada' })
+  @ApiResponse({ status: 404, description: 'Profesional no encontrado' })
+  async changeProfessionalPassword(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: AdminChangeProfessionalPasswordDto,
+  ) {
+    return this.adminService.changeProfessionalPassword(id, dto.password);
   }
 
   @Post('jobs')

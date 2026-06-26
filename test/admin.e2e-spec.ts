@@ -6,6 +6,7 @@ const request = require('supertest');
 import { createTestApp, registerProfessional } from './test-app.factory';
 import { cleanDatabase } from './clean-database';
 import { PrismaService } from '../src/prisma/prisma.service';
+import * as bcrypt from 'bcrypt';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -257,6 +258,78 @@ describe('Admin (e2e)', () => {
 
       expect(res.body).toHaveProperty('isActive');
       expect(res.body.isActive).toBe(true);
+    });
+  });
+
+  describe('PATCH /admin/professionals/:id/password', () => {
+    it('should reject requests without JWT', async () => {
+      const { profileId } = await createPendingProfile();
+
+      await request(app.getHttpServer())
+        .patch(`/admin/professionals/${profileId}/password`)
+        .send({ password: 'newPassword123', confirmPassword: 'newPassword123' })
+        .expect(401);
+    });
+
+    it('should reject non-admin users', async () => {
+      const { profileId, proToken } = await createPendingProfile();
+
+      await request(app.getHttpServer())
+        .patch(`/admin/professionals/${profileId}/password`)
+        .set('Authorization', `Bearer ${proToken}`)
+        .send({ password: 'newPassword123', confirmPassword: 'newPassword123' })
+        .expect(403);
+    });
+
+    it('should update professional password hash with bcrypt rounds 10', async () => {
+      const adminToken = await createAdminToken();
+      const { profileId } = await createPendingProfile();
+
+      const profileBefore = await prisma.professionalProfile.findUnique({
+        where: { id: profileId },
+        include: { user: true },
+      });
+
+      const response = await request(app.getHttpServer())
+        .patch(`/admin/professionals/${profileId}/password`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ password: 'newPassword123', confirmPassword: 'newPassword123' })
+        .expect(200);
+
+      expect(response.body).toEqual({ message: 'Password updated' });
+
+      const profileAfter = await prisma.professionalProfile.findUnique({
+        where: { id: profileId },
+        include: { user: true },
+      });
+
+      expect(profileBefore).not.toBeNull();
+      expect(profileAfter).not.toBeNull();
+      expect(profileBefore!.user.passwordHash).not.toBe(profileAfter!.user.passwordHash);
+      await expect(bcrypt.compare('newPassword123', profileAfter!.user.passwordHash)).resolves.toBe(true);
+    });
+
+    it('should return 400 when confirmPassword does not match', async () => {
+      const adminToken = await createAdminToken();
+      const { profileId } = await createPendingProfile();
+
+      const response = await request(app.getHttpServer())
+        .patch(`/admin/professionals/${profileId}/password`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ password: 'newPassword123', confirmPassword: 'differentPassword123' })
+        .expect(400);
+
+      expect(JSON.stringify(response.body)).toContain('confirmPassword');
+    });
+
+    it('should return 404 for unknown professional profile', async () => {
+      const adminToken = await createAdminToken();
+
+      await request(app.getHttpServer())
+        .patch('/admin/professionals/00000000-0000-0000-0000-000000000000/password')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ password: 'newPassword123', confirmPassword: 'newPassword123' })
+        .expect(404);
     });
   });
 
