@@ -195,9 +195,18 @@ export class AdminService {
     }
   }
 
-  async listAdminUsers() {
+  async listAdminUsers(search?: string) {
     return this.prisma.user.findMany({
-      where: withoutDeleted(),
+      where: withoutDeleted(
+        search
+          ? {
+              email: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            }
+          : undefined,
+      ),
       select: {
         id: true,
         email: true,

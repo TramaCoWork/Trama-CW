@@ -323,9 +323,10 @@ export class AdminController {
 
   @Get('users')
   @ApiOperation({ summary: 'Listar usuarios activos' })
+  @ApiQuery({ name: 'search', required: false, type: String, description: 'Filtrar usuarios por email' })
   @ApiResponse({ status: 200, description: 'Lista de usuarios activos' })
-  async listAdminUsers() {
-    return this.adminService.listAdminUsers();
+  async listAdminUsers(@Query('search') search?: string) {
+    return this.adminService.listAdminUsers(search);
   }
 
   @Get('users/deleted')
