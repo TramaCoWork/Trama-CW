@@ -66,7 +66,6 @@ export class CommunityService {
     const channels = await this.prisma.communityPost.findMany({
       where: {
         deletedAt: null,
-        status: PostStatus.published,
       },
       select: { channelSlug: true },
       distinct: ['channelSlug'],
