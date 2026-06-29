@@ -72,6 +72,24 @@ export class CommunityChannelsController {
     );
   }
 
+  @Get(':id/posts/:postId')
+  @UseGuards(ChannelMemberGuard)
+  @ApiOperation({ summary: 'Obtener un post activo de un canal' })
+  @ApiParam({ name: 'id', description: 'ID del canal' })
+  @ApiParam({ name: 'postId', description: 'ID del post' })
+  @ApiResponse({ status: 200, description: 'Post encontrado' })
+  @ApiResponse({
+    status: 403,
+    description: 'Usuario sin membresía aceptada en el canal',
+  })
+  @ApiResponse({ status: 404, description: 'Post no encontrado en el canal' })
+  getPost(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('postId', ParseUUIDPipe) postId: string,
+  ) {
+    return this.communityChannelsService.getPost(id, postId);
+  }
+
   @Get(':id/posts/:postId/comments')
   @UseGuards(ChannelMemberGuard)
   @ApiOperation({ summary: 'Listar comentarios activos de un post del canal' })

@@ -51,6 +51,22 @@ export class CommunityChannelsService {
     };
   }
 
+  async getPost(channelId: string, postId: string) {
+    const post = await this.prisma.communityChannelPost.findFirst({
+      where: {
+        id: postId,
+        channelId,
+        deletedAt: null,
+      },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Post no encontrado');
+    }
+
+    return post;
+  }
+
   async getPostComments(
     channelId: string,
     postId: string,
