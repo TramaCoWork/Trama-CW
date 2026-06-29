@@ -16,6 +16,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { ContactsModule } from './contacts/contacts.module';
 import { CommunityModule } from './community/community.module';
+import { CommunityChannelsModule } from './community-channels/community-channels.module';
 import { JobsModule } from './jobs/jobs.module';
 import { AdminModule } from './admin/admin.module';
 import { ProfessionCategoriesModule } from './profession-categories/profession-categories.module';
@@ -43,7 +44,9 @@ import { AppController } from './app.controller';
         JWT_SECRET: Joi.string().required(),
         JWT_EXPIRES_IN: Joi.string().default('7d'),
         PORT: Joi.number().default(3000),
-        NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
+        NODE_ENV: Joi.string()
+          .valid('development', 'production', 'test')
+          .default('development'),
         MAIL_PROVIDER: Joi.string().valid('smtp', 'gmail').optional(),
         MAIL_FROM: Joi.string().optional(),
         SMTP_HOST: Joi.string().optional(),
@@ -58,23 +61,31 @@ import { AppController } from './app.controller';
         MERCADOPAGO_WEBHOOK_SECRET: Joi.string().optional(),
         SUBSCRIPTION_NOTIFICATION_URL: Joi.string().optional(),
         TRIAL_DAYS: Joi.number().default(0),
-        PAYMENT_MODE: Joi.string().valid('subscription', 'checkout').default('subscription'),
+        PAYMENT_MODE: Joi.string()
+          .valid('subscription', 'checkout')
+          .default('subscription'),
         CRON_SCHEDULE: Joi.string()
           .custom((value, helpers) => {
             if (!value) return value;
             try {
               const parsed = JSON.parse(value);
               if (typeof parsed !== 'object' || Array.isArray(parsed)) {
-                return helpers.error('any.invalid', { message: 'must be a JSON object' });
+                return helpers.error('any.invalid', {
+                  message: 'must be a JSON object',
+                });
               }
               for (const [key, val] of Object.entries(parsed)) {
                 if (val !== null && typeof val !== 'string') {
-                  return helpers.error('any.invalid', { message: `value for "${key}" must be a string or null` });
+                  return helpers.error('any.invalid', {
+                    message: `value for "${key}" must be a string or null`,
+                  });
                 }
               }
               return value;
             } catch {
-              return helpers.error('any.invalid', { message: 'must be valid JSON' });
+              return helpers.error('any.invalid', {
+                message: 'must be valid JSON',
+              });
             }
           })
           .default(
@@ -86,7 +97,8 @@ import { AppController } from './app.controller';
           .pattern(/^(?!.*\.\.)(?![A-Za-z]:[\\/])(?![\\/]).+$/)
           .default('uploads')
           .messages({
-            'string.pattern.base': 'UPLOAD_PATH must be a non-empty relative path without .. segments',
+            'string.pattern.base':
+              'UPLOAD_PATH must be a non-empty relative path without .. segments',
           }),
         SUPPORT_EMAIL: Joi.string().optional(),
         TURNSTILE_SECRET_KEY: Joi.string().optional(),
@@ -117,6 +129,7 @@ import { AppController } from './app.controller';
     OnboardingModule,
     ContactsModule,
     CommunityModule,
+    CommunityChannelsModule,
     JobsModule,
     AdminModule,
     ProfessionCategoriesModule,

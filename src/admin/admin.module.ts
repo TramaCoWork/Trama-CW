@@ -3,6 +3,8 @@ import { AdminService } from './admin.service';
 import { AdminController } from './admin.controller';
 import { AdminCommunityController } from './admin-community.controller';
 import { AdminCommunityService } from './admin-community.service';
+import { AdminChannelsController } from './admin-channels.controller';
+import { AdminChannelsService } from './admin-channels.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { MailModule } from '../mail/mail.module';
 import { AuthModule } from '../auth/auth.module';
@@ -11,8 +13,23 @@ import { MercadoPagoModule } from '../mercadopago/mercadopago.module';
 import { CommunityService } from '../community/community.service';
 
 @Module({
-  imports: [PrismaModule, MailModule, AuthModule, UploadsModule, MercadoPagoModule],
-  controllers: [AdminController, AdminCommunityController],
-  providers: [AdminService, AdminCommunityService, CommunityService],
+  imports: [
+    PrismaModule,
+    MailModule,
+    AuthModule,
+    UploadsModule,
+    MercadoPagoModule,
+  ],
+  controllers: [
+    AdminController,
+    AdminCommunityController,
+    AdminChannelsController,
+  ],
+  providers: [
+    AdminService,
+    AdminCommunityService,
+    AdminChannelsService,
+    CommunityService,
+  ],
 })
 export class AdminModule {}
