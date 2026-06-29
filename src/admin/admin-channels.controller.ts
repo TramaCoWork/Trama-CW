@@ -121,6 +121,25 @@ export class AdminChannelsController {
     return this.adminChannelsService.removeMember(id, userId);
   }
 
+  @Get(':id/members')
+  @ApiOperation({ summary: 'Listar miembros del canal' })
+  @ApiParam({ name: 'id', description: 'ID del canal' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista paginada de miembros del canal',
+  })
+  @ApiResponse({ status: 404, description: 'Canal no encontrado' })
+  getMembers(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() pagination: PaginationDto,
+  ) {
+    return this.adminChannelsService.listMembers(
+      id,
+      pagination.page,
+      pagination.limit,
+    );
+  }
+
   @Get(':id/posts')
   @ApiOperation({ summary: 'Listar posts del canal (incluye soft-deleted)' })
   @ApiParam({ name: 'id', description: 'ID del canal' })

@@ -123,6 +123,30 @@ export class AdminChannelsService {
     return { message: 'Miembro eliminado' };
   }
 
+  async listMembers(channelId: string, page: number, limit: number) {
+    await this.ensureChannelExists(channelId);
+
+    const [data, total] = await Promise.all([
+      this.prisma.communityChannelMember.findMany({
+        where: { channelId },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.communityChannelMember.count({ where: { channelId } }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+      },
+    };
+  }
+
   async listChannelPosts(channelId: string, page: number, limit: number) {
     await this.ensureChannelExists(channelId);
 
