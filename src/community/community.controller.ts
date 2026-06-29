@@ -83,6 +83,19 @@ export class CommunityController {
     );
   }
 
+  @Get('posts/:id')
+  @ApiOperation({ summary: 'Obtener un post por ID' })
+  @ApiParam({ name: 'id', description: 'ID del post' })
+  @ApiResponse({ status: 200, description: 'Post encontrado' })
+  @ApiResponse({ status: 403, description: 'No tienes acceso al canal de este post' })
+  @ApiResponse({ status: 404, description: 'Post no encontrado' })
+  getPostById(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id') id: string,
+  ) {
+    return this.communityService.getPostById(id, user.userId, user.role);
+  }
+
   @Get('channels/:slug/posts')
   @ApiOperation({ summary: 'Listar posts accesibles para un canal' })
   @ApiParam({ name: 'slug', description: 'Slug del canal' })

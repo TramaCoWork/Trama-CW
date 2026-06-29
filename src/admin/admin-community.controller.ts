@@ -51,6 +51,15 @@ export class AdminCommunityController {
     });
   }
 
+  @Get('posts/:id')
+  @ApiOperation({ summary: 'Obtener post de comunidad por ID para moderacion admin' })
+  @ApiParam({ name: 'id', description: 'ID del post' })
+  @ApiResponse({ status: 200, description: 'Post encontrado' })
+  @ApiResponse({ status: 404, description: 'Post no encontrado' })
+  getPostById(@Param('id', ParseUUIDPipe) id: string) {
+    return this.adminCommunityService.getAdminPostById(id);
+  }
+
   @Post('posts/:id/comments')
   @ApiOperation({ summary: 'Crear comentario admin sobre un post de comunidad' })
   @ApiParam({ name: 'id', description: 'ID del post' })

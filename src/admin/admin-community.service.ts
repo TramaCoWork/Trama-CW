@@ -53,6 +53,30 @@ export class AdminCommunityService {
     };
   }
 
+  async getAdminPostById(id: string) {
+    const post = await this.prisma.communityPost.findUnique({
+      where: {
+        id,
+        deletedAt: null,
+      },
+      include: {
+        user: { select: { id: true, email: true, profile: { select: { name: true } } } },
+        _count: { select: { comments: { where: { deletedAt: null } } } },
+      },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Post no encontrado');
+    }
+
+    const { _count, ...postData } = post;
+
+    return {
+      ...postData,
+      commentCount: _count.comments,
+    };
+  }
+
   async createComment(postId: string, userId: string, content: string) {
     const post = await this.prisma.communityPost.findUnique({ where: { id: postId } });
 

@@ -114,6 +114,32 @@ export class CommunityService {
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
+  async getPostById(id: string, userId: string, role: UserRole) {
+    const post = await this.prisma.communityPost.findUnique({
+      where: {
+        id,
+        deletedAt: null,
+      },
+      include: {
+        user: { select: { id: true, email: true, profile: { select: { name: true } } } },
+        _count: { select: { comments: { where: { deletedAt: null } } } },
+      },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Post no encontrado');
+    }
+
+    await this.checkChannelAccess(userId, role, post.channelSlug);
+
+    const { _count, ...postData } = post;
+
+    return {
+      ...postData,
+      commentCount: _count.comments,
+    };
+  }
+
   async getPosts(userId: string, role: UserRole, channelSlug: string, page: number, limit: number) {
     return this.getChannelPosts(userId, role, channelSlug, page, limit);
   }
