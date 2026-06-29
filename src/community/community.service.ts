@@ -49,11 +49,10 @@ export class CommunityService {
     return profile?.rubro?.slug ?? null;
   }
 
-  /**
-   * Validate the user has access to the given channel slug.
-   */
-  private async validateChannelAccess(userId: string, channelSlug: string): Promise<void> {
-    if (channelSlug === GENERAL_CHANNEL) return;
+  async checkChannelAccess(userId: string, role: UserRole, channelSlug: string): Promise<void> {
+    if (role === UserRole.admin || channelSlug === GENERAL_CHANNEL) {
+      return;
+    }
 
     const rubroSlug = await this.getUserRubroSlug(userId);
     if (rubroSlug !== channelSlug) {
@@ -63,10 +62,36 @@ export class CommunityService {
     }
   }
 
-  async getPosts(userId: string, channelSlug: string, page: number, limit: number) {
-    await this.validateChannelAccess(userId, channelSlug);
+  async getActiveChannels(): Promise<string[]> {
+    const channels = await this.prisma.communityPost.findMany({
+      where: {
+        deletedAt: null,
+        status: PostStatus.published,
+      },
+      select: { channelSlug: true },
+      distinct: ['channelSlug'],
+      orderBy: { channelSlug: 'asc' },
+    });
 
-    const where = { channelSlug, deletedAt: null, status: PostStatus.published };
+    return channels.map((channel) => channel.channelSlug);
+  }
+
+  async getChannelPosts(userId: string, role: UserRole, channelSlug: string, page: number, limit: number) {
+    await this.checkChannelAccess(userId, role, channelSlug);
+
+    const where =
+      role === UserRole.professional && channelSlug !== GENERAL_CHANNEL
+        ? {
+            deletedAt: null,
+            status: PostStatus.published,
+            channelSlug: { in: [channelSlug, GENERAL_CHANNEL] },
+          }
+        : {
+            channelSlug,
+            deletedAt: null,
+            status: PostStatus.published,
+          };
+
     const [posts, total] = await Promise.all([
       this.prisma.communityPost.findMany({
         where,
@@ -87,6 +112,10 @@ export class CommunityService {
     }));
 
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  }
+
+  async getPosts(userId: string, role: UserRole, channelSlug: string, page: number, limit: number) {
+    return this.getChannelPosts(userId, role, channelSlug, page, limit);
   }
 
   /**
@@ -116,10 +145,10 @@ export class CommunityService {
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
-  async createPost(userId: string, dto: CreatePostDto) {
+  async createPost(userId: string, role: UserRole, dto: CreatePostDto) {
     const channelSlug = dto.channelSlug ?? GENERAL_CHANNEL;
 
-    await this.validateChannelAccess(userId, channelSlug);
+    await this.checkChannelAccess(userId, role, channelSlug);
 
     return this.prisma.communityPost.create({
       data: {
@@ -133,7 +162,7 @@ export class CommunityService {
     });
   }
 
-  async createComment(userId: string, dto: CreateCommentDto) {
+  async createComment(userId: string, role: UserRole, dto: CreateCommentDto) {
     const post = await this.prisma.communityPost.findUnique({
       where: { id: dto.postId },
     });
@@ -142,7 +171,7 @@ export class CommunityService {
       throw new NotFoundException('Post no encontrado');
     }
 
-    await this.validateChannelAccess(userId, post.channelSlug);
+    await this.checkChannelAccess(userId, role, post.channelSlug);
 
     return this.prisma.communityComment.create({
       data: {
@@ -204,22 +233,26 @@ export class CommunityService {
    * Get paginated comments for a post. Excludes soft-deleted comments.
    * Validates channel access.
    */
-  async getPostComments(postId: string, userId: string, page: number, limit: number) {
-    const post = await this.prisma.communityPost.findUnique({
-      where: { id: postId },
+  async getPostComments(postId: string, userId: string, role: UserRole, page: number, limit: number) {
+    const post = await this.prisma.communityPost.findFirst({
+      where: {
+        id: postId,
+        deletedAt: null,
+        status: PostStatus.published,
+      },
     });
 
     if (!post || post.deletedAt) {
       throw new NotFoundException('Post no encontrado');
     }
 
-    await this.validateChannelAccess(userId, post.channelSlug);
+    await this.checkChannelAccess(userId, role, post.channelSlug);
 
     const where = { postId, deletedAt: null };
     const [data, total] = await Promise.all([
       this.prisma.communityComment.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: 'asc' },
         skip: (page - 1) * limit,
         take: limit,
         include: {

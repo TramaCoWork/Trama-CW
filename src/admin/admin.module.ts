@@ -1,15 +1,18 @@
 import { Module } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminController } from './admin.controller';
+import { AdminCommunityController } from './admin-community.controller';
+import { AdminCommunityService } from './admin-community.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { MailModule } from '../mail/mail.module';
 import { AuthModule } from '../auth/auth.module';
 import { UploadsModule } from '../uploads/uploads.module';
 import { MercadoPagoModule } from '../mercadopago/mercadopago.module';
+import { CommunityService } from '../community/community.service';
 
 @Module({
   imports: [PrismaModule, MailModule, AuthModule, UploadsModule, MercadoPagoModule],
-  controllers: [AdminController],
-  providers: [AdminService],
+  controllers: [AdminController, AdminCommunityController],
+  providers: [AdminService, AdminCommunityService, CommunityService],
 })
 export class AdminModule {}

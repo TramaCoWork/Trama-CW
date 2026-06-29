@@ -18,12 +18,16 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CommunityService } from './community.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdatePostStatusDto } from './dto/update-post-status.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { UserRole } from '@prisma/client';
 
 @ApiTags('Community')
 @ApiBearerAuth()
@@ -33,10 +37,12 @@ export class CommunityController {
   constructor(private readonly communityService: CommunityService) {}
 
   @Get('channels')
-  @ApiOperation({ summary: 'Listar canales disponibles para el usuario (general + su rubro)' })
-  @ApiResponse({ status: 200, description: 'Lista de canales con slug y nombre' })
-  getChannels(@CurrentUser() user: CurrentUserType) {
-    return this.communityService.getChannels(user.userId);
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.admin)
+  @ApiOperation({ summary: 'Listar canales activos con posts no eliminados' })
+  @ApiResponse({ status: 200, description: 'Lista de slugs de canales activos' })
+  getChannels() {
+    return this.communityService.getActiveChannels().then((data) => ({ data }));
   }
 
   @Get('my-posts')
@@ -65,37 +71,58 @@ export class CommunityController {
   @ApiResponse({ status: 403, description: 'No tienes acceso a este canal' })
   getPosts(
     @CurrentUser() user: CurrentUserType,
-    @Query('channel') channel?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query('channel') channel = 'general',
+    @Query() pagination: PaginationDto,
   ) {
-    return this.communityService.getPosts(
+    return this.communityService.getChannelPosts(
       user.userId,
-      channel ?? 'general',
-      parseInt(page ?? '1', 10),
-      parseInt(limit ?? '20', 10),
+      user.role,
+      channel,
+      pagination.page,
+      pagination.limit,
+    );
+  }
+
+  @Get('channels/:slug/posts')
+  @ApiOperation({ summary: 'Listar posts accesibles para un canal' })
+  @ApiParam({ name: 'slug', description: 'Slug del canal' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Numero de pagina (default: 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Posts por pagina (default: 20)' })
+  @ApiResponse({ status: 200, description: 'Lista paginada de posts' })
+  @ApiResponse({ status: 403, description: 'No tienes acceso a este canal' })
+  getChannelPosts(
+    @CurrentUser() user: CurrentUserType,
+    @Param('slug') slug: string,
+    @Query() pagination: PaginationDto,
+  ) {
+    return this.communityService.getChannelPosts(
+      user.userId,
+      user.role,
+      slug,
+      pagination.page,
+      pagination.limit,
     );
   }
 
   @Get('posts/:id/comments')
-  @ApiOperation({ summary: 'Listar comentarios de un post (paginado, mas recientes primero)' })
+  @ApiOperation({ summary: 'Listar comentarios de un post (paginado, mas antiguos primero)' })
   @ApiParam({ name: 'id', description: 'ID del post' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Numero de pagina (default: 1)' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Comentarios por pagina (default: 10)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Comentarios por pagina (default: 20)' })
   @ApiResponse({ status: 200, description: 'Lista paginada de comentarios' })
   @ApiResponse({ status: 403, description: 'No tienes acceso al canal de este post' })
   @ApiResponse({ status: 404, description: 'Post no encontrado' })
   getPostComments(
     @CurrentUser() user: CurrentUserType,
     @Param('id') id: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query() pagination: PaginationDto,
   ) {
     return this.communityService.getPostComments(
       id,
       user.userId,
-      parseInt(page ?? '1', 10),
-      parseInt(limit ?? '10', 10),
+      user.role,
+      pagination.page,
+      pagination.limit,
     );
   }
 
@@ -107,7 +134,7 @@ export class CommunityController {
     @CurrentUser() user: CurrentUserType,
     @Body() dto: CreatePostDto,
   ) {
-    return this.communityService.createPost(user.userId, dto);
+    return this.communityService.createPost(user.userId, user.role, dto);
   }
 
   @Patch('posts/:id/status')
@@ -146,7 +173,7 @@ export class CommunityController {
     @CurrentUser() user: CurrentUserType,
     @Body() dto: CreateCommentDto,
   ) {
-    return this.communityService.createComment(user.userId, dto);
+    return this.communityService.createComment(user.userId, user.role, dto);
   }
 
   @Delete('comments/:id')
