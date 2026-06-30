@@ -50,7 +50,7 @@ export class CommunityChannelsController {
   }
 
   @Get(':id/posts')
-  @UseGuards(ChannelMemberGuard)
+  @UseGuards(JwtAuthGuard, ChannelMemberGuard)
   @ApiOperation({ summary: 'Listar posts activos de un canal' })
   @ApiParam({ name: 'id', description: 'ID del canal' })
   @ApiResponse({
@@ -73,7 +73,7 @@ export class CommunityChannelsController {
   }
 
   @Get(':id/posts/:postId')
-  @UseGuards(ChannelMemberGuard)
+  @UseGuards(JwtAuthGuard, ChannelMemberGuard)
   @ApiOperation({ summary: 'Obtener un post activo de un canal' })
   @ApiParam({ name: 'id', description: 'ID del canal' })
   @ApiParam({ name: 'postId', description: 'ID del post' })
@@ -91,7 +91,7 @@ export class CommunityChannelsController {
   }
 
   @Get(':id/posts/:postId/comments')
-  @UseGuards(ChannelMemberGuard)
+  @UseGuards(JwtAuthGuard, ChannelMemberGuard)
   @ApiOperation({ summary: 'Listar comentarios activos de un post del canal' })
   @ApiParam({ name: 'id', description: 'ID del canal' })
   @ApiParam({ name: 'postId', description: 'ID del post' })
@@ -115,7 +115,7 @@ export class CommunityChannelsController {
   }
 
   @Post(':id/posts/:postId/comments')
-  @UseGuards(ChannelMemberGuard)
+  @UseGuards(JwtAuthGuard, ChannelMemberGuard)
   @ApiOperation({ summary: 'Crear comentario en un post del canal' })
   @ApiParam({ name: 'id', description: 'ID del canal' })
   @ApiParam({ name: 'postId', description: 'ID del post' })
