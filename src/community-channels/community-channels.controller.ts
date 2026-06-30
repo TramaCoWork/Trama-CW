@@ -31,7 +31,7 @@ import { CreateCommunityChannelCommentDto } from './dto/create-community-channel
 @ApiBearerAuth()
 @Controller('channels')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.professional)
+@Roles(UserRole.professional, UserRole.admin)
 export class CommunityChannelsController {
   constructor(
     private readonly communityChannelsService: CommunityChannelsService,
