@@ -18,8 +18,6 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
 import { CommunityService } from './community.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
@@ -37,12 +35,15 @@ export class CommunityController {
   constructor(private readonly communityService: CommunityService) {}
 
   @Get('channels')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.admin)
   @ApiOperation({ summary: 'Listar canales activos con posts no eliminados' })
   @ApiResponse({ status: 200, description: 'Lista de slugs de canales activos' })
-  getChannels() {
-    return this.communityService.getActiveChannels().then((data) => ({ data }));
+  async getChannels(@CurrentUser() user: CurrentUserType) {
+    const data =
+      user.role === UserRole.admin
+        ? await this.communityService.getActiveChannels()
+        : await this.communityService.getChannels(user.userId);
+
+    return { data };
   }
 
   @Get('my-posts')
