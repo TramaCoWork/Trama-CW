@@ -126,7 +126,7 @@ export class AdminChannelsService {
   async listMembers(channelId: string, page: number, limit: number) {
     await this.ensureChannelExists(channelId);
 
-    const [data, total] = await Promise.all([
+    const [members, total] = await Promise.all([
       this.prisma.communityChannelMember.findMany({
         where: { channelId },
         orderBy: { createdAt: 'desc' },
@@ -135,6 +135,21 @@ export class AdminChannelsService {
       }),
       this.prisma.communityChannelMember.count({ where: { channelId } }),
     ]);
+
+    const userIds = [...new Set(members.map((member) => member.userId))];
+    const users =
+      userIds.length === 0
+        ? []
+        : await this.prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, email: true },
+          });
+
+    const userEmailById = new Map(users.map((user) => [user.id, user.email]));
+    const data = members.map((member) => ({
+      ...member,
+      email: userEmailById.get(member.userId) ?? null,
+    }));
 
     return {
       data,
