@@ -18,8 +18,8 @@ export class CommunityService {
 
   /**
    * Returns the channels the user can access:
-   * - "general" (always)
-   * - the slug of their rubro (if they have a profile with a rubro)
+   * - community channels: "general" (always) and user's rubro (if present)
+   * - channel channels: accepted active memberships from CommunityChannel
    */
   async getChannels(userId: string) {
     const profile = await this.prisma.professionalProfile.findUnique({
@@ -27,15 +27,41 @@ export class CommunityService {
       include: { rubro: true },
     });
 
+    const channelMembers = await this.prisma.communityChannelMember.findMany({
+      where: {
+        userId,
+        accepted: true,
+        channel: { isActive: true },
+      },
+      include: {
+        channel: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
     const channels = [
-      { slug: GENERAL_CHANNEL, name: 'General' },
+      { type: 'community' as const, slug: GENERAL_CHANNEL, name: 'General' },
     ];
 
     if (profile?.rubro) {
-      channels.push({ slug: profile.rubro.slug, name: profile.rubro.name });
+      channels.push({
+        type: 'community' as const,
+        slug: profile.rubro.slug,
+        name: profile.rubro.name,
+      });
     }
 
-    return channels;
+    const memberChannels = channelMembers.map(({ channel }) => ({
+      type: 'channel' as const,
+      slug: channel.id,
+      name: channel.name,
+    }));
+
+    return [...channels, ...memberChannels];
   }
 
   /**
