@@ -85,7 +85,7 @@ export class CommunityChannelsService {
       throw new NotFoundException('Post no encontrado');
     }
 
-    const [data, total] = await Promise.all([
+    const [comments, total] = await Promise.all([
       this.prisma.communityChannelComment.findMany({
         where: {
           postId,
@@ -102,6 +102,44 @@ export class CommunityChannelsService {
         },
       }),
     ]);
+
+    const userIds = [...new Set(comments.map((comment) => comment.userId))];
+    const users =
+      userIds.length === 0
+        ? []
+        : await this.prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: {
+              id: true,
+              email: true,
+              profile: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          });
+
+    const userMap = new Map(
+      users.map((user) => [
+        user.id,
+        {
+          email: user.email,
+          nombre: user.profile?.name ?? user.email,
+        },
+      ]),
+    );
+
+    const data = comments.map((comment) => {
+      const user = userMap.get(comment.userId);
+      const email = user?.email ?? '';
+
+      return {
+        ...comment,
+        email,
+        nombre: user?.nombre ?? email,
+      };
+    });
 
     return {
       data,
