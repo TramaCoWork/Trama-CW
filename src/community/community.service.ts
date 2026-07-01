@@ -214,20 +214,49 @@ export class CommunityService {
       this.prisma.communityChannelPost.findMany({
         where,
         orderBy: { createdAt: 'desc' },
+        include: {
+          channel: { select: { name: true } },
+        },
       }),
       this.prisma.communityPost.count({ where }),
       this.prisma.communityChannelPost.count({ where }),
     ]);
 
+    const nonGeneralSlugs = Array.from(
+      new Set(
+        communityPosts
+          .map((post) => post.channelSlug)
+          .filter((slug) => slug !== GENERAL_CHANNEL),
+      ),
+    );
+
+    const professionCategories =
+      nonGeneralSlugs.length > 0
+        ? await this.prisma.professionCategory.findMany({
+            where: { slug: { in: nonGeneralSlugs } },
+            select: { slug: true, name: true },
+          })
+        : [];
+
+    const slugNameMap = professionCategories.reduce<Record<string, string>>(
+      (map, category) => {
+        map[category.slug] = category.name;
+        return map;
+      },
+      { [GENERAL_CHANNEL]: 'General' },
+    );
+
     const communityData = communityPosts.map(({ _count, ...post }) => ({
       type: 'community' as const,
       ...post,
+      channelName: slugNameMap[post.channelSlug] ?? post.channelSlug,
       commentCount: _count.comments,
     }));
 
-    const channelData = channelPosts.map((post) => ({
+    const channelData = channelPosts.map(({ channel, ...post }) => ({
       type: 'channel' as const,
       ...post,
+      channelName: channel.name,
     }));
 
     const total = communityCount + channelCount;
