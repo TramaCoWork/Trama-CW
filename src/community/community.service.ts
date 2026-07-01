@@ -202,24 +202,39 @@ export class CommunityService {
    */
   async getMyPosts(userId: string, page: number, limit: number) {
     const where = { userId, deletedAt: null };
-    const [posts, total] = await Promise.all([
+    const [communityPosts, channelPosts, communityCount, channelCount] = await Promise.all([
       this.prisma.communityPost.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
         include: {
           user: { select: { id: true, email: true, profile: { select: { name: true } } } },
           _count: { select: { comments: { where: { deletedAt: null } } } },
         },
       }),
+      this.prisma.communityChannelPost.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+      }),
       this.prisma.communityPost.count({ where }),
+      this.prisma.communityChannelPost.count({ where }),
     ]);
 
-    const data = posts.map(({ _count, ...post }) => ({
+    const communityData = communityPosts.map(({ _count, ...post }) => ({
+      type: 'community' as const,
       ...post,
       commentCount: _count.comments,
     }));
+
+    const channelData = channelPosts.map((post) => ({
+      type: 'channel' as const,
+      ...post,
+    }));
+
+    const total = communityCount + channelCount;
+    const start = (page - 1) * limit;
+    const data = [...communityData, ...channelData]
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(start, start + limit);
 
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
