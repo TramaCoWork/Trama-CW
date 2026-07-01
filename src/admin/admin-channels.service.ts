@@ -227,13 +227,14 @@ export class AdminChannelsService {
   async createChannelPost(
     channelId: string,
     dto: AdminCreateCommunityChannelPostDto,
+    resolvedUserId: string,
   ) {
     await this.ensureChannelExists(channelId);
 
     return this.prisma.communityChannelPost.create({
       data: {
         channelId,
-        userId: dto.userId,
+        userId: resolvedUserId,
         content: sanitizeMarkdown(dto.content),
       },
     });

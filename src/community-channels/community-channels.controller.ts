@@ -25,6 +25,7 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 import { CommunityChannelsService } from './community-channels.service';
 import { ChannelMemberGuard } from './guards/channel-member.guard';
 import { CreateCommunityChannelCommentDto } from './dto/create-community-channel-comment.dto';
+import { CreateCommunityChannelPostDto } from './dto/create-community-channel-post.dto';
 
 @ApiTags('Community Channels')
 @ApiBearerAuth()
@@ -111,6 +112,25 @@ export class CommunityChannelsController {
       pagination.page,
       pagination.limit,
     );
+  }
+
+  @Post(':id/posts')
+  @UseGuards(JwtAuthGuard, ChannelMemberGuard)
+  @ApiOperation({ summary: 'Crear post en un canal' })
+  @ApiParam({ name: 'id', description: 'ID del canal' })
+  @ApiResponse({ status: 201, description: 'Post creado' })
+  @ApiResponse({
+    status: 403,
+    description: 'Usuario sin membresía aceptada en el canal',
+  })
+  @ApiResponse({ status: 404, description: 'Canal no encontrado' })
+  createPost(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: CreateCommunityChannelPostDto,
+  ) {
+    return this.communityChannelsService.createPost(id, user.userId, dto.content);
   }
 
   @Post(':id/posts/:postId/comments')

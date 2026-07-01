@@ -152,6 +152,28 @@ export class CommunityChannelsService {
     };
   }
 
+  async createPost(channelId: string, userId: string, content: string) {
+    const channel = await this.prisma.communityChannel.findFirst({
+      where: {
+        id: channelId,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    if (!channel) {
+      throw new NotFoundException('Canal no encontrado');
+    }
+
+    return this.prisma.communityChannelPost.create({
+      data: {
+        channelId,
+        userId,
+        content: sanitizeMarkdown(content),
+      },
+    });
+  }
+
   async createComment(
     channelId: string,
     postId: string,

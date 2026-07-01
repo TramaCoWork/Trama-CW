@@ -19,6 +19,8 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -165,10 +167,12 @@ export class AdminChannelsController {
   @ApiResponse({ status: 404, description: 'Canal no encontrado' })
   createChannelPost(
     @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: CurrentUserType,
     @Body(new ValidationPipe({ whitelist: true, transform: true }))
     dto: AdminCreateCommunityChannelPostDto,
   ) {
-    return this.adminChannelsService.createChannelPost(id, dto);
+    const resolvedUserId = dto.userId ?? user.userId;
+    return this.adminChannelsService.createChannelPost(id, dto, resolvedUserId);
   }
 
   @Delete(':id/posts/:postId')
