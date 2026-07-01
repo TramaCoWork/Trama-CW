@@ -37,13 +37,7 @@ export class CommunityController {
   @ApiOperation({ summary: 'Listar canales activos con posts no eliminados' })
   @ApiResponse({ status: 200, description: 'Lista de slugs de canales activos' })
   async getChannels(@CurrentUser() user: CurrentUserType) {
-    const isAdmin = user.roles.some(
-      (role) => role.type === 'admin' || role.name === 'admin',
-    );
-    const data =
-      isAdmin
-        ? await this.communityService.getActiveChannels()
-        : await this.communityService.getChannels(user.userId);
+    const data = await this.communityService.getChannels(user.userId);
 
     return { data };
   }
