@@ -482,7 +482,14 @@ export class AdminService {
       this.prisma.professionalProfile.findMany({
         where,
         include: {
-          user: { select: { id: true, email: true, emailVerified: true } },
+          user: {
+            select: {
+              id: true,
+              email: true,
+              emailVerified: true,
+              lastLoginAt: true,
+            },
+          },
           rubro: true,
           country: true,
           province: true,
