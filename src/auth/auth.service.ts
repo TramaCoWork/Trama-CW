@@ -121,6 +121,11 @@ export class AuthService {
       });
     }
 
+    await this.prisma.user.update({
+      where: withoutDeleted({ id: user.id }),
+      data: { lastLoginAt: new Date() },
+    });
+
     return this.generateToken(user.id, user.email);
   }
 
@@ -152,6 +157,11 @@ export class AuthService {
     if (!hasAdminRole) {
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    await this.prisma.user.update({
+      where: withoutDeleted({ id: user.id }),
+      data: { lastLoginAt: new Date() },
+    });
 
     return this.generateToken(user.id, user.email);
   }
