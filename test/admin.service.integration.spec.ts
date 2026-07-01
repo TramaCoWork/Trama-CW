@@ -2,7 +2,6 @@ import { BadRequestException, ConflictException, INestApplication, NotFoundExcep
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
-import { UserRole } from '@prisma/client';
 import { AdminModule } from '../src/admin/admin.module';
 import { AdminRegisterProfessionalDto } from '../src/admin/dto/admin-register-professional.dto';
 import { AdminService } from '../src/admin/admin.service';
@@ -38,12 +37,16 @@ describe('AdminService (integration)', () => {
   });
 
   const createAdminUser = async () => {
+    const adminRole = await prismaService.role.findUniqueOrThrow({
+      where: { name: 'admin' },
+    });
+
     return prismaService.user.create({
       data: {
         email: `admin-${Date.now()}-${Math.floor(Math.random() * 10000)}@test.com`,
         passwordHash: 'admin-password-hash',
-        role: UserRole.admin,
         emailVerified: true,
+        userRoles: { create: [{ roleId: adminRole.id }] },
       },
     });
   };

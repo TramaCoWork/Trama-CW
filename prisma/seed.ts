@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole, ProfileStatus } from '@prisma/client';
+import { PrismaClient, ProfileStatus } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
 import { professionTaxonomy } from './profession-taxonomy';
@@ -81,6 +81,28 @@ async function seedProfessionCategories(): Promise<Map<string, number>> {
 async function main() {
   console.log('Seeding...');
 
+  const [clientRole, professionalRole, adminRole] = await Promise.all([
+    prisma.role.upsert({
+      where: { name: 'client' },
+      update: { type: 'other' },
+      create: { id: 'role-client', name: 'client', type: 'other' },
+    }),
+    prisma.role.upsert({
+      where: { name: 'professional' },
+      update: { type: 'professional' },
+      create: {
+        id: 'role-professional',
+        name: 'professional',
+        type: 'professional',
+      },
+    }),
+    prisma.role.upsert({
+      where: { name: 'admin' },
+      update: { type: 'admin' },
+      create: { id: 'role-admin', name: 'admin', type: 'admin' },
+    }),
+  ]);
+
   // ── Profession Categories (seed first to get IDs for professionals) ──────
   const slugToId = await seedProfessionCategories();
 
@@ -96,7 +118,17 @@ async function main() {
   const admin = await prisma.user.upsert({
     where: { email: 'admin@trama.com' },
     update: { passwordHash: adminHash },
-    create: { email: 'admin@trama.com', passwordHash: adminHash, role: UserRole.admin, emailVerified: true },
+    create: {
+      email: 'admin@trama.com',
+      passwordHash: adminHash,
+      emailVerified: true,
+      userRoles: { create: [{ roleId: adminRole.id }] },
+    },
+  });
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId: admin.id, roleId: adminRole.id } },
+    update: {},
+    create: { userId: admin.id, roleId: adminRole.id },
   });
   console.log('Admin:', admin.email);
 
@@ -125,7 +157,17 @@ async function main() {
   const pro1 = await prisma.user.upsert({
     where: { email: 'ana@trama.com' },
     update: {},
-    create: { email: 'ana@trama.com', passwordHash: proHash, role: UserRole.professional, emailVerified: true },
+    create: {
+      email: 'ana@trama.com',
+      passwordHash: proHash,
+      emailVerified: true,
+      userRoles: { create: [{ roleId: professionalRole.id }] },
+    },
+  });
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId: pro1.id, roleId: professionalRole.id } },
+    update: {},
+    create: { userId: pro1.id, roleId: professionalRole.id },
   });
   await prisma.professionalProfile.upsert({
     where: { userId: pro1.id },
@@ -153,7 +195,17 @@ async function main() {
   const pro2 = await prisma.user.upsert({
     where: { email: 'carlos@trama.com' },
     update: {},
-    create: { email: 'carlos@trama.com', passwordHash: proHash, role: UserRole.professional, emailVerified: true },
+    create: {
+      email: 'carlos@trama.com',
+      passwordHash: proHash,
+      emailVerified: true,
+      userRoles: { create: [{ roleId: professionalRole.id }] },
+    },
+  });
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId: pro2.id, roleId: professionalRole.id } },
+    update: {},
+    create: { userId: pro2.id, roleId: professionalRole.id },
   });
   await prisma.professionalProfile.upsert({
     where: { userId: pro2.id },
@@ -180,7 +232,17 @@ async function main() {
   const pro3 = await prisma.user.upsert({
     where: { email: 'lucia@trama.com' },
     update: {},
-    create: { email: 'lucia@trama.com', passwordHash: proHash, role: UserRole.professional, emailVerified: true },
+    create: {
+      email: 'lucia@trama.com',
+      passwordHash: proHash,
+      emailVerified: true,
+      userRoles: { create: [{ roleId: professionalRole.id }] },
+    },
+  });
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId: pro3.id, roleId: professionalRole.id } },
+    update: {},
+    create: { userId: pro3.id, roleId: professionalRole.id },
   });
   await prisma.professionalProfile.upsert({
     where: { userId: pro3.id },
@@ -207,7 +269,17 @@ async function main() {
   const pro4 = await prisma.user.upsert({
     where: { email: 'martin@trama.com' },
     update: {},
-    create: { email: 'martin@trama.com', passwordHash: proHash, role: UserRole.professional, emailVerified: true },
+    create: {
+      email: 'martin@trama.com',
+      passwordHash: proHash,
+      emailVerified: true,
+      userRoles: { create: [{ roleId: professionalRole.id }] },
+    },
+  });
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId: pro4.id, roleId: professionalRole.id } },
+    update: {},
+    create: { userId: pro4.id, roleId: professionalRole.id },
   });
   await prisma.professionalProfile.upsert({
     where: { userId: pro4.id },
@@ -237,14 +309,34 @@ async function main() {
   const client1 = await prisma.user.upsert({
     where: { email: 'client@trama.com' },
     update: {},
-    create: { email: 'client@trama.com', passwordHash: clientHash, role: UserRole.client, emailVerified: true },
+    create: {
+      email: 'client@trama.com',
+      passwordHash: clientHash,
+      emailVerified: true,
+      userRoles: { create: [{ roleId: clientRole.id }] },
+    },
+  });
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId: client1.id, roleId: clientRole.id } },
+    update: {},
+    create: { userId: client1.id, roleId: clientRole.id },
   });
   console.log('Client:', client1.email);
 
   const client2 = await prisma.user.upsert({
     where: { email: 'sofia@trama.com' },
     update: {},
-    create: { email: 'sofia@trama.com', passwordHash: clientHash, role: UserRole.client, emailVerified: true },
+    create: {
+      email: 'sofia@trama.com',
+      passwordHash: clientHash,
+      emailVerified: true,
+      userRoles: { create: [{ roleId: clientRole.id }] },
+    },
+  });
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId: client2.id, roleId: clientRole.id } },
+    update: {},
+    create: { userId: client2.id, roleId: clientRole.id },
   });
   console.log('Client:', client2.email);
 

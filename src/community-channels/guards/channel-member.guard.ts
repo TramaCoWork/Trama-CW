@@ -4,7 +4,6 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { CurrentUserType } from '../../auth/decorators/current-user.decorator';
 
@@ -20,9 +19,12 @@ export class ChannelMemberGuard implements CanActivate {
 
     const channelId = request.params.id;
     const userId = request.user?.userId;
-    const role = request.user?.role;
+    const isAdmin =
+      request.user?.roles?.some(
+        (role) => role.type === 'admin' || role.name === 'admin',
+      ) ?? false;
 
-    if (role === UserRole.admin) {
+    if (isAdmin) {
       return true;
     }
 

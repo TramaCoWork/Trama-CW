@@ -16,6 +16,10 @@ export async function cleanDatabase(app: INestApplication): Promise<void> {
   await prisma.$executeRaw`TRUNCATE TABLE "community_channel_posts" CASCADE`;
   await prisma.$executeRaw`TRUNCATE TABLE "community_channel_members" CASCADE`;
   await prisma.$executeRaw`TRUNCATE TABLE "community_channels" CASCADE`;
+  await prisma.$executeRaw`TRUNCATE TABLE "role_permissions" CASCADE`;
+  await prisma.$executeRaw`TRUNCATE TABLE "permissions" CASCADE`;
+  await prisma.$executeRaw`TRUNCATE TABLE "user_roles" CASCADE`;
+  await prisma.$executeRaw`TRUNCATE TABLE "roles" CASCADE`;
   await prisma.$executeRaw`TRUNCATE TABLE "job_applications" CASCADE`;
   await prisma.$executeRaw`TRUNCATE TABLE "contact_logs" CASCADE`;
   await prisma.$executeRaw`TRUNCATE TABLE "payments" CASCADE`;

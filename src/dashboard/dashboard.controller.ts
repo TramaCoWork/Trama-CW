@@ -12,7 +12,6 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
-import { UserRole } from '@prisma/client';
 import { ProfessionalDashboardDto } from './dto/professional-dashboard.dto';
 
 @ApiTags('Dashboard')
@@ -30,7 +29,7 @@ export class DashboardController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @Get('contacts')
   @ApiOperation({ summary: 'Obtener contactos recibidos del profesional' })
   @ApiResponse({ status: 200, description: 'Lista de contactos' })
@@ -47,7 +46,7 @@ export class DashboardController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @Get('professional')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtener totalizadores y plan del profesional autenticado' })

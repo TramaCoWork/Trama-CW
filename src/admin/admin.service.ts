@@ -14,7 +14,6 @@ import {
   SubscriptionPaymentStatus,
   FrequencyType,
   SubscriptionStatus,
-  UserRole,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -44,6 +43,24 @@ export class AdminService {
     private readonly mercadopago: MercadoPagoService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
+
+  private async resolveRolesByNames(roleNames: string[]) {
+    if (!roleNames.length) {
+      return [];
+    }
+
+    const normalizedNames = [...new Set(roleNames.map((role) => role.trim()))];
+    const roles = await this.prisma.role.findMany({
+      where: { name: { in: normalizedNames } },
+      select: { id: true, name: true, type: true },
+    });
+
+    if (roles.length !== normalizedNames.length) {
+      throw new BadRequestException('Some roles do not exist');
+    }
+
+    return roles;
+  }
 
   /**
    * Reenvía el email de verificación al usuario de un perfil profesional.
@@ -101,11 +118,24 @@ export class AdminService {
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
     const user = await this.prisma.$transaction(async (tx) => {
+      const professionalRole = await tx.role.findUnique({
+        where: { name: 'professional' },
+        select: { id: true },
+      });
+
+      if (!professionalRole) {
+        throw new NotFoundException(
+          'Missing seeded role: professional',
+        );
+      }
+
       return tx.user.create({
         data: {
           email: dto.email,
           passwordHash,
-          role: UserRole.professional,
+          userRoles: {
+            create: [{ roleId: professionalRole.id }],
+          },
           emailVerified: dto.emailVerified ?? true,
           profile: {
             create: {
@@ -137,6 +167,9 @@ export class AdminService {
           },
         },
         include: {
+          userRoles: {
+            include: { role: true },
+          },
           profile: {
             include: { professionCategories: true, rubro: true },
           },
@@ -160,19 +193,32 @@ export class AdminService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
+    const roleNames = dto.roles?.length ? dto.roles : ['client'];
+    const resolvedRoles = await this.resolveRolesByNames(roleNames);
 
     try {
       const user = await this.prisma.user.create({
         data: {
           email: dto.email,
           passwordHash,
-          role: dto.role ?? UserRole.client,
+          userRoles: {
+            create: resolvedRoles.map((role) => ({ roleId: role.id })),
+          },
           emailVerified: true,
         },
         select: {
           id: true,
           email: true,
-          role: true,
+          userRoles: {
+            select: {
+              role: {
+                select: {
+                  name: true,
+                  type: true,
+                },
+              },
+            },
+          },
           emailVerified: true,
           createdAt: true,
           updatedAt: true,
@@ -210,7 +256,16 @@ export class AdminService {
       select: {
         id: true,
         email: true,
-        role: true,
+        userRoles: {
+          select: {
+            role: {
+              select: {
+                name: true,
+                type: true,
+              },
+            },
+          },
+        },
         emailVerified: true,
         createdAt: true,
         updatedAt: true,
@@ -226,7 +281,16 @@ export class AdminService {
       select: {
         id: true,
         email: true,
-        role: true,
+        userRoles: {
+          select: {
+            role: {
+              select: {
+                name: true,
+                type: true,
+              },
+            },
+          },
+        },
         emailVerified: true,
         createdAt: true,
         updatedAt: true,
@@ -259,7 +323,16 @@ export class AdminService {
       select: {
         id: true,
         email: true,
-        role: true,
+        userRoles: {
+          select: {
+            role: {
+              select: {
+                name: true,
+                type: true,
+              },
+            },
+          },
+        },
         emailVerified: true,
         createdAt: true,
         updatedAt: true,
@@ -288,8 +361,12 @@ export class AdminService {
       data.email = dto.email;
     }
 
-    if (dto.role !== undefined) {
-      data.role = dto.role;
+    if (dto.roles !== undefined) {
+      const roles = await this.resolveRolesByNames(dto.roles);
+      data.userRoles = {
+        deleteMany: {},
+        create: roles.map((role) => ({ roleId: role.id })),
+      };
     }
 
     if (dto.password !== undefined) {
@@ -307,7 +384,16 @@ export class AdminService {
         select: {
           id: true,
           email: true,
-          role: true,
+          userRoles: {
+            select: {
+              role: {
+                select: {
+                  name: true,
+                  type: true,
+                },
+              },
+            },
+          },
           emailVerified: true,
           createdAt: true,
           updatedAt: true,
@@ -653,7 +739,16 @@ export class AdminService {
           id: true,
           email: true,
           deletedAt: true,
-          role: true,
+          userRoles: {
+            select: {
+              role: {
+                select: {
+                  name: true,
+                  type: true,
+                },
+              },
+            },
+          },
         },
         skip,
         take,
@@ -876,7 +971,16 @@ export class AdminService {
           select: {
             id: true,
             email: true,
-            role: true,
+            userRoles: {
+              select: {
+                role: {
+                  select: {
+                    name: true,
+                    type: true,
+                  },
+                },
+              },
+            },
             emailVerified: true,
             createdAt: true,
           },

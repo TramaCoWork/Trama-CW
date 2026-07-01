@@ -16,7 +16,6 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { UserRole } from '@prisma/client';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
@@ -31,7 +30,7 @@ import { CreateCommunityChannelCommentDto } from './dto/create-community-channel
 @ApiBearerAuth()
 @Controller('channels')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.professional, UserRole.admin)
+@Roles('professional', 'admin')
 export class CommunityChannelsController {
   constructor(
     private readonly communityChannelsService: CommunityChannelsService,

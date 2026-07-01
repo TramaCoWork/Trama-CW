@@ -36,7 +36,6 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
-import { UserRole } from '@prisma/client';
 
 class ProfessionalItem {
   @ApiProperty() id: string;
@@ -122,7 +121,7 @@ export class ProfessionalsController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Crear perfil profesional (legacy)' })
   @ApiResponse({ status: 201, description: 'Perfil creado exitosamente' })
@@ -136,7 +135,7 @@ export class ProfessionalsController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar perfil profesional (legacy)' })
   @ApiResponse({ status: 200, description: 'Perfil actualizado' })
@@ -154,7 +153,7 @@ export class ProfessionalsController {
 
   @Patch(':id/personal')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar datos personales (seccion 1)' })
   @ApiResponse({ status: 200, description: 'Datos personales actualizados' })
@@ -172,7 +171,7 @@ export class ProfessionalsController {
 
   @Patch(':id/professional')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar perfil profesional (seccion 2)' })
   @ApiResponse({ status: 200, description: 'Perfil profesional actualizado' })
@@ -193,7 +192,7 @@ export class ProfessionalsController {
 
   @Get(':id/education')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Listar formacion academica del perfil' })
   @ApiResponse({
@@ -206,7 +205,7 @@ export class ProfessionalsController {
 
   @Post(':id/education')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Agregar formacion academica (seccion 3)' })
   @ApiResponse({ status: 201, description: 'Formacion agregada' })
@@ -221,7 +220,7 @@ export class ProfessionalsController {
 
   @Patch(':id/education/:educationId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Editar formacion academica' })
   @ApiResponse({ status: 200, description: 'Formacion actualizada' })
@@ -242,7 +241,7 @@ export class ProfessionalsController {
 
   @Delete(':id/education/:educationId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Eliminar formacion academica' })
   @ApiResponse({ status: 200, description: 'Formacion eliminada' })
@@ -262,7 +261,7 @@ export class ProfessionalsController {
 
   @Get(':id/certifications')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Listar certificaciones del perfil' })
   @ApiResponse({
@@ -278,7 +277,7 @@ export class ProfessionalsController {
 
   @Post(':id/certifications')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Agregar certificacion (seccion 4)' })
   @ApiResponse({ status: 201, description: 'Certificacion agregada' })
@@ -293,7 +292,7 @@ export class ProfessionalsController {
 
   @Patch(':id/certifications/:certId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Editar certificacion' })
   @ApiResponse({ status: 200, description: 'Certificacion actualizada' })
@@ -314,7 +313,7 @@ export class ProfessionalsController {
 
   @Delete(':id/certifications/:certId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Eliminar certificacion' })
   @ApiResponse({ status: 200, description: 'Certificacion eliminada' })
@@ -334,7 +333,7 @@ export class ProfessionalsController {
 
   @Patch(':id/preferences')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Actualizar intereses y modalidad de uso (secciones 6+7)',
@@ -353,7 +352,7 @@ export class ProfessionalsController {
 
   @Patch(':id/motivation')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Actualizar motivacion / pregunta filtro (seccion 8)',
@@ -372,7 +371,7 @@ export class ProfessionalsController {
 
   @Post(':id/submit')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({
     summary:

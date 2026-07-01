@@ -1,20 +1,22 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { UserRole } from '@prisma/client';
+import { RoleType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { withoutDeleted } from '../../common/filters/soft-delete.filter';
 
 interface JwtPayload {
   sub: string;
   email: string;
-  role: UserRole;
+  roles?: { name: string; type: RoleType }[];
+  permissions?: string[];
 }
 
 interface JwtUser {
   userId: string;
   email: string;
-  role: UserRole;
+  roles: { name: string; type: RoleType }[];
+  permissions: string[];
 }
 
 @Injectable()
@@ -40,7 +42,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     return {
       userId: payload.sub,
       email: payload.email,
-      role: payload.role,
+      roles: payload.roles ?? [],
+      permissions: payload.permissions ?? [],
     };
   }
 }

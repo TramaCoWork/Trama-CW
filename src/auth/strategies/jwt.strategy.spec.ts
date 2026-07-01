@@ -19,7 +19,12 @@ describe('JwtStrategy soft-delete', () => {
     prisma.user.findUnique.mockResolvedValue(null);
 
     await expect(
-      strategy.validate({ sub: 'deleted-id', email: 'd@test.com', role: 'professional' as any }),
+      strategy.validate({
+        sub: 'deleted-id',
+        email: 'd@test.com',
+        roles: [{ name: 'professional', type: 'professional' }],
+        permissions: [],
+      }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 });

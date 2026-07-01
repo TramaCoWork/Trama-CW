@@ -19,7 +19,6 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -33,7 +32,7 @@ import { AdminCommunityService } from './admin-community.service';
 @ApiBearerAuth()
 @Controller('admin/community')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.admin)
+@Roles('admin')
 export class AdminCommunityController {
   constructor(private readonly adminCommunityService: AdminCommunityService) {}
 

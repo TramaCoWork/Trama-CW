@@ -1,6 +1,5 @@
 import { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UserRole } from '@prisma/client';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const request = require('supertest');
 import { createTestApp, registerProfessional } from './test-app.factory';
@@ -29,12 +28,14 @@ describe('Admin (e2e)', () => {
   });
 
   async function createAdminToken(): Promise<string> {
+    const adminRole = await prisma.role.findUniqueOrThrow({ where: { name: 'admin' } });
+
     const admin = await prisma.user.create({
       data: {
         email: `admin-${Date.now()}-${Math.floor(Math.random() * 10000)}@test.com`,
         passwordHash: 'test-password-hash',
-        role: UserRole.admin,
         emailVerified: true,
+        userRoles: { create: [{ roleId: adminRole.id }] },
       },
     });
     const jwtService = app.get(JwtService);
@@ -42,7 +43,8 @@ describe('Admin (e2e)', () => {
     return jwtService.sign({
       sub: admin.id,
       email: admin.email,
-      role: admin.role,
+      roles: [{ name: 'admin', type: 'admin' }],
+      permissions: [],
     });
   }
 
@@ -57,12 +59,14 @@ describe('Admin (e2e)', () => {
   }
 
   async function createProfessionalToken(): Promise<string> {
+    const professionalRole = await prisma.role.findUniqueOrThrow({ where: { name: 'professional' } });
+
     const professional = await prisma.user.create({
       data: {
         email: `professional-${Date.now()}-${Math.floor(Math.random() * 10000)}@test.com`,
         passwordHash: 'test-password-hash',
-        role: UserRole.professional,
         emailVerified: true,
+        userRoles: { create: [{ roleId: professionalRole.id }] },
       },
     });
     const jwtService = app.get(JwtService);
@@ -70,7 +74,8 @@ describe('Admin (e2e)', () => {
     return jwtService.sign({
       sub: professional.id,
       email: professional.email,
-      role: professional.role,
+      roles: [{ name: 'professional', type: 'professional' }],
+      permissions: [],
     });
   }
 

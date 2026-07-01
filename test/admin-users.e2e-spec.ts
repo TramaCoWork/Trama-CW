@@ -1,6 +1,5 @@
 import { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const request = require('supertest');
@@ -26,12 +25,14 @@ describe('Admin users CRUD (e2e)', () => {
   });
 
   async function createAdminToken(): Promise<{ token: string; userId: string }> {
+    const adminRole = await prisma.role.findUniqueOrThrow({ where: { name: 'admin' } });
+
     const admin = await prisma.user.create({
       data: {
         email: `admin-${Date.now()}-${Math.floor(Math.random() * 10000)}@test.com`,
         passwordHash: 'test-password-hash',
-        role: UserRole.admin,
         emailVerified: true,
+        userRoles: { create: [{ roleId: adminRole.id }] },
       },
     });
 
@@ -39,22 +40,29 @@ describe('Admin users CRUD (e2e)', () => {
     const token = jwtService.sign({
       sub: admin.id,
       email: admin.email,
-      role: admin.role,
+      roles: [{ name: 'admin', type: 'admin' }],
+      permissions: [],
     });
 
     return { token, userId: admin.id };
   }
 
-  async function createUser(overrides: Partial<{ email: string; role: UserRole; deletedAt: Date }> = {}) {
+  async function createUser(
+    overrides: Partial<{ email: string; roles: string[]; deletedAt: Date }> = {},
+  ) {
     const timestamp = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const roleNames = overrides.roles?.length ? overrides.roles : ['client'];
+    const roles = await prisma.role.findMany({ where: { name: { in: roleNames } } });
+
     return prisma.user.create({
       data: {
         email: overrides.email ?? `user-${timestamp}@test.com`,
         passwordHash: 'test-password-hash',
-        role: overrides.role ?? UserRole.client,
         emailVerified: true,
         deletedAt: overrides.deletedAt,
+        userRoles: { create: roles.map((role) => ({ roleId: role.id })) },
       },
+      include: { userRoles: { include: { role: true } } },
     });
   }
 
@@ -65,13 +73,23 @@ describe('Admin users CRUD (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/admin/users')
         .set('Authorization', `Bearer ${token}`)
-        .send({ email: 'created-user@test.com', password: 'password123', role: UserRole.professional })
+        .send({
+          email: 'created-user@test.com',
+          password: 'password123',
+          roles: ['professional'],
+        })
         .expect(201);
 
       expect(res.body.message).toBe('User created successfully');
       expect(res.body.user.emailVerified).toBe(true);
       expect(res.body.user.email).toBe('created-user@test.com');
-      expect(res.body.user.role).toBe(UserRole.professional);
+      expect(res.body.user.userRoles).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            role: expect.objectContaining({ name: 'professional' }),
+          }),
+        ]),
+      );
       expect(res.body.user).not.toHaveProperty('passwordHash');
     });
 
@@ -87,7 +105,11 @@ describe('Admin users CRUD (e2e)', () => {
       await request(app.getHttpServer())
         .post('/admin/users')
         .set('Authorization', `Bearer ${token}`)
-        .send({ email: 'invalid-role@test.com', password: 'password123', role: 'owner' })
+        .send({
+          email: 'invalid-role@test.com',
+          password: 'password123',
+          roles: ['owner'],
+        })
         .expect(400);
 
       await request(app.getHttpServer())
@@ -166,7 +188,10 @@ describe('Admin users CRUD (e2e)', () => {
   describe('PATCH /admin/users/:id', () => {
     it('updates email/password/role, re-hashes password, and supports empty-body no-op', async () => {
       const { token } = await createAdminToken();
-      const user = await createUser({ email: 'before-update@test.com', role: UserRole.client });
+      const user = await createUser({
+        email: 'before-update@test.com',
+        roles: ['client'],
+      });
 
       const updated = await request(app.getHttpServer())
         .patch(`/admin/users/${user.id}`)
@@ -174,12 +199,18 @@ describe('Admin users CRUD (e2e)', () => {
         .send({
           email: 'after-update@test.com',
           password: 'new-password-123',
-          role: UserRole.admin,
+          roles: ['admin'],
         })
         .expect(200);
 
       expect(updated.body.email).toBe('after-update@test.com');
-      expect(updated.body.role).toBe(UserRole.admin);
+      expect(updated.body.userRoles).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            role: expect.objectContaining({ name: 'admin' }),
+          }),
+        ]),
+      );
       expect(updated.body).not.toHaveProperty('passwordHash');
 
       const persisted = await prisma.user.findUnique({ where: { id: user.id } });
@@ -195,7 +226,13 @@ describe('Admin users CRUD (e2e)', () => {
 
       expect(noop.body.id).toBe(user.id);
       expect(noop.body.email).toBe('after-update@test.com');
-      expect(noop.body.role).toBe(UserRole.admin);
+      expect(noop.body.userRoles).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            role: expect.objectContaining({ name: 'admin' }),
+          }),
+        ]),
+      );
     });
 
     it('returns 409 on email conflict and 403 on self-mutation', async () => {

@@ -25,7 +25,6 @@ import { UpdatePostStatusDto } from './dto/update-post-status.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
 import { PaginationDto } from '../common/dto/pagination.dto';
-import { UserRole } from '@prisma/client';
 
 @ApiTags('Community')
 @ApiBearerAuth()
@@ -38,8 +37,11 @@ export class CommunityController {
   @ApiOperation({ summary: 'Listar canales activos con posts no eliminados' })
   @ApiResponse({ status: 200, description: 'Lista de slugs de canales activos' })
   async getChannels(@CurrentUser() user: CurrentUserType) {
+    const isAdmin = user.roles.some(
+      (role) => role.type === 'admin' || role.name === 'admin',
+    );
     const data =
-      user.role === UserRole.admin
+      isAdmin
         ? await this.communityService.getActiveChannels()
         : await this.communityService.getChannels(user.userId);
 
@@ -77,7 +79,7 @@ export class CommunityController {
   ) {
     return this.communityService.getChannelPosts(
       user.userId,
-      user.role,
+      user.roles,
       channel,
       pagination.page,
       pagination.limit,
@@ -94,7 +96,7 @@ export class CommunityController {
     @CurrentUser() user: CurrentUserType,
     @Param('id') id: string,
   ) {
-    return this.communityService.getPostById(id, user.userId, user.role);
+    return this.communityService.getPostById(id, user.userId, user.roles);
   }
 
   @Get('channels/:slug/posts')
@@ -111,7 +113,7 @@ export class CommunityController {
   ) {
     return this.communityService.getChannelPosts(
       user.userId,
-      user.role,
+      user.roles,
       slug,
       pagination.page,
       pagination.limit,
@@ -134,7 +136,7 @@ export class CommunityController {
     return this.communityService.getPostComments(
       id,
       user.userId,
-      user.role,
+      user.roles,
       pagination.page,
       pagination.limit,
     );
@@ -148,7 +150,7 @@ export class CommunityController {
     @CurrentUser() user: CurrentUserType,
     @Body() dto: CreatePostDto,
   ) {
-    return this.communityService.createPost(user.userId, user.role, dto);
+    return this.communityService.createPost(user.userId, user.roles, dto);
   }
 
   @Patch('posts/:id/status')
@@ -175,7 +177,7 @@ export class CommunityController {
     @CurrentUser() user: CurrentUserType,
     @Param('id') id: string,
   ) {
-    return this.communityService.deletePost(user.userId, user.role, id);
+    return this.communityService.deletePost(user.userId, user.roles, id);
   }
 
   @Post('comments')
@@ -187,7 +189,7 @@ export class CommunityController {
     @CurrentUser() user: CurrentUserType,
     @Body() dto: CreateCommentDto,
   ) {
-    return this.communityService.createComment(user.userId, user.role, dto);
+    return this.communityService.createComment(user.userId, user.roles, dto);
   }
 
   @Delete('comments/:id')
@@ -200,6 +202,6 @@ export class CommunityController {
     @CurrentUser() user: CurrentUserType,
     @Param('id') id: string,
   ) {
-    return this.communityService.deleteComment(user.userId, user.role, id);
+    return this.communityService.deleteComment(user.userId, user.roles, id);
   }
 }

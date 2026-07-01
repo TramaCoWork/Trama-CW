@@ -30,7 +30,6 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
-import { UserRole } from '@prisma/client';
 import { createPhotoFileValidationPipe, PHOTO_MAX_FILE_SIZE } from './photo-file-validation';
 
 @ApiTags('Uploads')
@@ -40,7 +39,7 @@ export class UploadsController {
 
   @Post('document')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Subir un documento (DNI, CV, titulo, certificado)' })
   @ApiConsumes('multipart/form-data')
@@ -82,7 +81,11 @@ export class UploadsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Res() res: Response,
   ) {
-    const { absolutePath, document } = await this.uploadsService.getDocumentFile(id, user.userId, user.role);
+    const { absolutePath, document } = await this.uploadsService.getDocumentFile(
+      id,
+      user.userId,
+      user.roles,
+    );
     res.setHeader('Content-Type', document.mimeType);
     res.setHeader('Content-Disposition', `inline; filename="${document.originalName}"`);
     res.sendFile(absolutePath);
@@ -90,7 +93,7 @@ export class UploadsController {
 
   @Delete('document/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Eliminar un documento' })
   @ApiResponse({ status: 200, description: 'Documento eliminado' })
@@ -105,7 +108,7 @@ export class UploadsController {
 
   @Post('photo')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Subir o reemplazar foto de perfil' })
   @ApiConsumes('multipart/form-data')
@@ -135,7 +138,7 @@ export class UploadsController {
 
   @Post('admin/professionals/:id/photo')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.admin)
+  @Roles('admin')
   @ApiBearerAuth()
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: PHOTO_MAX_FILE_SIZE } }))
   @ApiOperation({ summary: 'Subir foto de perfil de un profesional (admin)' })
@@ -173,7 +176,7 @@ export class UploadsController {
 
   @Delete('photo')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Eliminar foto de perfil' })
   @ApiResponse({ status: 200, description: 'Foto eliminada' })
@@ -186,7 +189,7 @@ export class UploadsController {
 
   @Post('identity')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.professional)
+  @Roles('professional')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Subir frente y dorso del documento de identidad' })
   @ApiConsumes('multipart/form-data')
@@ -220,7 +223,7 @@ export class UploadsController {
 
   @Get('identity/:profileId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.admin)
+  @Roles('admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtener info de documentos de identidad de un profesional (admin)' })
   @ApiResponse({ status: 200, description: 'Datos del documento de identidad (dni, URLs frente y dorso)' })
@@ -233,7 +236,7 @@ export class UploadsController {
 
   @Get('identity/:profileId/:side')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.admin)
+  @Roles('admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Descargar imagen de identidad frente o dorso (admin)' })
   @ApiResponse({ status: 200, description: 'Archivo de imagen del documento' })

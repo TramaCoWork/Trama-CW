@@ -43,13 +43,12 @@ export async function registerUser(
   app: INestApplication,
   email: string,
   password: string,
-  role: 'client' | 'professional' | 'admin' = 'client',
 ): Promise<{ access_token: string; userId: string }> {
   const prisma = app.get(PrismaService);
 
   const res = await request(app.getHttpServer())
     .post('/auth/register')
-    .send({ email, password, role })
+    .send({ email, password })
     .expect(201);
 
   await prisma.user.update({

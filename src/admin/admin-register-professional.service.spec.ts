@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ProfileStatus, UserRole } from '@prisma/client';
+import { ProfileStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from '../auth/auth.service';
 import { MailService } from '../mail/mail.service';
@@ -21,6 +21,9 @@ describe('AdminService.registerProfessional', () => {
     professionCategory: {
       findFirst: jest.fn(),
       findMany: jest.fn(),
+    },
+    role: {
+      findUnique: jest.fn(),
     },
     $transaction: jest.fn(),
   };
@@ -62,12 +65,15 @@ describe('AdminService.registerProfessional', () => {
     mockPrisma.user.findUnique.mockResolvedValue(null);
     mockPrisma.professionCategory.findFirst.mockResolvedValue({ id: 1, level: 1, isActive: true });
     mockPrisma.professionCategory.findMany.mockResolvedValue([{ id: 10 }, { id: 11 }]);
+    mockPrisma.role.findUnique.mockResolvedValue({ id: 'role-professional' });
     mockPrisma.$transaction.mockImplementation(async (cb: any) => cb(mockPrisma));
     mockPrisma.user.create.mockResolvedValue({
       id: 'uuid-1',
       email: 'juan@example.com',
-      role: UserRole.professional,
       emailVerified: true,
+      userRoles: [
+        { role: { name: 'professional', type: 'professional' } },
+      ],
       profile: {
         id: 'uuid-profile',
         name: 'Juan Pérez',
@@ -118,6 +124,7 @@ describe('AdminService.registerProfessional', () => {
     mockPrisma.user.findUnique.mockResolvedValue(null);
     mockPrisma.professionCategory.findFirst.mockResolvedValue({ id: 1, level: 1, isActive: true });
     mockPrisma.professionCategory.findMany.mockResolvedValue([{ id: 10 }, { id: 11 }]);
+    mockPrisma.role.findUnique.mockResolvedValue({ id: 'role-professional' });
     mockPrisma.$transaction.mockImplementation(async (cb: any) => cb(mockPrisma));
     mockPrisma.user.create.mockResolvedValue({
       id: 'uuid-2',
@@ -139,6 +146,7 @@ describe('AdminService.registerProfessional', () => {
 
   it('should accept minimal DTO with only required fields', async () => {
     mockPrisma.user.findUnique.mockResolvedValue(null);
+    mockPrisma.role.findUnique.mockResolvedValue({ id: 'role-professional' });
     mockPrisma.$transaction.mockImplementation(async (cb: any) => cb(mockPrisma));
     mockPrisma.user.create.mockResolvedValue({
       id: 'uuid-3',

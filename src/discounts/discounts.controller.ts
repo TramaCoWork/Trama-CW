@@ -18,13 +18,12 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
-import { UserRole } from '@prisma/client';
 
 @ApiTags('Admin - Discounts')
 @ApiBearerAuth()
 @Controller('admin/discounts')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.admin)
+@Roles('admin')
 export class DiscountsController {
   constructor(private readonly discountsService: DiscountsService) {}
 

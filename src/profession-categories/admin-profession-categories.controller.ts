@@ -12,7 +12,6 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { UserRole } from '@prisma/client';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -28,7 +27,7 @@ import { ProfessionCategoriesService } from './profession-categories.service';
 @ApiBearerAuth()
 @Controller('admin/profession-categories')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.admin)
+@Roles('admin')
 export class AdminProfessionCategoriesController {
   constructor(private readonly service: ProfessionCategoriesService) {}
 

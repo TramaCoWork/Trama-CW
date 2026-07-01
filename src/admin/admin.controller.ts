@@ -30,7 +30,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
-import { UserRole, ProfileStatus, SubscriptionPaymentStatus, FrequencyType, SubscriptionStatus } from '@prisma/client';
+import { ProfileStatus, SubscriptionPaymentStatus, FrequencyType, SubscriptionStatus } from '@prisma/client';
 import { UpdateSubscriptionAmountDto } from './dto/update-subscription-amount.dto';
 import { UpdateReferralCodeDto } from '../auth/dto/update-referral-code.dto';
 
@@ -38,7 +38,7 @@ import { UpdateReferralCodeDto } from '../auth/dto/update-referral-code.dto';
 @ApiBearerAuth()
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.admin)
+@Roles('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
@@ -203,7 +203,7 @@ export class AdminController {
 
   @Patch('professionals/:id/password')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.admin)
+  @Roles('admin')
   @ApiOperation({ summary: 'Actualizar contraseña de un profesional (admin)' })
   @ApiParam({ name: 'id', description: 'ID del perfil profesional' })
   @ApiResponse({ status: 200, description: 'Contraseña actualizada' })

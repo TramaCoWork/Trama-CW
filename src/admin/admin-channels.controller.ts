@@ -19,7 +19,6 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -34,7 +33,7 @@ import { AdminCreateCommunityChannelPostDto } from './dto/admin-create-community
 @ApiBearerAuth()
 @Controller('admin/channels')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.admin)
+@Roles('admin')
 export class AdminChannelsController {
   constructor(private readonly adminChannelsService: AdminChannelsService) {}
 

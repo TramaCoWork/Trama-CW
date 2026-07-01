@@ -1,5 +1,4 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommunityService } from '../community/community.service';
 import { sanitizeMarkdown } from '../community/utils/sanitize-markdown';
@@ -107,7 +106,7 @@ export class AdminCommunityService {
     }
 
     if (!existingPost.deletedAt) {
-      await this.communityService.deletePost(userId, UserRole.admin, postId);
+      await this.communityService.deletePost(userId, true, postId);
     }
 
     return { message: 'Post eliminado logicamente' };
@@ -124,7 +123,7 @@ export class AdminCommunityService {
     }
 
     if (!existingComment.deletedAt) {
-      await this.communityService.deleteComment(userId, UserRole.admin, commentId);
+      await this.communityService.deleteComment(userId, true, commentId);
     }
 
     return { message: 'Comentario eliminado logicamente' };

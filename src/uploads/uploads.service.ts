@@ -5,7 +5,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { UserRole, DocumentType } from '@prisma/client';
+import { DocumentType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { STORAGE_SERVICE } from './storage.interface';
 import type { StorageService } from './storage.interface';
@@ -85,7 +85,11 @@ export class UploadsService {
     return document;
   }
 
-  async getDocumentFile(id: string, userId: string, userRole: UserRole) {
+  async getDocumentFile(
+    id: string,
+    userId: string,
+    roles: { name: string; type: string }[],
+  ) {
     const document = await this.prisma.document.findUnique({
       where: { id },
       include: { professional: true },
@@ -95,7 +99,11 @@ export class UploadsService {
       throw new NotFoundException('Documento no encontrado');
     }
 
-    if (userRole !== UserRole.admin && document.professional.userId !== userId) {
+    const isAdmin = roles.some(
+      (role) => role.type === 'admin' || role.name === 'admin',
+    );
+
+    if (!isAdmin && document.professional.userId !== userId) {
       throw new ForbiddenException('No tiene permiso para ver este documento');
     }
 

@@ -14,7 +14,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ProfessionalRegisterDto } from './dto/professional-register.dto';
 import { UpdateReferralCodeDto } from './dto/update-referral-code.dto';
-import { User, UserRole, ProfileStatus } from '@prisma/client';
+import { ProfileStatus, RoleType } from '@prisma/client';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
@@ -27,7 +27,8 @@ export interface TokenResponse {
 interface JwtUserPayload {
   sub: string;
   email: string;
-  role: UserRole;
+  roles: { name: string; type: RoleType }[];
+  permissions: string[];
 }
 
 interface VerificationPayload {
@@ -66,19 +67,21 @@ export class AuthService {
       data: {
         email: dto.email,
         passwordHash,
-        role: dto.role ?? UserRole.client,
+        userRoles: {
+          create: [{ role: { connect: { name: 'client' } } }],
+        },
       },
     });
 
     // Fire-and-forget verification email
     this.sendVerificationEmail(user.id, user.email);
 
-    return this.generateToken(user);
+    return this.generateToken(user.id, user.email);
   }
 
   async login(dto: LoginDto): Promise<TokenResponse> {
     const user = await this.prisma.user.findUnique({
-      where: withoutDeleted({ email: dto.email, role: UserRole.professional }),
+      where: withoutDeleted({ email: dto.email }),
     });
 
     if (!user) {
@@ -118,12 +121,12 @@ export class AuthService {
       });
     }
 
-    return this.generateToken(user);
+    return this.generateToken(user.id, user.email);
   }
 
   async adminLogin(dto: LoginDto): Promise<TokenResponse> {
     const user = await this.prisma.user.findUnique({
-      where: withoutDeleted({ email: dto.email, role: UserRole.admin }),
+      where: withoutDeleted({ email: dto.email }),
     });
 
     if (!user) {
@@ -136,7 +139,21 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return this.generateToken(user);
+    const hasAdminRole = await this.prisma.userRole.findFirst({
+      where: {
+        userId: user.id,
+        role: {
+          OR: [{ type: RoleType.admin }, { name: 'admin' }],
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!hasAdminRole) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    return this.generateToken(user.id, user.email);
   }
 
   async professionalRegister(
@@ -173,7 +190,9 @@ export class AuthService {
       data: {
         email: dto.email,
         passwordHash,
-        role: UserRole.professional,
+        userRoles: {
+          create: [{ role: { connect: { name: 'professional' } } }],
+        },
         ...(referralByUserId && { referralByUserId }),
         profile: {
           create: {
@@ -196,7 +215,7 @@ export class AuthService {
     // Fire-and-forget verification email
     this.sendVerificationEmail(user.id, user.email, dto.name);
 
-    return this.generateToken(user);
+    return this.generateToken(user.id, user.email);
   }
 
   async verifyEmail(token: string): Promise<{ message: string }> {
@@ -402,16 +421,40 @@ export class AuthService {
     this.mailService.sendEmailVerification(email, verificationUrl, name);
   }
 
-  private generateToken(user: User): TokenResponse {
-    const payload: JwtUserPayload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    };
+  private async generateToken(userId: string, email: string): Promise<TokenResponse> {
+    const userRoles = await this.prisma.userRole.findMany({
+      where: { userId },
+      include: {
+        role: {
+          include: {
+            permissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const roles = userRoles.map((userRole) => ({
+      name: userRole.role.name,
+      type: userRole.role.type,
+    }));
+
+    const permissions = [
+      ...new Set(
+        userRoles.flatMap((userRole) =>
+          userRole.role.permissions.map((rolePermission) => rolePermission.permission.key),
+        ),
+      ),
+    ];
+
+    const payload: JwtUserPayload = { sub: userId, email, roles, permissions };
 
     return {
       access_token: this.jwtService.sign(payload),
-      userId: user.id,
+      userId,
     };
   }
 

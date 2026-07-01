@@ -8,10 +8,10 @@ datasource db {
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
-enum UserRole {
-  client
-  professional
+enum RoleType {
   admin
+  professional
+  other
 }
 
 enum ProfileStatus {
@@ -130,7 +130,6 @@ model User {
   id               String    @id @default(uuid())
   email            String    @unique
   passwordHash     String    @map("password_hash")
-  role             UserRole  @default(client)
   emailVerified    Boolean   @default(false) @map("email_verified")
   resetToken       String?   @map("reset_token")
   resetTokenExpiry DateTime? @map("reset_token_expiry")
@@ -154,9 +153,64 @@ model User {
   receivedMessages  PrivateMessage[]     @relation("MessageReceiver")
   referredBy        User?   @relation("UserReferrals", fields: [referralByUserId], references: [id])
   referrals         User[]  @relation("UserReferrals")
+  userRoles         UserRole[]
 
   @@index([deletedAt])
   @@map("users")
+}
+
+model Role {
+  id          String           @id @default(uuid())
+  name        String           @unique
+  type        RoleType
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  userRoles    UserRole[]
+  permissions  RolePermission[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  roleId    String   @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model Permission {
+  id        String           @id @default(uuid())
+  key       String           @unique
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String   @id @default(uuid())
+  roleId       String   @map("role_id")
+  permissionId String   @map("permission_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
 }
 
 model ProfessionalProfile {

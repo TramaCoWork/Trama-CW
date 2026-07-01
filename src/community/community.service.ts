@@ -6,11 +6,13 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
-import { UserRole, PostStatus } from '@prisma/client';
+import { PostStatus } from '@prisma/client';
 import { sanitizeMarkdown } from './utils/sanitize-markdown';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 const GENERAL_CHANNEL = 'general';
+
+type UserRolePayload = { name: string; type: string };
 
 @Injectable()
 export class CommunityService {
@@ -75,8 +77,22 @@ export class CommunityService {
     return profile?.rubro?.slug ?? null;
   }
 
-  async checkChannelAccess(userId: string, role: UserRole, channelSlug: string): Promise<void> {
-    if (role === UserRole.admin || channelSlug === GENERAL_CHANNEL) {
+  private isAdmin(roles: UserRolePayload[]): boolean {
+    return roles.some((role) => role.type === 'admin' || role.name === 'admin');
+  }
+
+  private isProfessional(roles: UserRolePayload[]): boolean {
+    return roles.some(
+      (role) => role.type === 'professional' || role.name === 'professional',
+    );
+  }
+
+  async checkChannelAccess(
+    userId: string,
+    roles: UserRolePayload[],
+    channelSlug: string,
+  ): Promise<void> {
+    if (this.isAdmin(roles) || channelSlug === GENERAL_CHANNEL) {
       return;
     }
 
@@ -101,11 +117,17 @@ export class CommunityService {
     return channels.map((channel) => channel.channelSlug);
   }
 
-  async getChannelPosts(userId: string, role: UserRole, channelSlug: string, page: number, limit: number) {
-    await this.checkChannelAccess(userId, role, channelSlug);
+  async getChannelPosts(
+    userId: string,
+    roles: UserRolePayload[],
+    channelSlug: string,
+    page: number,
+    limit: number,
+  ) {
+    await this.checkChannelAccess(userId, roles, channelSlug);
 
     const where =
-      role === UserRole.professional && channelSlug !== GENERAL_CHANNEL
+      this.isProfessional(roles) && channelSlug !== GENERAL_CHANNEL
         ? {
             deletedAt: null,
             status: PostStatus.published,
@@ -139,7 +161,7 @@ export class CommunityService {
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
-  async getPostById(id: string, userId: string, role: UserRole) {
+  async getPostById(id: string, userId: string, roles: UserRolePayload[]) {
     const post = await this.prisma.communityPost.findUnique({
       where: {
         id,
@@ -155,7 +177,7 @@ export class CommunityService {
       throw new NotFoundException('Post no encontrado');
     }
 
-    await this.checkChannelAccess(userId, role, post.channelSlug);
+    await this.checkChannelAccess(userId, roles, post.channelSlug);
 
     const { _count, ...postData } = post;
 
@@ -165,8 +187,14 @@ export class CommunityService {
     };
   }
 
-  async getPosts(userId: string, role: UserRole, channelSlug: string, page: number, limit: number) {
-    return this.getChannelPosts(userId, role, channelSlug, page, limit);
+  async getPosts(
+    userId: string,
+    roles: UserRolePayload[],
+    channelSlug: string,
+    page: number,
+    limit: number,
+  ) {
+    return this.getChannelPosts(userId, roles, channelSlug, page, limit);
   }
 
   /**
@@ -196,10 +224,14 @@ export class CommunityService {
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
-  async createPost(userId: string, role: UserRole, dto: CreatePostDto) {
+  async createPost(
+    userId: string,
+    roles: UserRolePayload[],
+    dto: CreatePostDto,
+  ) {
     const channelSlug = dto.channelSlug ?? GENERAL_CHANNEL;
 
-    await this.checkChannelAccess(userId, role, channelSlug);
+    await this.checkChannelAccess(userId, roles, channelSlug);
 
     return this.prisma.communityPost.create({
       data: {
@@ -213,7 +245,11 @@ export class CommunityService {
     });
   }
 
-  async createComment(userId: string, role: UserRole, dto: CreateCommentDto) {
+  async createComment(
+    userId: string,
+    roles: UserRolePayload[],
+    dto: CreateCommentDto,
+  ) {
     const post = await this.prisma.communityPost.findUnique({
       where: { id: dto.postId },
     });
@@ -222,7 +258,7 @@ export class CommunityService {
       throw new NotFoundException('Post no encontrado');
     }
 
-    await this.checkChannelAccess(userId, role, post.channelSlug);
+    await this.checkChannelAccess(userId, roles, post.channelSlug);
 
     return this.prisma.communityComment.create({
       data: {
@@ -239,7 +275,7 @@ export class CommunityService {
   /**
    * Soft delete a post. Only the post owner (userId) or an admin can do this.
    */
-  async deletePost(userId: string, role: UserRole, postId: string) {
+  async deletePost(userId: string, rolesOrAdmin: UserRolePayload[] | boolean, postId: string) {
     const post = await this.prisma.communityPost.findUnique({
       where: { id: postId },
     });
@@ -248,7 +284,9 @@ export class CommunityService {
       throw new NotFoundException('Post no encontrado');
     }
 
-    if (post.userId !== userId && role !== UserRole.admin) {
+    const isAdmin = typeof rolesOrAdmin === 'boolean' ? rolesOrAdmin : this.isAdmin(rolesOrAdmin);
+
+    if (post.userId !== userId && !isAdmin) {
       throw new ForbiddenException('Solo el creador del post o un admin pueden eliminarlo');
     }
 
@@ -261,7 +299,11 @@ export class CommunityService {
   /**
    * Soft delete a comment. Only the comment owner (userId) or an admin can do this.
    */
-  async deleteComment(userId: string, role: UserRole, commentId: string) {
+  async deleteComment(
+    userId: string,
+    rolesOrAdmin: UserRolePayload[] | boolean,
+    commentId: string,
+  ) {
     const comment = await this.prisma.communityComment.findUnique({
       where: { id: commentId },
     });
@@ -270,7 +312,9 @@ export class CommunityService {
       throw new NotFoundException('Comentario no encontrado');
     }
 
-    if (comment.userId !== userId && role !== UserRole.admin) {
+    const isAdmin = typeof rolesOrAdmin === 'boolean' ? rolesOrAdmin : this.isAdmin(rolesOrAdmin);
+
+    if (comment.userId !== userId && !isAdmin) {
       throw new ForbiddenException('Solo el creador del comentario o un admin pueden eliminarlo');
     }
 
@@ -284,7 +328,13 @@ export class CommunityService {
    * Get paginated comments for a post. Excludes soft-deleted comments.
    * Validates channel access.
    */
-  async getPostComments(postId: string, userId: string, role: UserRole, page: number, limit: number) {
+  async getPostComments(
+    postId: string,
+    userId: string,
+    roles: UserRolePayload[],
+    page: number,
+    limit: number,
+  ) {
     const post = await this.prisma.communityPost.findFirst({
       where: {
         id: postId,
@@ -297,7 +347,7 @@ export class CommunityService {
       throw new NotFoundException('Post no encontrado');
     }
 
-    await this.checkChannelAccess(userId, role, post.channelSlug);
+    await this.checkChannelAccess(userId, roles, post.channelSlug);
 
     const where = { postId, deletedAt: null };
     const [data, total] = await Promise.all([

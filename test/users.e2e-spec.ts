@@ -1,6 +1,5 @@
 import { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UserRole } from '@prisma/client';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const request = require('supertest');
 import { createTestApp, registerProfessional } from './test-app.factory';
@@ -25,12 +24,14 @@ describe('Users soft-delete (e2e)', () => {
   });
 
   async function createAdminToken(): Promise<string> {
+    const adminRole = await prisma.role.findUniqueOrThrow({ where: { name: 'admin' } });
+
     const admin = await prisma.user.create({
       data: {
         email: `admin-${Date.now()}@test.com`,
         passwordHash: 'test-password-hash',
-        role: UserRole.admin,
         emailVerified: true,
+        userRoles: { create: [{ roleId: adminRole.id }] },
       },
     });
     const jwtService = app.get(JwtService);
@@ -38,7 +39,8 @@ describe('Users soft-delete (e2e)', () => {
     return jwtService.sign({
       sub: admin.id,
       email: admin.email,
-      role: admin.role,
+      roles: [{ name: 'admin', type: 'admin' }],
+      permissions: [],
     });
   }
 
