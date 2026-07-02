@@ -28,13 +28,25 @@ describe('AdminService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new AdminService(prisma, mailService, configService, authService, mercadopago, storage);
+    service = new AdminService(
+      prisma,
+      mailService,
+      configService,
+      authService,
+      mercadopago,
+      storage,
+    );
   });
 
   describe('soft-delete management', () => {
     it('lists only soft-deleted users', async () => {
       prisma.user.findMany.mockResolvedValue([
-        { id: 'u1', email: 'u1@test.com', deletedAt: new Date(), role: 'professional' },
+        {
+          id: 'u1',
+          email: 'u1@test.com',
+          deletedAt: new Date(),
+          role: 'professional',
+        },
       ]);
       prisma.user.count.mockResolvedValue(1);
 
@@ -45,10 +57,15 @@ describe('AdminService', () => {
     });
 
     it('restores soft-deleted user and profile atomically', async () => {
-      prisma.user.findFirst.mockResolvedValue({ id: 'u1', deletedAt: new Date() });
+      prisma.user.findFirst.mockResolvedValue({
+        id: 'u1',
+        deletedAt: new Date(),
+      });
       prisma.user.update.mockResolvedValue({ id: 'u1', deletedAt: null });
       prisma.professionalProfile.updateMany.mockResolvedValue({ count: 1 });
-      prisma.$transaction.mockImplementation(async (ops: Promise<unknown>[]) => Promise.all(ops));
+      prisma.$transaction.mockImplementation(async (ops: Promise<unknown>[]) =>
+        Promise.all(ops),
+      );
 
       const restored = await service.restoreSoftDeletedUser('u1');
 
@@ -58,17 +75,27 @@ describe('AdminService', () => {
     it('fails restoring non-deleted user', async () => {
       prisma.user.findFirst.mockResolvedValue(null);
 
-      await expect(service.restoreSoftDeletedUser('missing')).rejects.toBeInstanceOf(NotFoundException);
+      await expect(
+        service.restoreSoftDeletedUser('missing'),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 
   describe('changeProfessionalPassword', () => {
     it('hashes password with 10 rounds and updates user passwordHash', async () => {
-      const hashSpy = jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashed-password' as never);
-      prisma.professionalProfile.findUnique.mockResolvedValue({ id: 'profile-1', userId: 'user-1' });
+      const hashSpy = jest
+        .spyOn(bcrypt, 'hash')
+        .mockResolvedValue('hashed-password' as never);
+      prisma.professionalProfile.findUnique.mockResolvedValue({
+        id: 'profile-1',
+        userId: 'user-1',
+      });
       prisma.user.update.mockResolvedValue({ id: 'user-1' });
 
-      const result = await service.changeProfessionalPassword('profile-1', 'newPassword123');
+      const result = await service.changeProfessionalPassword(
+        'profile-1',
+        'newPassword123',
+      );
 
       expect(hashSpy).toHaveBeenCalledWith('newPassword123', 10);
       expect(prisma.user.update).toHaveBeenCalledWith(
@@ -82,18 +109,25 @@ describe('AdminService', () => {
     it('throws NotFoundException when professional profile does not exist', async () => {
       prisma.professionalProfile.findUnique.mockResolvedValue(null);
 
-      await expect(service.changeProfessionalPassword('missing-profile', 'newPassword123')).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(
+        service.changeProfessionalPassword('missing-profile', 'newPassword123'),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('propagates persistence failure without swallowing error', async () => {
-      const hashSpy = jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashed-password' as never);
+      const hashSpy = jest
+        .spyOn(bcrypt, 'hash')
+        .mockResolvedValue('hashed-password' as never);
       const persistenceError = new Error('db write failed');
-      prisma.professionalProfile.findUnique.mockResolvedValue({ id: 'profile-1', userId: 'user-1' });
+      prisma.professionalProfile.findUnique.mockResolvedValue({
+        id: 'profile-1',
+        userId: 'user-1',
+      });
       prisma.user.update.mockRejectedValue(persistenceError);
 
-      await expect(service.changeProfessionalPassword('profile-1', 'newPassword123')).rejects.toThrow('db write failed');
+      await expect(
+        service.changeProfessionalPassword('profile-1', 'newPassword123'),
+      ).rejects.toThrow('db write failed');
       expect(hashSpy).toHaveBeenCalledWith('newPassword123', 10);
     });
   });

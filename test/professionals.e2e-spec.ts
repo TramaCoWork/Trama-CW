@@ -1,7 +1,11 @@
 import { INestApplication } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const request = require('supertest');
-import { createTestApp, registerProfessional, loginUser } from './test-app.factory';
+import {
+  createTestApp,
+  registerProfessional,
+  loginUser,
+} from './test-app.factory';
 import { cleanDatabase } from './clean-database';
 import { PrismaService } from '../src/prisma/prisma.service';
 
@@ -62,8 +66,14 @@ describe('Professionals (e2e)', () => {
 
   describe('PATCH /professionals/:id/personal', () => {
     it('should update personal data', async () => {
-      const { access_token, userId } = await registerProfessional(app, 'pro@test.com', 'password123');
-      const profile = await prisma.professionalProfile.findFirst({ where: { userId } });
+      const { access_token, userId } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
+      const profile = await prisma.professionalProfile.findFirst({
+        where: { userId },
+      });
 
       const res = await request(app.getHttpServer())
         .patch(`/professionals/${profile!.id}/personal`)
@@ -78,8 +88,14 @@ describe('Professionals (e2e)', () => {
 
   describe('PATCH /professionals/:id/professional', () => {
     it('should update professional info', async () => {
-      const { access_token, userId } = await registerProfessional(app, 'pro@test.com', 'password123');
-      const profile = await prisma.professionalProfile.findFirst({ where: { userId } });
+      const { access_token, userId } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
+      const profile = await prisma.professionalProfile.findFirst({
+        where: { userId },
+      });
 
       const res = await request(app.getHttpServer())
         .patch(`/professionals/${profile!.id}/professional`)
@@ -93,13 +109,24 @@ describe('Professionals (e2e)', () => {
 
   describe('Education CRUD', () => {
     it('should add and list education', async () => {
-      const { access_token, userId } = await registerProfessional(app, 'pro@test.com', 'password123');
-      const profile = await prisma.professionalProfile.findFirst({ where: { userId } });
+      const { access_token, userId } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
+      const profile = await prisma.professionalProfile.findFirst({
+        where: { userId },
+      });
 
       const createRes = await request(app.getHttpServer())
         .post(`/professionals/${profile!.id}/education`)
         .set('Authorization', `Bearer ${access_token}`)
-        .send({ level: 'universitario', title: 'Lic. Diseno', institution: 'UBA', year: 2020 })
+        .send({
+          level: 'universitario',
+          title: 'Lic. Diseno',
+          institution: 'UBA',
+          year: 2020,
+        })
         .expect(201);
 
       expect(createRes.body).toHaveProperty('id');
@@ -113,13 +140,23 @@ describe('Professionals (e2e)', () => {
     });
 
     it('should delete education', async () => {
-      const { access_token, userId } = await registerProfessional(app, 'pro@test.com', 'password123');
-      const profile = await prisma.professionalProfile.findFirst({ where: { userId } });
+      const { access_token, userId } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
+      const profile = await prisma.professionalProfile.findFirst({
+        where: { userId },
+      });
 
       const createRes = await request(app.getHttpServer())
         .post(`/professionals/${profile!.id}/education`)
         .set('Authorization', `Bearer ${access_token}`)
-        .send({ level: 'universitario', title: 'Lic. Diseno', institution: 'UBA' })
+        .send({
+          level: 'universitario',
+          title: 'Lic. Diseno',
+          institution: 'UBA',
+        })
         .expect(201);
 
       await request(app.getHttpServer())
@@ -131,8 +168,14 @@ describe('Professionals (e2e)', () => {
 
   describe('Certifications CRUD', () => {
     it('should add certification', async () => {
-      const { access_token, userId } = await registerProfessional(app, 'pro@test.com', 'password123');
-      const profile = await prisma.professionalProfile.findFirst({ where: { userId } });
+      const { access_token, userId } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
+      const profile = await prisma.professionalProfile.findFirst({
+        where: { userId },
+      });
 
       const res = await request(app.getHttpServer())
         .post(`/professionals/${profile!.id}/certifications`)
@@ -146,8 +189,14 @@ describe('Professionals (e2e)', () => {
 
   describe('PATCH /professionals/:id/preferences', () => {
     it('should update preferences', async () => {
-      const { access_token, userId } = await registerProfessional(app, 'pro@test.com', 'password123');
-      const profile = await prisma.professionalProfile.findFirst({ where: { userId } });
+      const { access_token, userId } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
+      const profile = await prisma.professionalProfile.findFirst({
+        where: { userId },
+      });
 
       const res = await request(app.getHttpServer())
         .patch(`/professionals/${profile!.id}/preferences`)
@@ -161,8 +210,14 @@ describe('Professionals (e2e)', () => {
 
   describe('PATCH /professionals/:id/motivation', () => {
     it('should update motivation', async () => {
-      const { access_token, userId } = await registerProfessional(app, 'pro@test.com', 'password123');
-      const profile = await prisma.professionalProfile.findFirst({ where: { userId } });
+      const { access_token, userId } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
+      const profile = await prisma.professionalProfile.findFirst({
+        where: { userId },
+      });
 
       const res = await request(app.getHttpServer())
         .patch(`/professionals/${profile!.id}/motivation`)
@@ -176,8 +231,14 @@ describe('Professionals (e2e)', () => {
 
   describe('POST /professionals/:id/submit', () => {
     it('should reject if missing required fields', async () => {
-      const { access_token, userId } = await registerProfessional(app, 'pro@test.com', 'password123');
-      const profile = await prisma.professionalProfile.findFirst({ where: { userId } });
+      const { access_token, userId } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
+      const profile = await prisma.professionalProfile.findFirst({
+        where: { userId },
+      });
 
       await request(app.getHttpServer())
         .post(`/professionals/${profile!.id}/submit`)

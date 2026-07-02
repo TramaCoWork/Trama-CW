@@ -9,7 +9,12 @@ import {
   ValidationPipe,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { SubscriptionsService } from './subscriptions.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
@@ -36,25 +41,33 @@ export class SubscriptionsController {
   }
 
   @Get('bricks/config')
-  @ApiOperation({ summary: 'Public key de MercadoPago para inicializar Checkout Bricks' })
+  @ApiOperation({
+    summary: 'Public key de MercadoPago para inicializar Checkout Bricks',
+  })
   getBricksConfig() {
     return this.service.getBricksConfig();
   }
 
   @Post('bricks/pay')
-  @ApiOperation({ summary: 'Procesar pago con Checkout Bricks (token del front)' })
+  @ApiOperation({
+    summary: 'Procesar pago con Checkout Bricks (token del front)',
+  })
   payWithBricks(
     @CurrentUser() user: CurrentUserType,
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: BricksPayDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: BricksPayDto,
   ) {
     return this.service.payWithBricks(user.userId, dto);
   }
 
   @Post('bricks/subscribe')
-  @ApiOperation({ summary: 'Suscripción con cobro automático (Bricks on-site + PreApproval)' })
+  @ApiOperation({
+    summary: 'Suscripción con cobro automático (Bricks on-site + PreApproval)',
+  })
   subscribeWithBricks(
     @CurrentUser() user: CurrentUserType,
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: BricksSubscribeDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: BricksSubscribeDto,
   ) {
     return this.service.subscribeWithBricks(user.userId, dto);
   }
@@ -67,14 +80,28 @@ export class SubscriptionsController {
 
   @Get('me/payments')
   @ApiOperation({ summary: 'Mi historial de pagos de suscripción (paginado)' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Página actual (default: 1)' })
-  @ApiQuery({ name: 'sizePage', required: false, type: Number, description: 'Resultados por página (default: 10)' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Página actual (default: 1)',
+  })
+  @ApiQuery({
+    name: 'sizePage',
+    required: false,
+    type: Number,
+    description: 'Resultados por página (default: 10)',
+  })
   findMyPayments(
     @CurrentUser() user: CurrentUserType,
     @Query('page') page = 1,
     @Query('sizePage') sizePage = 10,
   ) {
-    return this.service.findMyPayments(user.userId, Number(page), Number(sizePage));
+    return this.service.findMyPayments(
+      user.userId,
+      Number(page),
+      Number(sizePage),
+    );
   }
 
   @Get('init-link')
@@ -95,7 +122,8 @@ export class SubscriptionsController {
   @ApiOperation({ summary: 'Cancelar mi suscripción' })
   cancel(
     @CurrentUser() user: CurrentUserType,
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: CancelSubscriptionDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: CancelSubscriptionDto,
   ) {
     return this.service.cancel(user.userId, dto.reason);
   }

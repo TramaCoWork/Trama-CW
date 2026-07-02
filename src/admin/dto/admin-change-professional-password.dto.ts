@@ -12,7 +12,9 @@ import {
 class MatchesFieldConstraint implements ValidatorConstraintInterface {
   validate(value: string, args: ValidationArguments): boolean {
     const [relatedPropertyName] = args.constraints;
-    const relatedValue = (args.object as Record<string, unknown>)[relatedPropertyName];
+    const relatedValue = (args.object as Record<string, unknown>)[
+      relatedPropertyName
+    ];
     return typeof value === 'string' && value === relatedValue;
   }
 

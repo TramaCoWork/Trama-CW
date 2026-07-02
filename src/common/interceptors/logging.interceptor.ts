@@ -30,7 +30,11 @@ function sanitizeBody(body: any): any {
   for (const [key, value] of Object.entries(body)) {
     if (SENSITIVE_FIELDS.has(key.toLowerCase())) {
       sanitized[key] = '[REDACTED]';
-    } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    } else if (
+      typeof value === 'object' &&
+      value !== null &&
+      !Array.isArray(value)
+    ) {
       sanitized[key] = sanitizeBody(value);
     } else {
       sanitized[key] = value;
@@ -55,21 +59,26 @@ export class LoggingInterceptor implements NestInterceptor {
     const handler = context.getHandler().name;
     const now = Date.now();
 
-    const sanitizedBody = body && Object.keys(body).length > 0 ? sanitizeBody(body) : undefined;
-    const queryParams = query && Object.keys(query).length > 0 ? query : undefined;
+    const sanitizedBody =
+      body && Object.keys(body).length > 0 ? sanitizeBody(body) : undefined;
+    const queryParams =
+      query && Object.keys(query).length > 0 ? query : undefined;
 
-    this.logger.info(`→ ${method} ${url} | ${controller}.${handler} | user: ${userId}`, {
-      context: 'HTTP',
-      method,
-      url,
-      controller,
-      handler,
-      userId,
-      ip,
-      userAgent,
-      ...(queryParams && { query: queryParams }),
-      ...(sanitizedBody && { body: sanitizedBody }),
-    });
+    this.logger.info(
+      `→ ${method} ${url} | ${controller}.${handler} | user: ${userId}`,
+      {
+        context: 'HTTP',
+        method,
+        url,
+        controller,
+        handler,
+        userId,
+        ip,
+        userAgent,
+        ...(queryParams && { query: queryParams }),
+        ...(sanitizedBody && { body: sanitizedBody }),
+      },
+    );
 
     return next.handle().pipe(
       tap(() => {
@@ -92,18 +101,21 @@ export class LoggingInterceptor implements NestInterceptor {
         const duration = Date.now() - now;
         const statusCode = error.status || error.getStatus?.() || 500;
 
-        this.logger.error(`← ${method} ${url} | ${statusCode} | ${duration}ms | ${error.message}`, {
-          context: 'HTTP',
-          method,
-          url,
-          controller,
-          handler,
-          userId,
-          statusCode,
-          duration,
-          errorMessage: error.message,
-          errorStack: error.stack,
-        });
+        this.logger.error(
+          `← ${method} ${url} | ${statusCode} | ${duration}ms | ${error.message}`,
+          {
+            context: 'HTTP',
+            method,
+            url,
+            controller,
+            handler,
+            userId,
+            statusCode,
+            duration,
+            errorMessage: error.message,
+            errorStack: error.stack,
+          },
+        );
 
         return throwError(() => error);
       }),

@@ -7,11 +7,17 @@ export class CreateEducationDto {
   @IsEnum(EducationLevel)
   level: EducationLevel;
 
-  @ApiProperty({ example: 'Licenciatura en Diseño Grafico', description: 'Titulo obtenido' })
+  @ApiProperty({
+    example: 'Licenciatura en Diseño Grafico',
+    description: 'Titulo obtenido',
+  })
   @IsString()
   title: string;
 
-  @ApiProperty({ example: 'Universidad de Buenos Aires', description: 'Institucion educativa' })
+  @ApiProperty({
+    example: 'Universidad de Buenos Aires',
+    description: 'Institucion educativa',
+  })
   @IsString()
   institution: string;
 
@@ -20,7 +26,10 @@ export class CreateEducationDto {
   @IsInt()
   year?: number;
 
-  @ApiPropertyOptional({ example: 5, description: 'ID de la profesion asociada' })
+  @ApiPropertyOptional({
+    example: 5,
+    description: 'ID de la profesion asociada',
+  })
   @IsOptional()
   @IsInt()
   professionId?: number;

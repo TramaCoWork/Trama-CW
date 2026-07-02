@@ -13,7 +13,9 @@ describe('AuthService soft-delete', () => {
 
   const jwtService = {} as any;
   const mailService = {} as any;
-  const configService = { get: jest.fn().mockReturnValue('http://localhost:4321') } as any;
+  const configService = {
+    get: jest.fn().mockReturnValue('http://localhost:4321'),
+  } as any;
 
   let service: AuthService;
 

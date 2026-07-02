@@ -42,7 +42,11 @@ export class MessagesService {
     });
   }
 
-  async getConversations(userId: string, cursor?: string, take = 20): Promise<ConversationSummary[]> {
+  async getConversations(
+    userId: string,
+    cursor?: string,
+    take = 20,
+  ): Promise<ConversationSummary[]> {
     const filters = this.visibleMessageFiltersForUser(userId);
     const messages = await this.prisma.privateMessage.findMany({
       where: { OR: filters },
@@ -55,7 +59,8 @@ export class MessagesService {
     const conversationMessages: PrivateMessage[] = [];
 
     for (const message of messages) {
-      const otherUserId = message.senderId === userId ? message.receiverId : message.senderId;
+      const otherUserId =
+        message.senderId === userId ? message.receiverId : message.senderId;
       if (seen.has(otherUserId)) {
         continue;
       }
@@ -70,7 +75,8 @@ export class MessagesService {
 
     return Promise.all(
       conversationMessages.map(async (message) => {
-        const otherUserId = message.senderId === userId ? message.receiverId : message.senderId;
+        const otherUserId =
+          message.senderId === userId ? message.receiverId : message.senderId;
         const otherUser = await this.prisma.user.findUnique({
           where: withoutDeleted({ id: otherUserId }),
           select: {
@@ -103,7 +109,12 @@ export class MessagesService {
     );
   }
 
-  async getMessages(userId: string, otherUserId: string, cursor?: string, take = 20) {
+  async getMessages(
+    userId: string,
+    otherUserId: string,
+    cursor?: string,
+    take = 20,
+  ) {
     const isSoftDeletedFilter: Prisma.PrivateMessageWhereInput = {
       OR: [
         { senderId: userId, deletedBySender: false },
@@ -139,7 +150,9 @@ export class MessagesService {
     }
 
     if (message.receiverId !== userId) {
-      throw new ForbiddenException('Solo el destinatario puede marcar el mensaje como leído');
+      throw new ForbiddenException(
+        'Solo el destinatario puede marcar el mensaje como leído',
+      );
     }
 
     if (message.readAt) {
@@ -162,12 +175,16 @@ export class MessagesService {
     }
 
     if (message.senderId !== userId && message.receiverId !== userId) {
-      throw new ForbiddenException('No tienes permisos para eliminar este mensaje');
+      throw new ForbiddenException(
+        'No tienes permisos para eliminar este mensaje',
+      );
     }
 
     if (forAll) {
       if (message.senderId !== userId) {
-        throw new ForbiddenException('Solo el remitente puede eliminar el mensaje para todos');
+        throw new ForbiddenException(
+          'Solo el remitente puede eliminar el mensaje para todos',
+        );
       }
 
       return this.prisma.privateMessage.update({
@@ -179,9 +196,10 @@ export class MessagesService {
       });
     }
 
-    const data = message.senderId === userId
-      ? { deletedBySender: true }
-      : { deletedByReceiver: true };
+    const data =
+      message.senderId === userId
+        ? { deletedBySender: true }
+        : { deletedByReceiver: true };
 
     return this.prisma.privateMessage.update({
       where: { id: messageId },
@@ -213,7 +231,10 @@ export class MessagesService {
     return { success: true };
   }
 
-  async searchRecipients(userId: string, term: string): Promise<RecipientSuggestion[]> {
+  async searchRecipients(
+    userId: string,
+    term: string,
+  ): Promise<RecipientSuggestion[]> {
     const cleanTerm = term.trim();
     if (!cleanTerm) {
       return [];
@@ -245,7 +266,9 @@ export class MessagesService {
     }));
   }
 
-  private visibleMessageFiltersForUser(userId: string): Prisma.PrivateMessageWhereInput[] {
+  private visibleMessageFiltersForUser(
+    userId: string,
+  ): Prisma.PrivateMessageWhereInput[] {
     return [
       { senderId: userId, deletedBySender: false },
       { receiverId: userId, deletedByReceiver: false },

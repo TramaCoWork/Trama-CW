@@ -1,4 +1,9 @@
-import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CAPTCHA_VALIDATOR } from '../captcha/captcha-validator.interface';
 import type { CaptchaValidator } from '../captcha/captcha-validator.interface';
@@ -13,7 +18,8 @@ export class ContactService {
   private readonly supportEmail: string;
 
   constructor(
-    @Inject(CAPTCHA_VALIDATOR) private readonly captchaValidator: CaptchaValidator,
+    @Inject(CAPTCHA_VALIDATOR)
+    private readonly captchaValidator: CaptchaValidator,
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
@@ -29,7 +35,9 @@ export class ContactService {
     }
 
     if (!this.supportEmail) {
-      throw new BadRequestException('El servicio de contacto no esta configurado.');
+      throw new BadRequestException(
+        'El servicio de contacto no esta configurado.',
+      );
     }
 
     await this.mailService.sendContactForm(this.supportEmail, {
@@ -39,10 +47,15 @@ export class ContactService {
       message: dto.message,
     });
 
-    return { message: 'Mensaje enviado exitosamente. Nos pondremos en contacto pronto.' };
+    return {
+      message:
+        'Mensaje enviado exitosamente. Nos pondremos en contacto pronto.',
+    };
   }
 
-  async sendProfessionalContact(dto: CreateProfessionalContactDto): Promise<{ message: string }> {
+  async sendProfessionalContact(
+    dto: CreateProfessionalContactDto,
+  ): Promise<{ message: string }> {
     const valid = await this.captchaValidator.validate(dto.turnstileToken);
 
     if (!valid) {
@@ -75,6 +88,9 @@ export class ContactService {
       message: dto.message,
     });
 
-    return { message: 'Mensaje enviado exitosamente. Nos pondremos en contacto pronto.' };
+    return {
+      message:
+        'Mensaje enviado exitosamente. Nos pondremos en contacto pronto.',
+    };
   }
 }

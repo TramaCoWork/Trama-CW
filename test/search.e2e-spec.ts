@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const request = require('supertest');
 import { createTestApp } from './test-app.factory';
 import { cleanDatabase } from './clean-database';
@@ -20,9 +20,7 @@ describe('Search (e2e)', () => {
   });
 
   it('GET /search should return results without filters', async () => {
-    const res = await request(app.getHttpServer())
-      .get('/search')
-      .expect(200);
+    const res = await request(app.getHttpServer()).get('/search').expect(200);
 
     expect(Array.isArray(res.body)).toBe(true);
   });
@@ -42,5 +40,4 @@ describe('Search (e2e)', () => {
 
     expect(Array.isArray(res.body)).toBe(true);
   });
-
 });

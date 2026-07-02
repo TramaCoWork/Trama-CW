@@ -13,7 +13,10 @@ export class UpdatePreferencesDto {
   @IsString({ each: true })
   interestsInTrama?: string[];
 
-  @ApiPropertyOptional({ enum: UsageFrequency, description: 'Frecuencia de uso del espacio' })
+  @ApiPropertyOptional({
+    enum: UsageFrequency,
+    description: 'Frecuencia de uso del espacio',
+  })
   @IsOptional()
   @IsEnum(UsageFrequency)
   usageFrequency?: UsageFrequency;

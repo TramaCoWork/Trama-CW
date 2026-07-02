@@ -1,0 +1,100 @@
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { SchedulerRegistry } from '@nestjs/schedule';
+import { CronJob } from 'cron';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+
+export interface JobResult {
+  processedCount?: number;
+  metadata?: Prisma.InputJsonObject;
+}
+
+@Injectable()
+export abstract class BaseCronService implements OnModuleInit {
+  protected abstract readonly logger: Logger;
+
+  constructor(
+    protected readonly prisma: PrismaService,
+    protected readonly configService: ConfigService,
+    protected readonly schedulerRegistry: SchedulerRegistry,
+  ) {}
+
+  abstract onModuleInit(): void;
+
+  protected getCronSchedule(): Record<string, string | null> {
+    return JSON.parse(this.configService.getOrThrow<string>('CRON_SCHEDULE'));
+  }
+
+  protected registerJob(
+    jobName: string,
+    schedule: string | null | undefined,
+    handler: () => Promise<JobResult | void>,
+  ): void {
+    if (typeof schedule !== 'string') {
+      this.logger.warn(
+        `Job "${jobName}" no registrado — falta la key en CRON_SCHEDULE`,
+      );
+      return;
+    }
+
+    const job = new CronJob(schedule, () =>
+      this.runWithLogging(jobName, handler),
+    );
+    this.schedulerRegistry.addCronJob(jobName, job);
+    job.start();
+    this.logger.log(`Job ${jobName} registrado con schedule: ${schedule}`);
+  }
+
+  protected async runWithLogging(
+    jobName: string,
+    handler: () => Promise<JobResult | void>,
+  ): Promise<void> {
+    const startedAt = new Date();
+    const execution = await this.prisma.jobExecution.create({
+      data: { jobName, status: 'running', startedAt },
+    });
+
+    try {
+      this.logger.log(`Iniciando ${jobName}...`);
+      const result = await handler();
+      const finishedAt = new Date();
+      const durationMs = finishedAt.getTime() - startedAt.getTime();
+
+      await this.prisma.jobExecution.update({
+        where: { id: execution.id },
+        data: {
+          status: 'completed',
+          finishedAt,
+          durationMs,
+          processedCount: result?.processedCount ?? null,
+          metadata: result?.metadata,
+        },
+      });
+      this.logger.log(
+        `Finalizado ${jobName} (duración: ${durationMs}ms, procesados: ${result?.processedCount ?? 0})`,
+      );
+    } catch (error) {
+      const finishedAt = new Date();
+      const durationMs = finishedAt.getTime() - startedAt.getTime();
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? (error.stack ?? null) : null;
+
+      await this.prisma.jobExecution.update({
+        where: { id: execution.id },
+        data: {
+          status: 'failed',
+          finishedAt,
+          durationMs,
+          errorMessage,
+          errorStack,
+        },
+      });
+      this.logger.error(
+        `Error en ${jobName}: ${errorMessage}`,
+        errorStack ?? undefined,
+      );
+    }
+  }
+}

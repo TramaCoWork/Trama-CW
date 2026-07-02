@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { CreateProfesionDto } from './dto/create-profesion.dto';
 import { CreateRubroDto } from './dto/create-rubro.dto';
@@ -23,16 +28,24 @@ export class ProfessionCategoriesService {
       .replace(/^-+|-+$/g, '');
   }
 
-  private async resolveSlug(name: string, rawSlug?: string, excludeId?: number) {
+  private async resolveSlug(
+    name: string,
+    rawSlug?: string,
+    excludeId?: number,
+  ) {
     const slug = this.normalizeSlug(rawSlug ?? name);
     if (!slug) throw new BadRequestException('El slug no puede quedar vacio');
 
     const existing = await this.prisma.professionCategory.findFirst({
-      where: { slug, ...(excludeId !== undefined ? { id: { not: excludeId } } : {}) },
+      where: {
+        slug,
+        ...(excludeId !== undefined ? { id: { not: excludeId } } : {}),
+      },
       select: { id: true },
     });
 
-    if (existing) throw new ConflictException('Ya existe una categoria con ese slug');
+    if (existing)
+      throw new ConflictException('Ya existe una categoria con ese slug');
 
     return slug;
   }
@@ -118,7 +131,8 @@ export class ProfessionCategoriesService {
         children: { orderBy: [{ order: 'asc' }, { name: 'asc' }] },
       },
     });
-    if (!rubro || rubro.level !== 1) throw new NotFoundException('Rubro no encontrado');
+    if (!rubro || rubro.level !== 1)
+      throw new NotFoundException('Rubro no encontrado');
     return rubro;
   }
 
@@ -140,11 +154,13 @@ export class ProfessionCategoriesService {
       where: { id },
       select: { id: true, name: true, level: true, slug: true },
     });
-    if (!rubro || rubro.level !== 1) throw new NotFoundException('Rubro no encontrado');
+    if (!rubro || rubro.level !== 1)
+      throw new NotFoundException('Rubro no encontrado');
 
     const data: Prisma.ProfessionCategoryUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name.trim();
-    if (dto.slug !== undefined) data.slug = await this.resolveSlug(dto.name ?? rubro.name, dto.slug, id);
+    if (dto.slug !== undefined)
+      data.slug = await this.resolveSlug(dto.name ?? rubro.name, dto.slug, id);
     if (dto.order !== undefined) data.order = dto.order;
     if (dto.isActive !== undefined) data.isActive = dto.isActive;
 
@@ -156,16 +172,22 @@ export class ProfessionCategoriesService {
       where: { id },
       select: { id: true, level: true },
     });
-    if (!rubro || rubro.level !== 1) throw new NotFoundException('Rubro no encontrado');
+    if (!rubro || rubro.level !== 1)
+      throw new NotFoundException('Rubro no encontrado');
 
     const activeChildren = await this.prisma.professionCategory.count({
       where: { parentId: id, isActive: true },
     });
     if (activeChildren > 0) {
-      throw new BadRequestException('No se puede desactivar: el rubro tiene subrubros activos');
+      throw new BadRequestException(
+        'No se puede desactivar: el rubro tiene subrubros activos',
+      );
     }
 
-    await this.prisma.professionCategory.update({ where: { id }, data: { isActive: false } });
+    await this.prisma.professionCategory.update({
+      where: { id },
+      data: { isActive: false },
+    });
     return { message: 'Rubro desactivado' };
   }
 
@@ -194,7 +216,8 @@ export class ProfessionCategoriesService {
         children: { orderBy: [{ order: 'asc' }, { name: 'asc' }] },
       },
     });
-    if (!sub || sub.level !== 2) throw new NotFoundException('Subrubro no encontrado');
+    if (!sub || sub.level !== 2)
+      throw new NotFoundException('Subrubro no encontrado');
     return sub;
   }
 
@@ -218,11 +241,13 @@ export class ProfessionCategoriesService {
       where: { id },
       select: { id: true, name: true, level: true, slug: true },
     });
-    if (!sub || sub.level !== 2) throw new NotFoundException('Subrubro no encontrado');
+    if (!sub || sub.level !== 2)
+      throw new NotFoundException('Subrubro no encontrado');
 
     const data: Prisma.ProfessionCategoryUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name.trim();
-    if (dto.slug !== undefined) data.slug = await this.resolveSlug(dto.name ?? sub.name, dto.slug, id);
+    if (dto.slug !== undefined)
+      data.slug = await this.resolveSlug(dto.name ?? sub.name, dto.slug, id);
     if (dto.order !== undefined) data.order = dto.order;
     if (dto.isActive !== undefined) data.isActive = dto.isActive;
     if (dto.rubroId !== undefined) {
@@ -238,16 +263,22 @@ export class ProfessionCategoriesService {
       where: { id },
       select: { id: true, level: true },
     });
-    if (!sub || sub.level !== 2) throw new NotFoundException('Subrubro no encontrado');
+    if (!sub || sub.level !== 2)
+      throw new NotFoundException('Subrubro no encontrado');
 
     const activeChildren = await this.prisma.professionCategory.count({
       where: { parentId: id, isActive: true },
     });
     if (activeChildren > 0) {
-      throw new BadRequestException('No se puede desactivar: el subrubro tiene profesiones activas');
+      throw new BadRequestException(
+        'No se puede desactivar: el subrubro tiene profesiones activas',
+      );
     }
 
-    await this.prisma.professionCategory.update({ where: { id }, data: { isActive: false } });
+    await this.prisma.professionCategory.update({
+      where: { id },
+      data: { isActive: false },
+    });
     return { message: 'Subrubro desactivado' };
   }
 
@@ -270,7 +301,8 @@ export class ProfessionCategoriesService {
         parent: { select: { id: true, slug: true, name: true, level: true } },
       },
     });
-    if (!prof || prof.level !== 3) throw new NotFoundException('Profesion no encontrada');
+    if (!prof || prof.level !== 3)
+      throw new NotFoundException('Profesion no encontrada');
     return prof;
   }
 
@@ -294,7 +326,8 @@ export class ProfessionCategoriesService {
       where: { id },
       select: { id: true, name: true, level: true, slug: true },
     });
-    if (!prof || prof.level !== 3) throw new NotFoundException('Profesion no encontrada');
+    if (!prof || prof.level !== 3)
+      throw new NotFoundException('Profesion no encontrada');
 
     const data: Prisma.ProfessionCategoryUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name.trim();
@@ -316,11 +349,16 @@ export class ProfessionCategoriesService {
       where: { id },
       select: { id: true, level: true },
     });
-    if (!prof || prof.level !== 3) throw new NotFoundException('Profesion no encontrada');
+    if (!prof || prof.level !== 3)
+      throw new NotFoundException('Profesion no encontrada');
 
     const [professionalsCount, docsCount] = await Promise.all([
       this.prisma.professionalProfile.count({
-        where: { ...withoutDeleted(), professionCategories: { some: { id } }, isActive: true },
+        where: {
+          ...withoutDeleted(),
+          professionCategories: { some: { id } },
+          isActive: true,
+        },
       }),
       this.prisma.document.count({ where: { professionId: id } }),
     ]);
@@ -331,7 +369,10 @@ export class ProfessionCategoriesService {
       );
     }
 
-    await this.prisma.professionCategory.update({ where: { id }, data: { isActive: false } });
+    await this.prisma.professionCategory.update({
+      where: { id },
+      data: { isActive: false },
+    });
     return { message: 'Profesion desactivada' };
   }
 

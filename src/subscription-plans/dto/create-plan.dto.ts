@@ -1,4 +1,11 @@
-import { IsString, IsNumber, IsOptional, IsEnum, IsInt, Min } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsEnum,
+  IsInt,
+  Min,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { FrequencyType } from '@prisma/client';
 
@@ -33,7 +40,11 @@ export class CreatePlanDto {
   @IsEnum(FrequencyType)
   frequencyType?: FrequencyType;
 
-  @ApiPropertyOptional({ default: 0, example: 7, description: 'Días de prueba gratis (0 = sin trial)' })
+  @ApiPropertyOptional({
+    default: 0,
+    example: 7,
+    description: 'Días de prueba gratis (0 = sin trial)',
+  })
   @IsOptional()
   @IsInt()
   @Min(0)

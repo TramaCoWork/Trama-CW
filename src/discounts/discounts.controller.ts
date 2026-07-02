@@ -10,7 +10,13 @@ import {
   ValidationPipe,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { DiscountsService } from './discounts.service';
 import { CreateDiscountDto } from './dto/create-discount.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -30,19 +36,33 @@ export class DiscountsController {
   @Post()
   @ApiOperation({ summary: 'Crear descuento para un profesional' })
   @ApiResponse({ status: 201, description: 'Descuento creado' })
-  @ApiResponse({ status: 400, description: 'Datos inválidos o descuento solapado' })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos inválidos o descuento solapado',
+  })
   @ApiResponse({ status: 404, description: 'Profesional no encontrado' })
   async create(
     @CurrentUser() user: CurrentUserType,
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: CreateDiscountDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: CreateDiscountDto,
   ) {
     return this.discountsService.create(user.userId, dto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Listar descuentos' })
-  @ApiQuery({ name: 'professionalId', required: false, type: String, description: 'Filtrar por profesional' })
-  @ApiQuery({ name: 'active', required: false, type: Boolean, description: 'Solo descuentos activos (no restaurados y no vencidos)' })
+  @ApiQuery({
+    name: 'professionalId',
+    required: false,
+    type: String,
+    description: 'Filtrar por profesional',
+  })
+  @ApiQuery({
+    name: 'active',
+    required: false,
+    type: Boolean,
+    description: 'Solo descuentos activos (no restaurados y no vencidos)',
+  })
   @ApiResponse({ status: 200, description: 'Lista de descuentos' })
   async findAll(
     @Query('professionalId') professionalId?: string,
@@ -65,7 +85,10 @@ export class DiscountsController {
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar descuento (solo si no fue aplicado)' })
   @ApiResponse({ status: 200, description: 'Descuento eliminado' })
-  @ApiResponse({ status: 400, description: 'No se puede eliminar un descuento ya aplicado' })
+  @ApiResponse({
+    status: 400,
+    description: 'No se puede eliminar un descuento ya aplicado',
+  })
   @ApiResponse({ status: 404, description: 'Descuento no encontrado' })
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.discountsService.remove(id);

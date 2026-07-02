@@ -4,7 +4,10 @@ import { ProfessionCategoriesController } from './profession-categories.controll
 import { ProfessionCategoriesService } from './profession-categories.service';
 
 @Module({
-  controllers: [ProfessionCategoriesController, AdminProfessionCategoriesController],
+  controllers: [
+    ProfessionCategoriesController,
+    AdminProfessionCategoriesController,
+  ],
   providers: [ProfessionCategoriesService],
   exports: [ProfessionCategoriesService],
 })

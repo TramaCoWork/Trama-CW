@@ -28,10 +28,20 @@ export class ProfessionalDashboardDto {
   @ApiProperty({ required: false, nullable: true })
   planName: string | null;
 
-  @ApiProperty({ required: false, nullable: true, type: String, format: 'date-time' })
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    type: String,
+    format: 'date-time',
+  })
   planExpirationDate: Date | null;
 
-  @ApiProperty({ required: false, nullable: true, type: String, format: 'date-time' })
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    type: String,
+    format: 'date-time',
+  })
   trialEndDate: Date | null;
 
   @ApiProperty()

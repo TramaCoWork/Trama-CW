@@ -1,7 +1,11 @@
 import { INestApplication } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const request = require('supertest');
-import { createTestApp, registerProfessional, registerUser } from './test-app.factory';
+import {
+  createTestApp,
+  registerProfessional,
+  registerUser,
+} from './test-app.factory';
 import { cleanDatabase } from './clean-database';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -38,7 +42,11 @@ describe('Uploads (e2e)', () => {
 
   describe('POST /uploads/document', () => {
     it('should upload a document', async () => {
-      const { access_token } = await registerProfessional(app, 'pro@test.com', 'password123');
+      const { access_token } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
 
       const tmpFile = path.join('/tmp', 'test.pdf');
       fs.writeFileSync(tmpFile, '%PDF-1.4 test content');
@@ -73,7 +81,11 @@ describe('Uploads (e2e)', () => {
     });
 
     it('should return 404 for non-existent document', async () => {
-      const { access_token } = await registerProfessional(app, 'pro@test.com', 'password123');
+      const { access_token } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
 
       await request(app.getHttpServer())
         .get('/uploads/document/00000000-0000-0000-0000-000000000000')
@@ -82,7 +94,11 @@ describe('Uploads (e2e)', () => {
     });
 
     it('should allow owner to access their document', async () => {
-      const { access_token } = await registerProfessional(app, 'pro@test.com', 'password123');
+      const { access_token } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
       const docId = await uploadTestDocument(access_token);
 
       await request(app.getHttpServer())
@@ -92,10 +108,19 @@ describe('Uploads (e2e)', () => {
     });
 
     it('should allow admin to access any document', async () => {
-      const { access_token: proToken } = await registerProfessional(app, 'pro@test.com', 'password123');
+      const { access_token: proToken } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
       const docId = await uploadTestDocument(proToken);
 
-      const { access_token: adminToken } = await registerUser(app, 'admin@test.com', 'password123', 'admin');
+      const { access_token: adminToken } = await registerUser(
+        app,
+        'admin@test.com',
+        'password123',
+        'admin',
+      );
 
       await request(app.getHttpServer())
         .get(`/uploads/document/${docId}`)
@@ -104,10 +129,18 @@ describe('Uploads (e2e)', () => {
     });
 
     it('should reject access from another user', async () => {
-      const { access_token: proToken } = await registerProfessional(app, 'pro@test.com', 'password123');
+      const { access_token: proToken } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
       const docId = await uploadTestDocument(proToken);
 
-      const { access_token: otherToken } = await registerProfessional(app, 'other@test.com', 'password123');
+      const { access_token: otherToken } = await registerProfessional(
+        app,
+        'other@test.com',
+        'password123',
+      );
 
       await request(app.getHttpServer())
         .get(`/uploads/document/${docId}`)
@@ -121,22 +154,86 @@ describe('Uploads (e2e)', () => {
       const tmpFile = path.join('/tmp', 'test-photo.png');
       // Minimal valid PNG (1x1 pixel)
       const pngHeader = Buffer.from([
-        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, // PNG signature
-        0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, // IHDR chunk
-        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, // 1x1
-        0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
-        0xde, 0x00, 0x00, 0x00, 0x0c, 0x49, 0x44, 0x41,
-        0x54, 0x08, 0xd7, 0x63, 0xf8, 0xcf, 0xc0, 0x00,
-        0x00, 0x00, 0x02, 0x00, 0x01, 0xe2, 0x21, 0xbc,
-        0x33, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e,
-        0x44, 0xae, 0x42, 0x60, 0x82,
+        0x89,
+        0x50,
+        0x4e,
+        0x47,
+        0x0d,
+        0x0a,
+        0x1a,
+        0x0a, // PNG signature
+        0x00,
+        0x00,
+        0x00,
+        0x0d,
+        0x49,
+        0x48,
+        0x44,
+        0x52, // IHDR chunk
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x00,
+        0x01, // 1x1
+        0x08,
+        0x02,
+        0x00,
+        0x00,
+        0x00,
+        0x90,
+        0x77,
+        0x53,
+        0xde,
+        0x00,
+        0x00,
+        0x00,
+        0x0c,
+        0x49,
+        0x44,
+        0x41,
+        0x54,
+        0x08,
+        0xd7,
+        0x63,
+        0xf8,
+        0xcf,
+        0xc0,
+        0x00,
+        0x00,
+        0x00,
+        0x02,
+        0x00,
+        0x01,
+        0xe2,
+        0x21,
+        0xbc,
+        0x33,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x49,
+        0x45,
+        0x4e,
+        0x44,
+        0xae,
+        0x42,
+        0x60,
+        0x82,
       ]);
       fs.writeFileSync(tmpFile, pngHeader);
       return tmpFile;
     }
 
     it('should upload a photo', async () => {
-      const { access_token } = await registerProfessional(app, 'pro@test.com', 'password123');
+      const { access_token } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
       const tmpFile = createTestImage();
 
       const res = await request(app.getHttpServer())
@@ -152,7 +249,11 @@ describe('Uploads (e2e)', () => {
     });
 
     it('should replace existing photo', async () => {
-      const { access_token } = await registerProfessional(app, 'pro@test.com', 'password123');
+      const { access_token } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
       const tmpFile = createTestImage();
 
       const res1 = await request(app.getHttpServer())
@@ -173,7 +274,11 @@ describe('Uploads (e2e)', () => {
     });
 
     it('should reject non-image files', async () => {
-      const { access_token } = await registerProfessional(app, 'pro@test.com', 'password123');
+      const { access_token } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
       const tmpFile = path.join('/tmp', 'test.pdf');
       fs.writeFileSync(tmpFile, '%PDF-1.4 test content');
 
@@ -187,13 +292,16 @@ describe('Uploads (e2e)', () => {
     });
 
     it('should reject without auth', async () => {
-      await request(app.getHttpServer())
-        .post('/uploads/photo')
-        .expect(401);
+      await request(app.getHttpServer()).post('/uploads/photo').expect(401);
     });
 
     it('should reject non-professional users', async () => {
-      const { access_token } = await registerUser(app, 'client@test.com', 'password123', 'client');
+      const { access_token } = await registerUser(
+        app,
+        'client@test.com',
+        'password123',
+        'client',
+      );
 
       const tmpFile = createTestImage();
 
@@ -209,20 +317,21 @@ describe('Uploads (e2e)', () => {
 
   describe('GET /uploads/photo/:profileId', () => {
     it('should serve photo publicly without auth', async () => {
-      const { access_token, userId } = await registerProfessional(app, 'pro@test.com', 'password123');
+      const { access_token, userId } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
 
       // Upload a photo first
       const tmpFile = path.join('/tmp', 'test-photo.png');
       const pngHeader = Buffer.from([
-        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-        0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
-        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-        0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
-        0xde, 0x00, 0x00, 0x00, 0x0c, 0x49, 0x44, 0x41,
-        0x54, 0x08, 0xd7, 0x63, 0xf8, 0xcf, 0xc0, 0x00,
-        0x00, 0x00, 0x02, 0x00, 0x01, 0xe2, 0x21, 0xbc,
-        0x33, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e,
-        0x44, 0xae, 0x42, 0x60, 0x82,
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+        0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+        0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xde, 0x00, 0x00, 0x00,
+        0x0c, 0x49, 0x44, 0x41, 0x54, 0x08, 0xd7, 0x63, 0xf8, 0xcf, 0xc0, 0x00,
+        0x00, 0x00, 0x02, 0x00, 0x01, 0xe2, 0x21, 0xbc, 0x33, 0x00, 0x00, 0x00,
+        0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
       ]);
       fs.writeFileSync(tmpFile, pngHeader);
 
@@ -251,7 +360,11 @@ describe('Uploads (e2e)', () => {
     });
 
     it('should return 404 for profile without photo', async () => {
-      const { access_token, userId } = await registerProfessional(app, 'pro@test.com', 'password123');
+      const { access_token, userId } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
 
       const profileRes = await request(app.getHttpServer())
         .get(`/professionals/by-user/${userId}`)
@@ -266,19 +379,20 @@ describe('Uploads (e2e)', () => {
 
   describe('DELETE /uploads/photo', () => {
     it('should delete own photo', async () => {
-      const { access_token, userId } = await registerProfessional(app, 'pro@test.com', 'password123');
+      const { access_token, userId } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
 
       const tmpFile = path.join('/tmp', 'test-photo.png');
       const pngHeader = Buffer.from([
-        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-        0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
-        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-        0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
-        0xde, 0x00, 0x00, 0x00, 0x0c, 0x49, 0x44, 0x41,
-        0x54, 0x08, 0xd7, 0x63, 0xf8, 0xcf, 0xc0, 0x00,
-        0x00, 0x00, 0x02, 0x00, 0x01, 0xe2, 0x21, 0xbc,
-        0x33, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e,
-        0x44, 0xae, 0x42, 0x60, 0x82,
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+        0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+        0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xde, 0x00, 0x00, 0x00,
+        0x0c, 0x49, 0x44, 0x41, 0x54, 0x08, 0xd7, 0x63, 0xf8, 0xcf, 0xc0, 0x00,
+        0x00, 0x00, 0x02, 0x00, 0x01, 0xe2, 0x21, 0xbc, 0x33, 0x00, 0x00, 0x00,
+        0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
       ]);
       fs.writeFileSync(tmpFile, pngHeader);
 

@@ -22,7 +22,8 @@ export class CommunityImagesService {
 
   constructor(private readonly prisma: PrismaService) {
     const envValue = Number.parseInt(
-      process.env.COMMUNITY_MAX_IMAGES_PER_ENTITY ?? `${DEFAULT_MAX_IMAGES_PER_ENTITY}`,
+      process.env.COMMUNITY_MAX_IMAGES_PER_ENTITY ??
+        `${DEFAULT_MAX_IMAGES_PER_ENTITY}`,
       10,
     );
 
@@ -31,7 +32,10 @@ export class CommunityImagesService {
       : envValue;
   }
 
-  createRecord(userId: string, metadata: CommunityImageUploadMetadata): Promise<CommunityImage> {
+  createRecord(
+    userId: string,
+    metadata: CommunityImageUploadMetadata,
+  ): Promise<CommunityImage> {
     return this.prisma.communityImage.create({
       data: {
         userId,
@@ -130,11 +134,16 @@ export class CommunityImagesService {
     });
 
     const isValidatedProfessional = Boolean(
-      profile && profile.isActive && profile.profileStatus === 'active' && profile.user.emailVerified,
+      profile &&
+      profile.isActive &&
+      profile.profileStatus === 'active' &&
+      profile.user.emailVerified,
     );
 
     if (!isValidatedProfessional) {
-      throw new ForbiddenException('Solo profesionales validados pueden acceder a imágenes');
+      throw new ForbiddenException(
+        'Solo profesionales validados pueden acceder a imágenes',
+      );
     }
   }
 }

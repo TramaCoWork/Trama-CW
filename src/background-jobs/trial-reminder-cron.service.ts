@@ -1,49 +1,37 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SchedulerRegistry } from '@nestjs/schedule';
-import { CronJob } from 'cron';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
-
-type CronScheduleConfig = Record<string, string | null>;
+import { BaseCronService, JobResult } from './base-cron.service';
 
 @Injectable()
-export class TrialReminderCronService implements OnModuleInit {
-  private readonly logger = new Logger(TrialReminderCronService.name);
+export class TrialReminderCronService
+  extends BaseCronService
+  implements OnModuleInit
+{
+  protected readonly logger = new Logger(TrialReminderCronService.name);
 
   constructor(
-    private readonly configService: ConfigService,
-    private readonly schedulerRegistry: SchedulerRegistry,
-    private readonly prisma: PrismaService,
+    prisma: PrismaService,
+    configService: ConfigService,
+    schedulerRegistry: SchedulerRegistry,
     private readonly mailService: MailService,
-  ) {}
+  ) {
+    super(prisma, configService, schedulerRegistry);
+  }
 
   onModuleInit() {
-    const cronSchedule = JSON.parse(this.configService.getOrThrow<string>('CRON_SCHEDULE')) as CronScheduleConfig;
+    const cronSchedule = this.getCronSchedule();
 
-    this.registerJob('trial-expiring-reminder', cronSchedule.trialExpiringReminder, () =>
-      this.handleTrialExpiringReminder(),
+    this.registerJob(
+      'trial-expiring-reminder',
+      cronSchedule.trialExpiringReminder,
+      () => this.handleTrialExpiringReminder(),
     );
   }
 
-  private registerJob(jobName: string, schedule: string | null | undefined, handler: () => Promise<void>) {
-    if (typeof schedule !== 'string') {
-      return;
-    }
-
-    const job = new CronJob(schedule, async () => {
-      const startTime = Date.now();
-      this.logger.log(`Iniciando ${jobName}...`);
-      await handler();
-      this.logger.log(`Finalizado ${jobName} (duración: ${Date.now() - startTime}ms)`);
-    });
-
-    this.logger.log(`Job ${jobName} registrado con schedule: ${schedule}`);
-    this.schedulerRegistry.addCronJob(jobName, job);
-    job.start();
-  }
-
-  async handleTrialExpiringReminder() {
+  async handleTrialExpiringReminder(): Promise<JobResult> {
     const now = new Date();
     const start = new Date(now);
     start.setDate(start.getDate() + 5);
@@ -62,7 +50,12 @@ export class TrialReminderCronService implements OnModuleInit {
 
     for (const profile of profiles) {
       const name = profile.name ?? profile.user.email;
-      await this.mailService.sendTrialExpiringReminder(profile.user.email, name);
+      await this.mailService.sendTrialExpiringReminder(
+        profile.user.email,
+        name,
+      );
     }
+
+    return { processedCount: profiles.length };
   }
 }

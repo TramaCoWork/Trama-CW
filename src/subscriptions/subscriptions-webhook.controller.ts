@@ -42,12 +42,21 @@ export class SubscriptionsWebhookController {
     const eventType: string | undefined = body?.type ?? query?.type;
     const resourceId: string | undefined = body?.data?.id ?? query?.['data.id'];
     // MP firma sobre el data.id del query string
-    const signatureDataId: string | undefined = query?.['data.id'] ?? body?.data?.id;
+    const signatureDataId: string | undefined =
+      query?.['data.id'] ?? body?.data?.id;
 
     // Validar autenticidad del webhook (si hay secret configurado)
     if (!this.isValidSignature(xSignature, xRequestId, signatureDataId)) {
-      this.logger.warn(`Webhook rechazado: firma inválida (resourceId=${resourceId})`);
-      await this.persistEvent(eventType, resourceId, 'rejected', 'invalid_signature', body);
+      this.logger.warn(
+        `Webhook rechazado: firma inválida (resourceId=${resourceId})`,
+      );
+      await this.persistEvent(
+        eventType,
+        resourceId,
+        'rejected',
+        'invalid_signature',
+        body,
+      );
       throw new UnauthorizedException('Invalid webhook signature');
     }
 
@@ -65,7 +74,10 @@ export class SubscriptionsWebhookController {
       if (eventType === 'payment') {
         await this.handlePayment(resourceId, webhookEventId ?? undefined);
       } else if (eventType === 'subscription_authorized_payment') {
-        await this.handleAuthorizedPayment(resourceId, webhookEventId ?? undefined);
+        await this.handleAuthorizedPayment(
+          resourceId,
+          webhookEventId ?? undefined,
+        );
       } else {
         await this.handleGatewayEvent(eventType, resourceId);
       }
@@ -117,7 +129,9 @@ export class SubscriptionsWebhookController {
     // data.id alfanumérico → minúsculas (spec de MP)
     const id = (dataId ?? '').toLowerCase();
     const manifest = `id:${id};request-id:${xRequestId ?? ''};ts:${ts};`;
-    const computed = createHmac('sha256', secret).update(manifest).digest('hex');
+    const computed = createHmac('sha256', secret)
+      .update(manifest)
+      .digest('hex');
 
     try {
       return timingSafeEqual(Buffer.from(computed), Buffer.from(v1));
@@ -154,7 +168,10 @@ export class SubscriptionsWebhookController {
   }
 
   /** @returns true si alguna strategy manejó el evento */
-  private async handleGatewayEvent(eventType?: string, dataId?: string): Promise<boolean> {
+  private async handleGatewayEvent(
+    eventType?: string,
+    dataId?: string,
+  ): Promise<boolean> {
     if (!eventType || !dataId) return false;
 
     for (const strategy of this.strategyFactory.getAllStrategies()) {
@@ -170,7 +187,9 @@ export class SubscriptionsWebhookController {
       }
     }
 
-    this.logger.log(`No strategy handled gateway event: ${eventType} / ${dataId}`);
+    this.logger.log(
+      `No strategy handled gateway event: ${eventType} / ${dataId}`,
+    );
     return false;
   }
 
@@ -186,7 +205,8 @@ export class SubscriptionsWebhookController {
   ): Promise<boolean> {
     if (!authorizedPaymentId) return false;
 
-    const ap: any = await this.mercadopago.getAuthorizedPayment(authorizedPaymentId);
+    const ap: any =
+      await this.mercadopago.getAuthorizedPayment(authorizedPaymentId);
     const preapprovalId: string | undefined = ap?.preapproval_id;
     const payment = ap?.payment;
 
@@ -205,7 +225,8 @@ export class SubscriptionsWebhookController {
       webhookEventId,
       amount: ap.transaction_amount ?? payment.transaction_amount ?? 0,
       status: status === 'approved' ? 'sub_approved' : 'sub_rejected',
-      failureReason: status !== 'approved' ? (payment.status_detail ?? status) : undefined,
+      failureReason:
+        status !== 'approved' ? (payment.status_detail ?? status) : undefined,
       statusDetail: payment.status_detail ?? null,
       metadata: ap,
     });
@@ -213,7 +234,10 @@ export class SubscriptionsWebhookController {
   }
 
   /** @returns true si alguna strategy manejó el pago */
-  private async handlePayment(paymentId?: string, webhookEventId?: string): Promise<boolean> {
+  private async handlePayment(
+    paymentId?: string,
+    webhookEventId?: string,
+  ): Promise<boolean> {
     if (!paymentId) return false;
 
     for (const strategy of this.strategyFactory.getAllStrategies()) {
@@ -222,25 +246,28 @@ export class SubscriptionsWebhookController {
         const { subscriptionId, data, shouldActivate } = result;
 
         // Si el subscriptionId tiene prefijo "ext:", buscar por externalId
-          if (subscriptionId.startsWith('ext:')) {
-            const externalId = subscriptionId.slice(4);
-            await this.subscriptionsService.registerPayment({
-              subscriptionExternalId: externalId,
+        if (subscriptionId.startsWith('ext:')) {
+          const externalId = subscriptionId.slice(4);
+          await this.subscriptionsService.registerPayment({
+            subscriptionExternalId: externalId,
+            ...data,
+            webhookEventId,
+          });
+        } else if (shouldActivate && data.status === 'sub_approved') {
+          await this.subscriptionsService.activateFromCheckoutPayment(
+            subscriptionId,
+            data,
+            webhookEventId,
+          );
+        } else {
+          await this.subscriptionsService.registerPaymentBySubscriptionId(
+            subscriptionId,
+            {
               ...data,
               webhookEventId,
-            });
-          } else if (shouldActivate && data.status === 'sub_approved') {
-            await this.subscriptionsService.activateFromCheckoutPayment(
-              subscriptionId,
-              data,
-              webhookEventId,
-            );
-          } else {
-            await this.subscriptionsService.registerPaymentBySubscriptionId(subscriptionId, {
-              ...data,
-              webhookEventId,
-            });
-          }
+            },
+          );
+        }
         return true;
       }
     }

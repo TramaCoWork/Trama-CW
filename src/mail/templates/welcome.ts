@@ -1,4 +1,7 @@
-export function welcomeTemplate(name?: string): { subject: string; html: string } {
+export function welcomeTemplate(name?: string): {
+  subject: string;
+  html: string;
+} {
   const greeting = name ? `Hola <strong>${name}</strong>,` : 'Hola,';
 
   return {

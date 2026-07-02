@@ -130,7 +130,11 @@ export class CommunityChannelsController {
     @Body(new ValidationPipe({ whitelist: true, transform: true }))
     dto: CreateCommunityChannelPostDto,
   ) {
-    return this.communityChannelsService.createPost(id, user.userId, dto.content);
+    return this.communityChannelsService.createPost(
+      id,
+      user.userId,
+      dto.content,
+    );
   }
 
   @Post(':id/posts/:postId/comments')

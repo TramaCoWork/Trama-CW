@@ -124,6 +124,12 @@ enum CommunityImageEntityType {
   MESSAGE
 }
 
+enum JobStatus {
+  running
+  completed
+  failed
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model User {
@@ -799,4 +805,20 @@ model WebhookEvent {
 
   @@index([status, createdAt], name: "webhook_events_status_created")
   @@map("webhook_events")
+}
+
+model JobExecution {
+  id             String    @id @default(uuid())
+  jobName        String    @map("job_name")
+  startedAt      DateTime  @default(now()) @map("started_at")
+  finishedAt     DateTime? @map("finished_at")
+  status         JobStatus @default(running)
+  durationMs     Int?      @map("duration_ms")
+  processedCount Int?      @map("processed_count")
+  errorMessage   String?   @map("error_message") @db.Text
+  errorStack     String?   @map("error_stack") @db.Text
+  metadata       Json?
+
+  @@index([jobName, startedAt])
+  @@map("job_executions")
 }

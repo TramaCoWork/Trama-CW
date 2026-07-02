@@ -1,7 +1,12 @@
 import { INestApplication } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const request = require('supertest');
-import { createTestApp, registerUser, registerProfessional, loginUser } from './test-app.factory';
+import {
+  createTestApp,
+  registerUser,
+  registerProfessional,
+  loginUser,
+} from './test-app.factory';
 import { cleanDatabase } from './clean-database';
 
 describe('Auth (e2e)', () => {
@@ -69,7 +74,11 @@ describe('Auth (e2e)', () => {
     });
 
     it('should reject login after user soft-delete', async () => {
-      const { access_token, userId } = await registerProfessional(app, 'deleted-login@test.com', 'password123');
+      const { access_token, userId } = await registerProfessional(
+        app,
+        'deleted-login@test.com',
+        'password123',
+      );
 
       await request(app.getHttpServer())
         .delete(`/users/${userId}`)

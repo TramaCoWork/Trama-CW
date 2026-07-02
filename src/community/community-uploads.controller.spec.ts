@@ -44,7 +44,10 @@ describe('CommunityUploadsController', () => {
       id: 'img-1',
       url: '/uploads/community/user-1/image.png',
     });
-    expect(storageService.upload).toHaveBeenCalledWith(file, 'community/user-1');
+    expect(storageService.upload).toHaveBeenCalledWith(
+      file,
+      'community/user-1',
+    );
   });
 
   it('POST images valida límites configurados para pipe de archivo', () => {
@@ -58,10 +61,14 @@ describe('CommunityUploadsController', () => {
       url: '/uploads/community/user-1/file.png',
       mimeType: 'image/png',
     });
-    storageService.getAbsolutePath.mockReturnValue('C:/uploads/community/user-1/file.png');
+    storageService.getAbsolutePath.mockReturnValue(
+      'C:/uploads/community/user-1/file.png',
+    );
 
     const fsModule = require('fs') as typeof import('fs');
-    const existsSyncSpy = jest.spyOn(fsModule, 'existsSync').mockReturnValue(true);
+    const existsSyncSpy = jest
+      .spyOn(fsModule, 'existsSync')
+      .mockReturnValue(true);
     const setHeader = jest.fn();
     const sendFile = jest.fn();
     const res = { setHeader, sendFile };
@@ -75,7 +82,9 @@ describe('CommunityUploadsController', () => {
       'community/user-1/file.png',
     );
     expect(setHeader).toHaveBeenCalledWith('Content-Type', 'image/png');
-    expect(sendFile).toHaveBeenCalledWith('C:/uploads/community/user-1/file.png');
+    expect(sendFile).toHaveBeenCalledWith(
+      'C:/uploads/community/user-1/file.png',
+    );
 
     existsSyncSpy.mockRestore();
   });
@@ -83,13 +92,12 @@ describe('CommunityUploadsController', () => {
   it('GET images con id inexistente devuelve 404', async () => {
     communityImagesService.findById.mockResolvedValue(null);
     const fsModule = require('fs') as typeof import('fs');
-    const existsSyncSpy = jest.spyOn(fsModule, 'existsSync').mockReturnValue(false);
+    const existsSyncSpy = jest
+      .spyOn(fsModule, 'existsSync')
+      .mockReturnValue(false);
 
     await expect(
-      controller.getImage(
-        'e7f7b218-9cc7-4da6-bf5f-6a98f99ed910',
-        {} as any,
-      ),
+      controller.getImage('e7f7b218-9cc7-4da6-bf5f-6a98f99ed910', {} as any),
     ).rejects.toBeInstanceOf(NotFoundException);
 
     existsSyncSpy.mockRestore();

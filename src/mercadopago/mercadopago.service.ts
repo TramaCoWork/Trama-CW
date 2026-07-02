@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { MercadoPagoConfig, PreApproval, Payment, Preference } from 'mercadopago';
+import {
+  MercadoPagoConfig,
+  PreApproval,
+  Payment,
+  Preference,
+} from 'mercadopago';
 import { randomUUID } from 'node:crypto';
 
 @Injectable()
@@ -81,7 +86,9 @@ export class MercadoPagoService {
       } as any,
     });
 
-    this.logger.log(`Preference created: ${result.id} | init_point: ${result.init_point}`);
+    this.logger.log(
+      `Preference created: ${result.id} | init_point: ${result.init_point}`,
+    );
     return result;
   }
 
@@ -116,7 +123,8 @@ export class MercadoPagoService {
     externalReference: string;
   }) {
     const accessToken = this.config.get<string>('MERCADOPAGO_ACCESS_TOKEN');
-    if (!accessToken) throw new Error('MERCADOPAGO_ACCESS_TOKEN no configurado');
+    if (!accessToken)
+      throw new Error('MERCADOPAGO_ACCESS_TOKEN no configurado');
 
     const amount = data.amount.toFixed(2);
 
@@ -202,7 +210,8 @@ export class MercadoPagoService {
     notificationUrl: string;
   }) {
     const accessToken = this.config.get<string>('MERCADOPAGO_ACCESS_TOKEN');
-    if (!accessToken) throw new Error('MERCADOPAGO_ACCESS_TOKEN no configurado');
+    if (!accessToken)
+      throw new Error('MERCADOPAGO_ACCESS_TOKEN no configurado');
 
     const autoRecurring: any = {
       frequency: data.frequency,
@@ -214,7 +223,10 @@ export class MercadoPagoService {
       start_date: new Date(Date.now() + 2 * 60 * 1000).toISOString(),
     };
     if (data.trialDays && data.trialDays > 0) {
-      autoRecurring.free_trial = { frequency: data.trialDays, frequency_type: 'days' };
+      autoRecurring.free_trial = {
+        frequency: data.trialDays,
+        frequency_type: 'days',
+      };
     }
 
     const body = {
@@ -298,12 +310,14 @@ export class MercadoPagoService {
       };
     }
 
-    this.logger.log(`Creating preapproval (direct) with body: ${JSON.stringify(body)}`);
+    this.logger.log(
+      `Creating preapproval (direct) with body: ${JSON.stringify(body)}`,
+    );
 
     const response = await fetch('https://api.mercadopago.com/preapproval', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
@@ -312,11 +326,17 @@ export class MercadoPagoService {
     const result = await response.json();
 
     if (!response.ok) {
-      this.logger.error(`MP API error: ${response.status} ${JSON.stringify(result)}`);
-      throw new Error(`MercadoPago API error: ${response.status} - ${JSON.stringify(result)}`);
+      this.logger.error(
+        `MP API error: ${response.status} ${JSON.stringify(result)}`,
+      );
+      throw new Error(
+        `MercadoPago API error: ${response.status} - ${JSON.stringify(result)}`,
+      );
     }
 
-    this.logger.log(`Preapproval created (direct): ${result.id} | init_point: ${result.init_point}`);
+    this.logger.log(
+      `Preapproval created (direct): ${result.id} | init_point: ${result.init_point}`,
+    );
     return result;
   }
 
@@ -403,7 +423,8 @@ export class MercadoPagoService {
    */
   async getAuthorizedPayment(authorizedPaymentId: string) {
     const accessToken = this.config.get<string>('MERCADOPAGO_ACCESS_TOKEN');
-    if (!accessToken) throw new Error('MERCADOPAGO_ACCESS_TOKEN no configurado');
+    if (!accessToken)
+      throw new Error('MERCADOPAGO_ACCESS_TOKEN no configurado');
 
     const response = await fetch(
       `https://api.mercadopago.com/authorized_payments/${authorizedPaymentId}`,

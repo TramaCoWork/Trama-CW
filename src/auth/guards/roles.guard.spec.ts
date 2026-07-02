@@ -24,9 +24,7 @@ describe('RolesGuard', () => {
     }) as unknown as ExecutionContext;
 
   it('allows access when user role matches required role type', () => {
-    reflector.getAllAndOverride = jest
-      .fn()
-      .mockReturnValue(['professional']);
+    reflector.getAllAndOverride = jest.fn().mockReturnValue(['professional']);
 
     const allowed = guard.canActivate(
       contextFactory({
@@ -39,9 +37,7 @@ describe('RolesGuard', () => {
   });
 
   it('allows access when user role matches required role name', () => {
-    reflector.getAllAndOverride = jest
-      .fn()
-      .mockReturnValue(['special-role']);
+    reflector.getAllAndOverride = jest.fn().mockReturnValue(['special-role']);
 
     const allowed = guard.canActivate(
       contextFactory({

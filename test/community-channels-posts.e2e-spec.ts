@@ -3,7 +3,6 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { cleanDatabase } from './clean-database';
 import { createTestApp, registerUser } from './test-app.factory';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const request = require('supertest');
 
 async function createProfessionalWithRubro(
@@ -11,7 +10,12 @@ async function createProfessionalWithRubro(
   email: string,
   channelSlug: string,
 ): Promise<{ access_token: string; userId: string }> {
-  const professional = await registerUser(app, email, 'password123', 'professional');
+  const professional = await registerUser(
+    app,
+    email,
+    'password123',
+    'professional',
+  );
   const prisma = app.get(PrismaService);
 
   const rubro = await prisma.professionCategory.upsert({
@@ -60,21 +64,40 @@ describe('Community channels/posts/comments (e2e)', () => {
   });
 
   it('GET /community/channels returns distinct active slugs and enforces admin-only', async () => {
-    const admin = await registerUser(app, 'admin-channels@test.com', 'password123', 'admin');
-    const client = await registerUser(app, 'client-channels@test.com', 'password123', 'client');
+    const admin = await registerUser(
+      app,
+      'admin-channels@test.com',
+      'password123',
+      'admin',
+    );
+    const client = await registerUser(
+      app,
+      'client-channels@test.com',
+      'password123',
+      'client',
+    );
 
     await prisma.communityPost.createMany({
       data: [
         { userId: admin.userId, channelSlug: 'design', content: 'Design A' },
         { userId: admin.userId, channelSlug: 'design', content: 'Design B' },
-        { userId: admin.userId, channelSlug: 'marketing', content: 'Marketing A' },
+        {
+          userId: admin.userId,
+          channelSlug: 'marketing',
+          content: 'Marketing A',
+        },
         {
           userId: admin.userId,
           channelSlug: 'ghost',
           content: 'Ghost only deleted',
           deletedAt: new Date(),
         },
-        { userId: admin.userId, channelSlug: 'paused-only', content: 'Paused post', status: 'paused' },
+        {
+          userId: admin.userId,
+          channelSlug: 'paused-only',
+          content: 'Paused post',
+          status: 'paused',
+        },
       ],
     });
 
@@ -92,16 +115,46 @@ describe('Community channels/posts/comments (e2e)', () => {
   });
 
   it('GET /community/channels/:slug/posts enforces access rules, excludes soft-deleted and paginates', async () => {
-    const admin = await registerUser(app, 'admin-posts@test.com', 'password123', 'admin');
-    const matchingProfessional = await createProfessionalWithRubro(app, 'pro-design@test.com', 'design');
-    const otherProfessional = await createProfessionalWithRubro(app, 'pro-marketing@test.com', 'marketing');
-    const client = await registerUser(app, 'client-posts@test.com', 'password123', 'client');
+    const admin = await registerUser(
+      app,
+      'admin-posts@test.com',
+      'password123',
+      'admin',
+    );
+    const matchingProfessional = await createProfessionalWithRubro(
+      app,
+      'pro-design@test.com',
+      'design',
+    );
+    const otherProfessional = await createProfessionalWithRubro(
+      app,
+      'pro-marketing@test.com',
+      'marketing',
+    );
+    const client = await registerUser(
+      app,
+      'client-posts@test.com',
+      'password123',
+      'client',
+    );
 
     await prisma.communityPost.createMany({
       data: [
-        { userId: admin.userId, channelSlug: 'design', content: 'Design visible 1' },
-        { userId: admin.userId, channelSlug: 'design', content: 'Design visible 2' },
-        { userId: admin.userId, channelSlug: 'general', content: 'General visible' },
+        {
+          userId: admin.userId,
+          channelSlug: 'design',
+          content: 'Design visible 1',
+        },
+        {
+          userId: admin.userId,
+          channelSlug: 'design',
+          content: 'Design visible 2',
+        },
+        {
+          userId: admin.userId,
+          channelSlug: 'general',
+          content: 'General visible',
+        },
         {
           userId: admin.userId,
           channelSlug: 'design',
@@ -117,16 +170,29 @@ describe('Community channels/posts/comments (e2e)', () => {
       .expect(200);
 
     expect(adminRes.body.data).toHaveLength(2);
-    expect(adminRes.body.data.every((post: { channelSlug: string }) => post.channelSlug === 'design')).toBe(true);
-    expect(adminRes.body.meta).toMatchObject({ page: 1, limit: 20, total: 2, totalPages: 1 });
+    expect(
+      adminRes.body.data.every(
+        (post: { channelSlug: string }) => post.channelSlug === 'design',
+      ),
+    ).toBe(true);
+    expect(adminRes.body.meta).toMatchObject({
+      page: 1,
+      limit: 20,
+      total: 2,
+      totalPages: 1,
+    });
 
     const matchingProRes = await request(app.getHttpServer())
       .get('/community/channels/design/posts?page=1&limit=20')
       .set('Authorization', `Bearer ${matchingProfessional.access_token}`)
       .expect(200);
 
-    const matchingChannels = matchingProRes.body.data.map((post: { channelSlug: string }) => post.channelSlug);
-    expect(matchingChannels).toEqual(expect.arrayContaining(['design', 'general']));
+    const matchingChannels = matchingProRes.body.data.map(
+      (post: { channelSlug: string }) => post.channelSlug,
+    );
+    expect(matchingChannels).toEqual(
+      expect.arrayContaining(['design', 'general']),
+    );
     expect(matchingChannels).not.toContain('marketing');
 
     const clientRes = await request(app.getHttpServer())
@@ -134,7 +200,11 @@ describe('Community channels/posts/comments (e2e)', () => {
       .set('Authorization', `Bearer ${client.access_token}`)
       .expect(200);
 
-    expect(clientRes.body.data.every((post: { channelSlug: string }) => post.channelSlug === 'general')).toBe(true);
+    expect(
+      clientRes.body.data.every(
+        (post: { channelSlug: string }) => post.channelSlug === 'general',
+      ),
+    ).toBe(true);
 
     await request(app.getHttpServer())
       .get('/community/channels/design/posts')
@@ -152,8 +222,17 @@ describe('Community channels/posts/comments (e2e)', () => {
   });
 
   it('GET /community/posts/:id/comments returns active comments ordered ASC and validates parent/access', async () => {
-    const admin = await registerUser(app, 'admin-comments@test.com', 'password123', 'admin');
-    const professional = await createProfessionalWithRubro(app, 'pro-comments@test.com', 'design');
+    const admin = await registerUser(
+      app,
+      'admin-comments@test.com',
+      'password123',
+      'admin',
+    );
+    const professional = await createProfessionalWithRubro(
+      app,
+      'pro-comments@test.com',
+      'design',
+    );
 
     const post = await prisma.communityPost.create({
       data: {
@@ -195,10 +274,17 @@ describe('Community channels/posts/comments (e2e)', () => {
     expect(commentsRes.body.data).toHaveLength(2);
     expect(commentsRes.body.data[0].content).toBe('First comment');
     expect(commentsRes.body.data[1].content).toBe('Second comment');
-    expect(commentsRes.body.meta).toMatchObject({ page: 1, limit: 20, total: 2, totalPages: 1 });
+    expect(commentsRes.body.meta).toMatchObject({
+      page: 1,
+      limit: 20,
+      total: 2,
+      totalPages: 1,
+    });
 
     await request(app.getHttpServer())
-      .get('/community/posts/00000000-0000-0000-0000-000000000000/comments?page=1&limit=20')
+      .get(
+        '/community/posts/00000000-0000-0000-0000-000000000000/comments?page=1&limit=20',
+      )
       .set('Authorization', `Bearer ${admin.access_token}`)
       .expect(404);
 

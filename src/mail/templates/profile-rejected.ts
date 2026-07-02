@@ -1,4 +1,7 @@
-export function profileRejectedTemplate(name: string, notes?: string): { subject: string; html: string } {
+export function profileRejectedTemplate(
+  name: string,
+  notes?: string,
+): { subject: string; html: string } {
   const notesSection = notes
     ? `
   <div style="background-color: #fef3e2; border-left: 4px solid #e67e22; padding: 15px; margin: 20px 0; border-radius: 0 5px 5px 0;">

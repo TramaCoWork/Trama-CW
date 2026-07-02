@@ -2,7 +2,10 @@ import { IsString, IsOptional, IsInt } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateCertificationDto {
-  @ApiProperty({ example: 'Google UX Design Certificate', description: 'Nombre del curso o certificacion' })
+  @ApiProperty({
+    example: 'Google UX Design Certificate',
+    description: 'Nombre del curso o certificacion',
+  })
   @IsString()
   name: string;
 

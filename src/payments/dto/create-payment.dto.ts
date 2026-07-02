@@ -1,4 +1,10 @@
-import { IsNumber, IsPositive, IsString, IsOptional, IsIn } from 'class-validator';
+import {
+  IsNumber,
+  IsPositive,
+  IsString,
+  IsOptional,
+  IsIn,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreatePaymentDto {
@@ -7,12 +13,20 @@ export class CreatePaymentDto {
   @IsPositive()
   amount: number;
 
-  @ApiPropertyOptional({ example: 'ARS', default: 'ARS', description: 'Moneda' })
+  @ApiPropertyOptional({
+    example: 'ARS',
+    default: 'ARS',
+    description: 'Moneda',
+  })
   @IsString()
   @IsOptional()
   currency: string = 'ARS';
 
-  @ApiProperty({ example: 'mercadopago', enum: ['mercadopago', 'stripe'], description: 'Proveedor de pago' })
+  @ApiProperty({
+    example: 'mercadopago',
+    enum: ['mercadopago', 'stripe'],
+    description: 'Proveedor de pago',
+  })
   @IsString()
   @IsIn(['mercadopago', 'stripe'])
   paymentProvider: string;

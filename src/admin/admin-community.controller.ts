@@ -38,10 +38,28 @@ export class AdminCommunityController {
 
   @Get('posts')
   @ApiOperation({ summary: 'Listar posts de comunidad para moderacion admin' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Numero de pagina (default: 1)' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Posts por pagina (default: 10)' })
-  @ApiQuery({ name: 'channelSlug', required: false, type: String, description: 'Filtrar por slug de canal' })
-  @ApiResponse({ status: 200, description: 'Lista paginada de posts de comunidad' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Numero de pagina (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Posts por pagina (default: 10)',
+  })
+  @ApiQuery({
+    name: 'channelSlug',
+    required: false,
+    type: String,
+    description: 'Filtrar por slug de canal',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista paginada de posts de comunidad',
+  })
   getPosts(@Query() pagination: AdminCommunityPaginationDto) {
     return this.adminCommunityService.listPosts({
       page: pagination.page,
@@ -51,7 +69,9 @@ export class AdminCommunityController {
   }
 
   @Get('posts/:id')
-  @ApiOperation({ summary: 'Obtener post de comunidad por ID para moderacion admin' })
+  @ApiOperation({
+    summary: 'Obtener post de comunidad por ID para moderacion admin',
+  })
   @ApiParam({ name: 'id', description: 'ID del post' })
   @ApiResponse({ status: 200, description: 'Post encontrado' })
   @ApiResponse({ status: 404, description: 'Post no encontrado' })
@@ -60,16 +80,23 @@ export class AdminCommunityController {
   }
 
   @Post('posts/:id/comments')
-  @ApiOperation({ summary: 'Crear comentario admin sobre un post de comunidad' })
+  @ApiOperation({
+    summary: 'Crear comentario admin sobre un post de comunidad',
+  })
   @ApiParam({ name: 'id', description: 'ID del post' })
   @ApiResponse({ status: 201, description: 'Comentario creado' })
   @ApiResponse({ status: 404, description: 'Post no encontrado' })
   createComment(
     @CurrentUser() user: CurrentUserType,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: AdminCommunityCommentDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: AdminCommunityCommentDto,
   ) {
-    return this.adminCommunityService.createComment(id, user.userId, dto.content);
+    return this.adminCommunityService.createComment(
+      id,
+      user.userId,
+      dto.content,
+    );
   }
 
   @Delete('posts/:id')

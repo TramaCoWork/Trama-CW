@@ -11,7 +11,12 @@ import {
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -45,7 +50,10 @@ export class AdminProfessionCategoriesController {
 
   @Post('rubros')
   @ApiOperation({ summary: 'Crear rubro' })
-  createRubro(@Body(new ValidationPipe({ whitelist: true, transform: true })) dto: CreateRubroDto) {
+  createRubro(
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: CreateRubroDto,
+  ) {
     return this.service.adminCreateRubro(dto);
   }
 
@@ -53,7 +61,8 @@ export class AdminProfessionCategoriesController {
   @ApiOperation({ summary: 'Actualizar rubro' })
   updateRubro(
     @Param('id', ParseIntPipe) id: number,
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: UpdateRubroDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: UpdateRubroDto,
   ) {
     return this.service.adminUpdateRubro(id, dto);
   }
@@ -67,7 +76,9 @@ export class AdminProfessionCategoriesController {
   @Get('subrubros')
   @ApiOperation({ summary: 'Listar subrubros (admin)' })
   @ApiQuery({ name: 'rubroId', required: false, type: Number })
-  findSubrubros(@Query('rubroId', new ParseIntPipe({ optional: true })) rubroId?: number) {
+  findSubrubros(
+    @Query('rubroId', new ParseIntPipe({ optional: true })) rubroId?: number,
+  ) {
     return this.service.adminFindSubrubros(rubroId);
   }
 
@@ -80,7 +91,8 @@ export class AdminProfessionCategoriesController {
   @Post('subrubros')
   @ApiOperation({ summary: 'Crear subrubro' })
   createSubrubro(
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: CreateSubrubroDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: CreateSubrubroDto,
   ) {
     return this.service.adminCreateSubrubro(dto);
   }
@@ -89,13 +101,16 @@ export class AdminProfessionCategoriesController {
   @ApiOperation({ summary: 'Actualizar subrubro' })
   updateSubrubro(
     @Param('id', ParseIntPipe) id: number,
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: UpdateSubrubroDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: UpdateSubrubroDto,
   ) {
     return this.service.adminUpdateSubrubro(id, dto);
   }
 
   @Delete('subrubros/:id')
-  @ApiOperation({ summary: 'Desactivar subrubro (solo sin profesiones activas)' })
+  @ApiOperation({
+    summary: 'Desactivar subrubro (solo sin profesiones activas)',
+  })
   removeSubrubro(@Param('id', ParseIntPipe) id: number) {
     return this.service.adminDeactivateSubrubro(id);
   }
@@ -103,7 +118,10 @@ export class AdminProfessionCategoriesController {
   @Get('profesiones')
   @ApiOperation({ summary: 'Listar profesiones (admin)' })
   @ApiQuery({ name: 'subrubroId', required: false, type: Number })
-  findProfesiones(@Query('subrubroId', new ParseIntPipe({ optional: true })) subrubroId?: number) {
+  findProfesiones(
+    @Query('subrubroId', new ParseIntPipe({ optional: true }))
+    subrubroId?: number,
+  ) {
     return this.service.adminFindProfesiones(subrubroId);
   }
 
@@ -116,7 +134,8 @@ export class AdminProfessionCategoriesController {
   @Post('profesiones')
   @ApiOperation({ summary: 'Crear profesion' })
   createProfesion(
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: CreateProfesionDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: CreateProfesionDto,
   ) {
     return this.service.adminCreateProfesion(dto);
   }
@@ -125,13 +144,16 @@ export class AdminProfessionCategoriesController {
   @ApiOperation({ summary: 'Actualizar profesion' })
   updateProfesion(
     @Param('id', ParseIntPipe) id: number,
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: UpdateProfesionDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: UpdateProfesionDto,
   ) {
     return this.service.adminUpdateProfesion(id, dto);
   }
 
   @Delete('profesiones/:id')
-  @ApiOperation({ summary: 'Desactivar profesion (solo sin referencias activas)' })
+  @ApiOperation({
+    summary: 'Desactivar profesion (solo sin referencias activas)',
+  })
   removeProfesion(@Param('id', ParseIntPipe) id: number) {
     return this.service.adminDeactivateProfesion(id);
   }

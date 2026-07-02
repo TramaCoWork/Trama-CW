@@ -3,7 +3,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { seedTestCategories } from './test-seeds';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const request = require('supertest');
 
 let testRubroId: number | null = null;

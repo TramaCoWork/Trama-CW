@@ -1,4 +1,7 @@
-export function profileApprovedTemplate(name: string): { subject: string; html: string } {
+export function profileApprovedTemplate(name: string): {
+  subject: string;
+  html: string;
+} {
   return {
     subject: '¡Felicitaciones! Tu perfil fue aprobado en Trama',
     html: `

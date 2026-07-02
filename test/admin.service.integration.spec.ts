@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, INestApplication, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  INestApplication,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
@@ -15,7 +20,10 @@ describe('AdminService (integration)', () => {
   let prismaService: PrismaService;
   let mailService: {
     sendProfileApproved: jest.Mock<Promise<void>, [string, string]>;
-    sendProfileRejected: jest.Mock<Promise<void>, [string, string, string | undefined]>;
+    sendProfileRejected: jest.Mock<
+      Promise<void>,
+      [string, string, string | undefined]
+    >;
   };
   let configService: { get: jest.Mock<number, [string, number?]> };
 
@@ -54,7 +62,9 @@ describe('AdminService (integration)', () => {
   const createProfessional = async (
     overrides: Partial<AdminRegisterProfessionalDto> = {},
   ) => {
-    const result = await adminService.registerProfessional(buildRegisterDto(overrides));
+    const result = await adminService.registerProfessional(
+      buildRegisterDto(overrides),
+    );
     const profile = await prismaService.professionalProfile.findUniqueOrThrow({
       where: { userId: result.user.id },
       include: { professionCategories: true },
@@ -162,33 +172,40 @@ describe('AdminService (integration)', () => {
 
     expect(result.user.email).toBe(dto.email);
     expect(result.user.passwordHash).not.toBe(dto.password);
-    await expect(bcrypt.compare(dto.password, result.user.passwordHash)).resolves.toBe(true);
+    await expect(
+      bcrypt.compare(dto.password, result.user.passwordHash),
+    ).resolves.toBe(true);
 
-    const persistedProfile = await prismaService.professionalProfile.findUniqueOrThrow({
-      where: { userId: result.user.id },
-      include: { professionCategories: true },
-    });
+    const persistedProfile =
+      await prismaService.professionalProfile.findUniqueOrThrow({
+        where: { userId: result.user.id },
+        include: { professionCategories: true },
+      });
 
     expect(persistedProfile.rubroId).toBe(rubroId);
-    expect(persistedProfile.professionCategories.map((category) => category.id).sort()).toEqual(
-      [...professionCategoryIds].sort(),
-    );
+    expect(
+      persistedProfile.professionCategories
+        .map((category) => category.id)
+        .sort(),
+    ).toEqual([...professionCategoryIds].sort());
   });
 
   it('should reject duplicate email', async () => {
     const email = `duplicate-${Date.now()}@test.com`;
     await adminService.registerProfessional(buildRegisterDto({ email }));
 
-    await expect(adminService.registerProfessional(buildRegisterDto({ email }))).rejects.toThrow(
-      ConflictException,
-    );
+    await expect(
+      adminService.registerProfessional(buildRegisterDto({ email })),
+    ).rejects.toThrow(ConflictException);
 
     expect(await prismaService.user.count({ where: { email } })).toBe(1);
   });
 
   it('should reject invalid rubroId', async () => {
     await expect(
-      adminService.registerProfessional(buildRegisterDto({ rubroId: 99999999 })),
+      adminService.registerProfessional(
+        buildRegisterDto({ rubroId: 99999999 }),
+      ),
     ).rejects.toThrow(BadRequestException);
 
     expect(await prismaService.user.count()).toBe(0);
@@ -228,7 +245,9 @@ describe('AdminService (integration)', () => {
       ),
     ).rejects.toThrow();
 
-    expect(await prismaService.user.findUnique({ where: { email } })).toBeNull();
+    expect(
+      await prismaService.user.findUnique({ where: { email } }),
+    ).toBeNull();
     expect(await prismaService.professionalProfile.count()).toBe(0);
   });
 
@@ -245,9 +264,9 @@ describe('AdminService (integration)', () => {
     });
 
     expect(updated.name).toBe('Updated Professional');
-    expect(updated.professionCategories.map((category) => category.id)).toEqual([
-      professionCategoryIds[1],
-    ]);
+    expect(updated.professionCategories.map((category) => category.id)).toEqual(
+      [professionCategoryIds[1]],
+    );
 
     const persistedUser = await prismaService.user.findUniqueOrThrow({
       where: { id: user.id },
@@ -268,9 +287,9 @@ describe('AdminService (integration)', () => {
 
     expect(updated.name).toBe('Only Name Updated');
     expect(updated.city).toBe('Rosario');
-    expect(updated.professionCategories.map((category) => category.id)).toEqual([
-      professionCategoryIds[0],
-    ]);
+    expect(updated.professionCategories.map((category) => category.id)).toEqual(
+      [professionCategoryIds[0]],
+    );
   });
 
   it('should approve professional', async () => {
@@ -298,24 +317,32 @@ describe('AdminService (integration)', () => {
     });
     const adminUser = await createAdminUser();
 
-    const validation = await adminService.validateProfile(adminUser.id, profile.id, {
-      status: 'manual_approved',
-      reviewNotes: 'Approved by admin',
-      documentsReviewed: [],
-    });
+    const validation = await adminService.validateProfile(
+      adminUser.id,
+      profile.id,
+      {
+        status: 'manual_approved',
+        reviewNotes: 'Approved by admin',
+        documentsReviewed: [],
+      },
+    );
 
     expect(validation.professionalId).toBe(profile.id);
     expect(validation.reviewedBy).toBe(adminUser.id);
     expect(validation.status).toBe('manual_approved');
 
-    const persistedProfile = await prismaService.professionalProfile.findUniqueOrThrow({
-      where: { id: profile.id },
-    });
+    const persistedProfile =
+      await prismaService.professionalProfile.findUniqueOrThrow({
+        where: { id: profile.id },
+      });
     expect(persistedProfile.profileStatus).toBe('active');
     expect(persistedProfile.isActive).toBe(true);
 
     expect(mailService.sendProfileApproved).toHaveBeenCalledTimes(1);
-    expect(mailService.sendProfileApproved).toHaveBeenCalledWith(user.email, profile.name);
+    expect(mailService.sendProfileApproved).toHaveBeenCalledWith(
+      user.email,
+      profile.name,
+    );
   });
 
   it('should reject profile and send rejection email', async () => {
@@ -331,9 +358,10 @@ describe('AdminService (integration)', () => {
       documentsReviewed: [],
     });
 
-    const persistedProfile = await prismaService.professionalProfile.findUniqueOrThrow({
-      where: { id: profile.id },
-    });
+    const persistedProfile =
+      await prismaService.professionalProfile.findUniqueOrThrow({
+        where: { id: profile.id },
+      });
     expect(persistedProfile.profileStatus).toBe('rejected');
     expect(persistedProfile.isActive).toBe(false);
 
@@ -353,19 +381,27 @@ describe('AdminService (integration)', () => {
     const adminUser = await createAdminUser();
 
     configService.get.mockReturnValue(30);
-    await adminService.validateProfile(adminUser.id, firstProfessional.profile.id, {
-      status: 'manual_approved',
-      reviewNotes: 'Approved with trial',
-      documentsReviewed: [],
-    });
+    await adminService.validateProfile(
+      adminUser.id,
+      firstProfessional.profile.id,
+      {
+        status: 'manual_approved',
+        reviewNotes: 'Approved with trial',
+        documentsReviewed: [],
+      },
+    );
 
-    const approvedWithTrial = await prismaService.professionalProfile.findUniqueOrThrow({
-      where: { id: firstProfessional.profile.id },
-    });
+    const approvedWithTrial =
+      await prismaService.professionalProfile.findUniqueOrThrow({
+        where: { id: firstProfessional.profile.id },
+      });
     expect(approvedWithTrial.trialEndDate).not.toBeNull();
 
     const millisecondsIn30Days = 30 * 24 * 60 * 60 * 1000;
-    const diff = Math.abs(approvedWithTrial.trialEndDate!.getTime() - (Date.now() + millisecondsIn30Days));
+    const diff = Math.abs(
+      approvedWithTrial.trialEndDate!.getTime() -
+        (Date.now() + millisecondsIn30Days),
+    );
     expect(diff).toBeLessThan(30 * 1000);
 
     const secondProfessional = await createProfessional({
@@ -374,15 +410,20 @@ describe('AdminService (integration)', () => {
     });
 
     configService.get.mockReturnValue(0);
-    await adminService.validateProfile(adminUser.id, secondProfessional.profile.id, {
-      status: 'manual_approved',
-      reviewNotes: 'Approved without trial',
-      documentsReviewed: [],
-    });
+    await adminService.validateProfile(
+      adminUser.id,
+      secondProfessional.profile.id,
+      {
+        status: 'manual_approved',
+        reviewNotes: 'Approved without trial',
+        documentsReviewed: [],
+      },
+    );
 
-    const approvedWithoutTrial = await prismaService.professionalProfile.findUniqueOrThrow({
-      where: { id: secondProfessional.profile.id },
-    });
+    const approvedWithoutTrial =
+      await prismaService.professionalProfile.findUniqueOrThrow({
+        where: { id: secondProfessional.profile.id },
+      });
     expect(approvedWithoutTrial.trialEndDate).toBeNull();
     expect(configService.get).toHaveBeenCalledWith('TRIAL_DAYS', 0);
   });

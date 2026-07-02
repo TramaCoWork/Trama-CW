@@ -50,7 +50,9 @@ export class MpBricksSubscriptionStrategy implements PaymentStrategy {
   }
 
   /** Crea el preapproval (cobro automático) con el card token del Brick. */
-  async payWithCardToken(data: BricksSubscribeData): Promise<BricksSubscribeResult> {
+  async payWithCardToken(
+    data: BricksSubscribeData,
+  ): Promise<BricksSubscribeResult> {
     const result = await this.mercadopago.createPreapprovalWithCardToken({
       reason: data.plan.name,
       cardTokenId: data.cardTokenId,
@@ -84,7 +86,10 @@ export class MpBricksSubscriptionStrategy implements PaymentStrategy {
     return null; // lo maneja MpSubscriptionStrategy (subscription_preapproval)
   }
 
-  async cancelSubscription(externalId: string | null, _endDate: Date | null): Promise<CancelResult> {
+  async cancelSubscription(
+    externalId: string | null,
+    _endDate: Date | null,
+  ): Promise<CancelResult> {
     let endDate = new Date();
 
     if (externalId) {
@@ -94,10 +99,14 @@ export class MpBricksSubscriptionStrategy implements PaymentStrategy {
         const nextPayment = (preapproval as any).next_payment_date;
         if (nextPayment) {
           endDate = new Date(nextPayment);
-          this.logger.log(`Preapproval ${externalId} paid until: ${endDate.toISOString()}`);
+          this.logger.log(
+            `Preapproval ${externalId} paid until: ${endDate.toISOString()}`,
+          );
         }
       } catch (error) {
-        this.logger.warn(`Could not fetch preapproval details for endDate: ${error.message}`);
+        this.logger.warn(
+          `Could not fetch preapproval details for endDate: ${error.message}`,
+        );
       }
     }
 

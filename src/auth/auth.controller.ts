@@ -1,5 +1,22 @@
-import { Controller, Post, Get, Patch, Body, Query, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Body,
+  Query,
+  UseGuards,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiQuery,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService, TokenResponse } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -21,9 +38,14 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  @ApiOperation({ summary: 'Registrar nuevo usuario (envia email de verificacion)' })
+  @ApiOperation({
+    summary: 'Registrar nuevo usuario (envia email de verificacion)',
+  })
   @ApiBody({ type: RegisterDto })
-  @ApiResponse({ status: 201, description: 'Usuario registrado. Se envio email de verificacion.' })
+  @ApiResponse({
+    status: 201,
+    description: 'Usuario registrado. Se envio email de verificacion.',
+  })
   @ApiResponse({ status: 409, description: 'Email ya registrado' })
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   register(@Body() dto: RegisterDto): Promise<TokenResponse> {
@@ -45,7 +67,10 @@ export class AuthController {
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Iniciar sesion como administrador' })
   @ApiBody({ type: LoginDto })
-  @ApiResponse({ status: 201, description: 'Login admin exitoso, retorna token JWT' })
+  @ApiResponse({
+    status: 201,
+    description: 'Login admin exitoso, retorna token JWT',
+  })
   @ApiResponse({ status: 401, description: 'Credenciales invalidas' })
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   adminLogin(@Body() dto: LoginDto): Promise<TokenResponse> {
@@ -53,18 +78,32 @@ export class AuthController {
   }
 
   @Post('professional-register')
-  @ApiOperation({ summary: 'Registrar nuevo profesional con perfil basico (envia email de verificacion)' })
+  @ApiOperation({
+    summary:
+      'Registrar nuevo profesional con perfil basico (envia email de verificacion)',
+  })
   @ApiBody({ type: ProfessionalRegisterDto })
-  @ApiResponse({ status: 201, description: 'Profesional registrado. Se envio email de verificacion.' })
+  @ApiResponse({
+    status: 201,
+    description: 'Profesional registrado. Se envio email de verificacion.',
+  })
   @ApiResponse({ status: 409, description: 'Email ya registrado' })
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-  professionalRegister(@Body() dto: ProfessionalRegisterDto): Promise<TokenResponse> {
+  professionalRegister(
+    @Body() dto: ProfessionalRegisterDto,
+  ): Promise<TokenResponse> {
     return this.authService.professionalRegister(dto);
   }
 
   @Get('verify-email')
-  @ApiOperation({ summary: 'Verificar email mediante token enviado por correo' })
-  @ApiQuery({ name: 'token', required: true, description: 'Token JWT de verificacion (enviado en el email)' })
+  @ApiOperation({
+    summary: 'Verificar email mediante token enviado por correo',
+  })
+  @ApiQuery({
+    name: 'token',
+    required: true,
+    description: 'Token JWT de verificacion (enviado en el email)',
+  })
   @ApiResponse({ status: 200, description: 'Email verificado exitosamente' })
   @ApiResponse({ status: 400, description: 'Token invalido o expirado' })
   verifyEmail(@Query('token') token: string) {
@@ -75,7 +114,10 @@ export class AuthController {
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Reenviar email de verificacion' })
   @ApiBody({ type: ResendVerificationDto })
-  @ApiResponse({ status: 201, description: 'Si el email existe y no fue verificado, se reenvia el enlace' })
+  @ApiResponse({
+    status: 201,
+    description: 'Si el email existe y no fue verificado, se reenvia el enlace',
+  })
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   resendVerification(@Body() dto: ResendVerificationDto) {
     return this.authService.resendVerification(dto.email);
@@ -83,9 +125,15 @@ export class AuthController {
 
   @Post('forgot-password')
   @Throttle({ default: { ttl: 60000, limit: 5 } })
-  @ApiOperation({ summary: 'Solicitar recuperacion de contraseña (envia email con enlace)' })
+  @ApiOperation({
+    summary: 'Solicitar recuperacion de contraseña (envia email con enlace)',
+  })
   @ApiBody({ type: ForgotPasswordDto })
-  @ApiResponse({ status: 201, description: 'Si el email esta registrado, se envia un enlace de recuperacion' })
+  @ApiResponse({
+    status: 201,
+    description:
+      'Si el email esta registrado, se envia un enlace de recuperacion',
+  })
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto.email);
@@ -93,13 +141,22 @@ export class AuthController {
 
   @Post('reset-password')
   @Throttle({ default: { ttl: 60000, limit: 5 } })
-  @ApiOperation({ summary: 'Restablecer contraseña usando token recibido por email' })
+  @ApiOperation({
+    summary: 'Restablecer contraseña usando token recibido por email',
+  })
   @ApiBody({ type: ResetPasswordDto })
-  @ApiResponse({ status: 201, description: 'Contraseña restablecida exitosamente' })
+  @ApiResponse({
+    status: 201,
+    description: 'Contraseña restablecida exitosamente',
+  })
   @ApiResponse({ status: 400, description: 'Token invalido o expirado' })
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   resetPassword(@Body() dto: ResetPasswordDto) {
-    return this.authService.resetPassword(dto.userId, dto.token, dto.newPassword);
+    return this.authService.resetPassword(
+      dto.userId,
+      dto.token,
+      dto.newPassword,
+    );
   }
 
   @Patch('change-password')
@@ -107,17 +164,29 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cambiar contraseña del usuario autenticado' })
   @ApiBody({ type: ChangePasswordDto })
-  @ApiResponse({ status: 200, description: 'Contraseña actualizada exitosamente' })
+  @ApiResponse({
+    status: 200,
+    description: 'Contraseña actualizada exitosamente',
+  })
   @ApiResponse({ status: 401, description: 'Contraseña actual incorrecta' })
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-  changePassword(@CurrentUser() user: CurrentUserType, @Body() dto: ChangePasswordDto) {
-    return this.authService.changePassword(user.userId, dto.currentPassword, dto.newPassword);
+  changePassword(
+    @CurrentUser() user: CurrentUserType,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(
+      user.userId,
+      dto.currentPassword,
+      dto.newPassword,
+    );
   }
 
   @Get('me/referral-code')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Obtener el código de referido del usuario autenticado' })
+  @ApiOperation({
+    summary: 'Obtener el código de referido del usuario autenticado',
+  })
   @ApiResponse({ status: 200, description: 'Código de referido del usuario' })
   getMyReferralCode(@CurrentUser() user: CurrentUserType) {
     return this.authService.getMyReferralCode(user.userId);
@@ -126,10 +195,15 @@ export class AuthController {
   @Patch('me/referral-code')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Actualizar el código de referido del usuario autenticado' })
+  @ApiOperation({
+    summary: 'Actualizar el código de referido del usuario autenticado',
+  })
   @ApiBody({ type: UpdateReferralCodeDto })
   @ApiResponse({ status: 200, description: 'Código actualizado exitosamente' })
-  @ApiResponse({ status: 409, description: 'Código ya en uso por otro usuario' })
+  @ApiResponse({
+    status: 409,
+    description: 'Código ya en uso por otro usuario',
+  })
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   updateMyReferralCode(
     @CurrentUser() user: CurrentUserType,

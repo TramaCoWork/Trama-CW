@@ -39,10 +39,12 @@ describe('MessagesService', () => {
   });
 
   it('lanza error al enviarse mensaje a sí mismo', async () => {
-    await expect(service.sendMessage('user-1', {
-      receiverId: 'user-1',
-      content: 'hola',
-    })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.sendMessage('user-1', {
+        receiverId: 'user-1',
+        content: 'hola',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('lista conversaciones filtrando soft delete por lado correcto', async () => {
@@ -70,7 +72,9 @@ describe('MessagesService', () => {
       readAt: null,
     });
 
-    await expect(service.markAsRead('other-user', 'm1')).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.markAsRead('other-user', 'm1')).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
   });
 
   it('soft delete setea deletedBySender cuando elimina el sender', async () => {

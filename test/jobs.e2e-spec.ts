@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const request = require('supertest');
 import { createTestApp, registerUser } from './test-app.factory';
 import { cleanDatabase } from './clean-database';
@@ -24,9 +24,7 @@ describe('Jobs (e2e)', () => {
 
   describe('GET /jobs', () => {
     it('should return jobs list', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/jobs')
-        .expect(200);
+      const res = await request(app.getHttpServer()).get('/jobs').expect(200);
 
       expect(Array.isArray(res.body)).toBe(true);
     });
@@ -35,10 +33,19 @@ describe('Jobs (e2e)', () => {
   describe('POST /jobs/apply', () => {
     it('should apply to a job', async () => {
       const job = await prisma.job.create({
-        data: { title: 'Test Job', description: 'A test', createdByAdmin: true, isActive: true },
+        data: {
+          title: 'Test Job',
+          description: 'A test',
+          createdByAdmin: true,
+          isActive: true,
+        },
       });
 
-      const { access_token } = await registerUser(app, 'user@test.com', 'password123');
+      const { access_token } = await registerUser(
+        app,
+        'user@test.com',
+        'password123',
+      );
 
       const res = await request(app.getHttpServer())
         .post('/jobs/apply')

@@ -38,7 +38,11 @@ export class MessagesController {
     @CurrentUser() user: CurrentUserType,
     @Query() query: QueryMessagesDto,
   ) {
-    return this.messagesService.getConversations(user.userId, query.cursor, query.take);
+    return this.messagesService.getConversations(
+      user.userId,
+      query.cursor,
+      query.take,
+    );
   }
 
   @Get('conversations/:userId')
@@ -47,7 +51,12 @@ export class MessagesController {
     @Param('userId') otherUserId: string,
     @Query() query: QueryMessagesDto,
   ) {
-    return this.messagesService.getMessages(user.userId, otherUserId, query.cursor, query.take);
+    return this.messagesService.getMessages(
+      user.userId,
+      otherUserId,
+      query.cursor,
+      query.take,
+    );
   }
 
   @Get('recipients')
@@ -81,6 +90,10 @@ export class MessagesController {
     @Param('id') messageId: string,
     @Query() dto: DeleteMessageDto,
   ) {
-    return this.messagesService.deleteMessage(user.userId, messageId, dto.forAll);
+    return this.messagesService.deleteMessage(
+      user.userId,
+      messageId,
+      dto.forAll,
+    );
   }
 }

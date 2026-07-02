@@ -8,7 +8,9 @@ import { withoutDeleted } from '../common/filters/soft-delete.filter';
 export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getProfessionalDashboard(userId: string): Promise<ProfessionalDashboardDto> {
+  async getProfessionalDashboard(
+    userId: string,
+  ): Promise<ProfessionalDashboardDto> {
     const profile = await this.prisma.professionalProfile.findUnique({
       where: withoutDeleted({ userId }),
       select: { id: true, trialEndDate: true },
@@ -31,7 +33,9 @@ export class DashboardService {
     ] = await Promise.all([
       this.prisma.contactLog.count({ where: { professionalId: profile.id } }),
       this.prisma.education.count({ where: { professionalId: profile.id } }),
-      this.prisma.certification.count({ where: { professionalId: profile.id } }),
+      this.prisma.certification.count({
+        where: { professionalId: profile.id },
+      }),
       this.prisma.document.count({ where: { professionalId: profile.id } }),
       this.prisma.privateMessage.count({
         where: {
@@ -40,7 +44,9 @@ export class DashboardService {
       }),
       this.prisma.communityPost.count({ where: { userId } }),
       this.prisma.jobApplication.count({ where: { userId } }),
-      this.prisma.profileValidation.count({ where: { professionalId: profile.id } }),
+      this.prisma.profileValidation.count({
+        where: { professionalId: profile.id },
+      }),
       this.prisma.subscription.findFirst({
         where: {
           userId,

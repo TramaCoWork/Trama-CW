@@ -50,7 +50,9 @@ export class CatalogsController {
   }
 
   @Get('community-image-entity-types')
-  @ApiOperation({ summary: 'Listar tipos de entidad para imagenes de comunidad' })
+  @ApiOperation({
+    summary: 'Listar tipos de entidad para imagenes de comunidad',
+  })
   @ApiResponse({
     status: 200,
     description: 'Array de tipos de entidad para imagenes de comunidad',

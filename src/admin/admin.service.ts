@@ -124,9 +124,7 @@ export class AdminService {
       });
 
       if (!professionalRole) {
-        throw new NotFoundException(
-          'Missing seeded role: professional',
-        );
+        throw new NotFoundException('Missing seeded role: professional');
       }
 
       return tx.user.create({
@@ -624,14 +622,16 @@ export class AdminService {
       },
     });
 
-    return documents.map(({ education, certification, profession, ...document }) => ({
-      ...document,
-      professionName: profession?.name ?? null,
-      educationTitle: education?.title ?? null,
-      educationInstitution: education?.institution ?? null,
-      educationYear: education?.year ?? null,
-      certificationName: certification?.name ?? null,
-    }));
+    return documents.map(
+      ({ education, certification, profession, ...document }) => ({
+        ...document,
+        professionName: profession?.name ?? null,
+        educationTitle: education?.title ?? null,
+        educationInstitution: education?.institution ?? null,
+        educationYear: education?.year ?? null,
+        certificationName: certification?.name ?? null,
+      }),
+    );
   }
 
   async getValidationHistory(profileId: string) {
@@ -670,14 +670,20 @@ export class AdminService {
       data.isActive = dto.isActive ?? dto.is_active;
     }
     if (dto.hideProfile !== undefined) data.hideProfile = dto.hideProfile;
-    if (dto.rubroId !== undefined) data.rubro = { connect: { id: dto.rubroId } };
-    if (dto.countryId !== undefined) data.country = { connect: { id: dto.countryId } };
-    if (dto.provinceId !== undefined) data.province = { connect: { id: dto.provinceId } };
+    if (dto.rubroId !== undefined)
+      data.rubro = { connect: { id: dto.rubroId } };
+    if (dto.countryId !== undefined)
+      data.country = { connect: { id: dto.countryId } };
+    if (dto.provinceId !== undefined)
+      data.province = { connect: { id: dto.provinceId } };
     if (dto.profileStatus !== undefined) data.profileStatus = dto.profileStatus;
-    if (dto.trialEndDate !== undefined) data.trialEndDate = new Date(dto.trialEndDate);
+    if (dto.trialEndDate !== undefined)
+      data.trialEndDate = new Date(dto.trialEndDate);
     if (dto.professionCategoryIds !== undefined) {
       data.professionCategories = {
-        set: dto.professionCategoryIds.map((categoryId) => ({ id: categoryId })),
+        set: dto.professionCategoryIds.map((categoryId) => ({
+          id: categoryId,
+        })),
       };
     }
 
@@ -1028,10 +1034,16 @@ export class AdminService {
    * Borra las fotos de DNI (frente y dorso) del storage y limpia las URLs
    * del perfil en la DB. Se llama solo al confirmar la identidad del profesional.
    */
-  private async _deleteIdentityFiles(profile: { id: string; identityFrontUrl: string | null; identityBackUrl: string | null }) {
+  private async _deleteIdentityFiles(profile: {
+    id: string;
+    identityFrontUrl: string | null;
+    identityBackUrl: string | null;
+  }) {
     const toDelete: string[] = [];
-    if (profile.identityFrontUrl) toDelete.push(profile.identityFrontUrl.replace('/uploads/', ''));
-    if (profile.identityBackUrl)  toDelete.push(profile.identityBackUrl.replace('/uploads/', ''));
+    if (profile.identityFrontUrl)
+      toDelete.push(profile.identityFrontUrl.replace('/uploads/', ''));
+    if (profile.identityBackUrl)
+      toDelete.push(profile.identityBackUrl.replace('/uploads/', ''));
 
     if (toDelete.length === 0) return;
 
@@ -1067,14 +1079,20 @@ export class AdminService {
     }
 
     const validStrategies = ['mp_subscription', 'mp_bricks_subscription'];
-    if (!subscription.paymentStrategy || !validStrategies.includes(subscription.paymentStrategy)) {
+    if (
+      !subscription.paymentStrategy ||
+      !validStrategies.includes(subscription.paymentStrategy)
+    ) {
       throw new UnprocessableEntityException(
         `La estrategia de pago "${subscription.paymentStrategy}" no soporta actualización de monto`,
       );
     }
 
     // Actualizar en MP
-    await this.mercadopago.updatePreapprovalAmount(subscription.externalId, dto.amount);
+    await this.mercadopago.updatePreapprovalAmount(
+      subscription.externalId,
+      dto.amount,
+    );
 
     // Limpiar descuento y registrar nuevo monto en DB
     const updated = await this.prisma.subscription.update({
@@ -1098,7 +1116,9 @@ export class AdminService {
   // ─── Referral code (admin) ────────────────────────────────────────────────
 
   /** Devuelve el referralCode de cualquier usuario (por userId). */
-  async getUserReferralCode(userId: string): Promise<{ referralCode: string | null }> {
+  async getUserReferralCode(
+    userId: string,
+  ): Promise<{ referralCode: string | null }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { referralCode: true },
@@ -1108,14 +1128,19 @@ export class AdminService {
   }
 
   /** Setea o cambia el referralCode de cualquier usuario. Valida unicidad. */
-  async setUserReferralCode(userId: string, dto: UpdateReferralCodeDto): Promise<{ referralCode: string }> {
+  async setUserReferralCode(
+    userId: string,
+    dto: UpdateReferralCodeDto,
+  ): Promise<{ referralCode: string }> {
     const code = dto.referralCode.trim();
 
     const existing = await this.prisma.user.findFirst({
       where: { referralCode: code },
     });
     if (existing && existing.id !== userId) {
-      throw new ConflictException('Ese código de referido ya está en uso por otro usuario');
+      throw new ConflictException(
+        'Ese código de referido ya está en uso por otro usuario',
+      );
     }
 
     const updated = await this.prisma.user.update({

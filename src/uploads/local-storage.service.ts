@@ -15,7 +15,10 @@ export class LocalStorageService implements StorageService {
       : path.resolve(process.cwd(), configuredPath);
   }
 
-  async upload(file: Express.Multer.File, folder: string): Promise<{ url: string; path: string }> {
+  async upload(
+    file: Express.Multer.File,
+    folder: string,
+  ): Promise<{ url: string; path: string }> {
     const dir = path.join(this.basePath, folder);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });

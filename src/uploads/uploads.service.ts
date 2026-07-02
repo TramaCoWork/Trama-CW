@@ -22,17 +22,25 @@ export class UploadsService {
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
 
-  async uploadDocument(userId: string, file: Express.Multer.File, dto: UploadDocumentDto) {
+  async uploadDocument(
+    userId: string,
+    file: Express.Multer.File,
+    dto: UploadDocumentDto,
+  ) {
     if (!file) {
       throw new BadRequestException('No se envio ningun archivo');
     }
 
     if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-      throw new BadRequestException('Tipo de archivo no permitido. Solo PDF, JPG y PNG');
+      throw new BadRequestException(
+        'Tipo de archivo no permitido. Solo PDF, JPG y PNG',
+      );
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      throw new BadRequestException('El archivo excede el tamaño maximo de 5MB');
+      throw new BadRequestException(
+        'El archivo excede el tamaño maximo de 5MB',
+      );
     }
 
     const profile = await this.prisma.professionalProfile.findUnique({
@@ -43,7 +51,10 @@ export class UploadsService {
       throw new NotFoundException('Perfil profesional no encontrado');
     }
 
-    const { url, path } = await this.storage.upload(file, `documents/${profile.id}`);
+    const { url, path } = await this.storage.upload(
+      file,
+      `documents/${profile.id}`,
+    );
 
     // Si la education asociada es de nivel "certificacion", forzar type = certificate
     if (dto.educationId) {
@@ -253,15 +264,21 @@ export class UploadsService {
     backFile: Express.Multer.File,
   ) {
     if (!frontFile || !backFile) {
-      throw new BadRequestException('Debe enviar ambos archivos: frente (front) y dorso (back)');
+      throw new BadRequestException(
+        'Debe enviar ambos archivos: frente (front) y dorso (back)',
+      );
     }
 
     for (const file of [frontFile, backFile]) {
       if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-        throw new BadRequestException(`Tipo de archivo no permitido (${file.originalname}). Solo PDF, JPG y PNG`);
+        throw new BadRequestException(
+          `Tipo de archivo no permitido (${file.originalname}). Solo PDF, JPG y PNG`,
+        );
       }
       if (file.size > MAX_FILE_SIZE) {
-        throw new BadRequestException(`El archivo ${file.originalname} excede el tamaño maximo de 5MB`);
+        throw new BadRequestException(
+          `El archivo ${file.originalname} excede el tamaño maximo de 5MB`,
+        );
       }
     }
 
@@ -285,11 +302,17 @@ export class UploadsService {
 
     const folder = `identity/${profile.id}`;
     const frontResult = await this.storage.upload(
-      { ...frontFile, originalname: `frente${this.getExtension(frontFile.originalname)}` } as Express.Multer.File,
+      {
+        ...frontFile,
+        originalname: `frente${this.getExtension(frontFile.originalname)}`,
+      } as Express.Multer.File,
       folder,
     );
     const backResult = await this.storage.upload(
-      { ...backFile, originalname: `dorso${this.getExtension(backFile.originalname)}` } as Express.Multer.File,
+      {
+        ...backFile,
+        originalname: `dorso${this.getExtension(backFile.originalname)}`,
+      } as Express.Multer.File,
       folder,
     );
 
@@ -334,9 +357,12 @@ export class UploadsService {
       throw new NotFoundException('Perfil profesional no encontrado');
     }
 
-    const url = side === 'front' ? profile.identityFrontUrl : profile.identityBackUrl;
+    const url =
+      side === 'front' ? profile.identityFrontUrl : profile.identityBackUrl;
     if (!url) {
-      throw new NotFoundException(`Documento de identidad (${side === 'front' ? 'frente' : 'dorso'}) no encontrado`);
+      throw new NotFoundException(
+        `Documento de identidad (${side === 'front' ? 'frente' : 'dorso'}) no encontrado`,
+      );
     }
 
     const relativePath = url.replace('/uploads/', '');

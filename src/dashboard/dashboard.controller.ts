@@ -49,7 +49,9 @@ export class DashboardController {
   @Roles('professional')
   @Get('professional')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Obtener totalizadores y plan del profesional autenticado' })
+  @ApiOperation({
+    summary: 'Obtener totalizadores y plan del profesional autenticado',
+  })
   @ApiOkResponse({ type: ProfessionalDashboardDto })
   async getProfessionalDashboard(@CurrentUser() user: CurrentUserType) {
     return this.dashboardService.getProfessionalDashboard(user.userId);

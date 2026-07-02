@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ProfessionalProfile, Prisma, SubscriptionStatus } from '@prisma/client';
+import {
+  ProfessionalProfile,
+  Prisma,
+  SubscriptionStatus,
+} from '@prisma/client';
 
 export interface SearchQuery {
   q?: string;
@@ -128,8 +132,12 @@ export class SearchService {
 
     return this.prisma.professionalProfile.findMany({
       where,
-      include: { professionCategories: true, rubro: true, country: true, province: true },
+      include: {
+        professionCategories: true,
+        rubro: true,
+        country: true,
+        province: true,
+      },
     });
   }
-
 }

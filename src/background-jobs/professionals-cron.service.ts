@@ -1,49 +1,38 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SchedulerRegistry } from '@nestjs/schedule';
-import { CronJob } from 'cron';
 import { PrismaService } from '../prisma/prisma.service';
-import { withoutDeleted } from '../common/filters/soft-delete.filter';
-
-type CronScheduleConfig = Record<string, string | null>;
+import { BaseCronService, JobResult } from './base-cron.service';
 
 @Injectable()
-export class ProfessionalsCronService implements OnModuleInit {
-  private readonly logger = new Logger(ProfessionalsCronService.name);
+export class ProfessionalsCronService
+  extends BaseCronService
+  implements OnModuleInit
+{
+  protected readonly logger = new Logger(ProfessionalsCronService.name);
 
   constructor(
-    private readonly configService: ConfigService,
-    private readonly schedulerRegistry: SchedulerRegistry,
-    private readonly prisma: PrismaService,
-  ) {}
+    prisma: PrismaService,
+    configService: ConfigService,
+    schedulerRegistry: SchedulerRegistry,
+  ) {
+    super(prisma, configService, schedulerRegistry);
+  }
 
   onModuleInit() {
-    const cronSchedule = JSON.parse(this.configService.getOrThrow<string>('CRON_SCHEDULE')) as CronScheduleConfig;
+    const cronSchedule = this.getCronSchedule();
 
-    this.registerJob('expiredTrials', cronSchedule.expiredTrials, () => this.handleExpiredTrials());
-    this.registerJob('expiredCancelledSubs', cronSchedule.expiredCancelledSubs, () =>
-      this.handleExpiredCancelledSubscriptions(),
+    this.registerJob('expiredTrials', cronSchedule.expiredTrials, () =>
+      this.handleExpiredTrials(),
+    );
+    this.registerJob(
+      'expiredCancelledSubs',
+      cronSchedule.expiredCancelledSubs,
+      () => this.handleExpiredCancelledSubscriptions(),
     );
   }
 
-  private registerJob(jobName: string, schedule: string | null | undefined, handler: () => Promise<void>) {
-    if (typeof schedule !== 'string') {
-      return;
-    }
-
-    const job = new CronJob(schedule, async () => {
-      const startTime = Date.now();
-      this.logger.log(`Iniciando ${jobName}...`);
-      await handler();
-      this.logger.log(`Finalizado ${jobName} (duración: ${Date.now() - startTime}ms)`);
-    });
-
-    this.logger.log(`Job ${jobName} registrado con schedule: ${schedule}`);
-    this.schedulerRegistry.addCronJob(jobName, job);
-    job.start();
-  }
-
-  async handleExpiredTrials() {
+  async handleExpiredTrials(): Promise<JobResult> {
     const now = new Date();
 
     const result = await this.prisma.professionalProfile.updateMany({
@@ -60,12 +49,17 @@ export class ProfessionalsCronService implements OnModuleInit {
     });
 
     if (result.count > 0) {
-      this.logger.log(`Expired trials: ${result.count} profiles moved to waiting_payment`);
+      this.logger.log(
+        `Expired trials: ${result.count} profiles moved to waiting_payment`,
+      );
     }
+
+    return { processedCount: result.count };
   }
 
-  async handleExpiredCancelledSubscriptions() {
+  async handleExpiredCancelledSubscriptions(): Promise<JobResult> {
     const now = new Date();
+    let deactivatedProfiles = 0;
 
     // Buscar suscripciones canceladas cuyo período pagado ya venció
     const expiredSubs = await this.prisma.subscription.findMany({
@@ -76,7 +70,9 @@ export class ProfessionalsCronService implements OnModuleInit {
       select: { userId: true },
     });
 
-    if (!expiredSubs.length) return;
+    if (!expiredSubs.length) {
+      return { processedCount: 0 };
+    }
 
     const userIds = expiredSubs.map((s) => s.userId);
 
@@ -106,9 +102,14 @@ export class ProfessionalsCronService implements OnModuleInit {
       });
 
       if (result.count > 0) {
-        this.logger.log(`Cancelled subscription expired: user ${userId} moved to waiting_payment`);
+        deactivatedProfiles += result.count;
+        this.logger.log(
+          `Cancelled subscription expired: user ${userId} moved to waiting_payment`,
+        );
       }
     }
+
+    return { processedCount: deactivatedProfiles };
   }
 }
 

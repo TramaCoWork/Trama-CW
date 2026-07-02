@@ -1,5 +1,10 @@
 import { Controller, Post, Get, Body, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -24,7 +29,9 @@ export class PaymentsController {
   }
 
   @Post('webhook')
-  @ApiOperation({ summary: 'Webhook para notificaciones del proveedor de pagos' })
+  @ApiOperation({
+    summary: 'Webhook para notificaciones del proveedor de pagos',
+  })
   @ApiResponse({ status: 201, description: 'Webhook procesado' })
   async handleWebhook(@Body() body: Record<string, unknown>) {
     return this.paymentsService.handleWebhook(body);

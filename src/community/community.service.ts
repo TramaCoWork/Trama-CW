@@ -146,7 +146,13 @@ export class CommunityService {
         skip: (page - 1) * limit,
         take: limit,
         include: {
-          user: { select: { id: true, email: true, profile: { select: { name: true } } } },
+          user: {
+            select: {
+              id: true,
+              email: true,
+              profile: { select: { name: true } },
+            },
+          },
           _count: { select: { comments: { where: { deletedAt: null } } } },
         },
       }),
@@ -158,7 +164,10 @@ export class CommunityService {
       commentCount: _count.comments,
     }));
 
-    return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+    return {
+      data,
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   async getPostById(id: string, userId: string, roles: UserRolePayload[]) {
@@ -168,7 +177,13 @@ export class CommunityService {
         deletedAt: null,
       },
       include: {
-        user: { select: { id: true, email: true, profile: { select: { name: true } } } },
+        user: {
+          select: {
+            id: true,
+            email: true,
+            profile: { select: { name: true } },
+          },
+        },
         _count: { select: { comments: { where: { deletedAt: null } } } },
       },
     });
@@ -202,25 +217,32 @@ export class CommunityService {
    */
   async getMyPosts(userId: string, page: number, limit: number) {
     const where = { userId, deletedAt: null };
-    const [communityPosts, channelPosts, communityCount, channelCount] = await Promise.all([
-      this.prisma.communityPost.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          user: { select: { id: true, email: true, profile: { select: { name: true } } } },
-          _count: { select: { comments: { where: { deletedAt: null } } } },
-        },
-      }),
-      this.prisma.communityChannelPost.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          channel: { select: { name: true } },
-        },
-      }),
-      this.prisma.communityPost.count({ where }),
-      this.prisma.communityChannelPost.count({ where }),
-    ]);
+    const [communityPosts, channelPosts, communityCount, channelCount] =
+      await Promise.all([
+        this.prisma.communityPost.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                profile: { select: { name: true } },
+              },
+            },
+            _count: { select: { comments: { where: { deletedAt: null } } } },
+          },
+        }),
+        this.prisma.communityChannelPost.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            channel: { select: { name: true } },
+          },
+        }),
+        this.prisma.communityPost.count({ where }),
+        this.prisma.communityChannelPost.count({ where }),
+      ]);
 
     const nonGeneralSlugs = Array.from(
       new Set(
@@ -265,7 +287,10 @@ export class CommunityService {
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(start, start + limit);
 
-    return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+    return {
+      data,
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   async createPost(
@@ -319,7 +344,11 @@ export class CommunityService {
   /**
    * Soft delete a post. Only the post owner (userId) or an admin can do this.
    */
-  async deletePost(userId: string, rolesOrAdmin: UserRolePayload[] | boolean, postId: string) {
+  async deletePost(
+    userId: string,
+    rolesOrAdmin: UserRolePayload[] | boolean,
+    postId: string,
+  ) {
     const post = await this.prisma.communityPost.findUnique({
       where: { id: postId },
     });
@@ -328,10 +357,15 @@ export class CommunityService {
       throw new NotFoundException('Post no encontrado');
     }
 
-    const isAdmin = typeof rolesOrAdmin === 'boolean' ? rolesOrAdmin : this.isAdmin(rolesOrAdmin);
+    const isAdmin =
+      typeof rolesOrAdmin === 'boolean'
+        ? rolesOrAdmin
+        : this.isAdmin(rolesOrAdmin);
 
     if (post.userId !== userId && !isAdmin) {
-      throw new ForbiddenException('Solo el creador del post o un admin pueden eliminarlo');
+      throw new ForbiddenException(
+        'Solo el creador del post o un admin pueden eliminarlo',
+      );
     }
 
     return this.prisma.communityPost.update({
@@ -356,10 +390,15 @@ export class CommunityService {
       throw new NotFoundException('Comentario no encontrado');
     }
 
-    const isAdmin = typeof rolesOrAdmin === 'boolean' ? rolesOrAdmin : this.isAdmin(rolesOrAdmin);
+    const isAdmin =
+      typeof rolesOrAdmin === 'boolean'
+        ? rolesOrAdmin
+        : this.isAdmin(rolesOrAdmin);
 
     if (comment.userId !== userId && !isAdmin) {
-      throw new ForbiddenException('Solo el creador del comentario o un admin pueden eliminarlo');
+      throw new ForbiddenException(
+        'Solo el creador del comentario o un admin pueden eliminarlo',
+      );
     }
 
     return this.prisma.communityComment.update({
@@ -401,13 +440,22 @@ export class CommunityService {
         skip: (page - 1) * limit,
         take: limit,
         include: {
-          user: { select: { id: true, email: true, profile: { select: { name: true } } } },
+          user: {
+            select: {
+              id: true,
+              email: true,
+              profile: { select: { name: true } },
+            },
+          },
         },
       }),
       this.prisma.communityComment.count({ where }),
     ]);
 
-    return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+    return {
+      data,
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   /**
@@ -423,7 +471,9 @@ export class CommunityService {
     }
 
     if (post.userId !== userId) {
-      throw new ForbiddenException('Solo el creador del post puede cambiar su estado');
+      throw new ForbiddenException(
+        'Solo el creador del post puede cambiar su estado',
+      );
     }
 
     return this.prisma.communityPost.update({

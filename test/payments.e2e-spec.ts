@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const request = require('supertest');
 import { createTestApp, registerUser } from './test-app.factory';
 import { cleanDatabase } from './clean-database';
@@ -21,7 +21,11 @@ describe('Payments (e2e)', () => {
 
   describe('POST /payments/create', () => {
     it('should create a payment', async () => {
-      const { access_token } = await registerUser(app, 'user@test.com', 'password123');
+      const { access_token } = await registerUser(
+        app,
+        'user@test.com',
+        'password123',
+      );
 
       const res = await request(app.getHttpServer())
         .post('/payments/create')
@@ -36,7 +40,11 @@ describe('Payments (e2e)', () => {
 
   describe('GET /payments/status', () => {
     it('should return payment status', async () => {
-      const { access_token } = await registerUser(app, 'user@test.com', 'password123');
+      const { access_token } = await registerUser(
+        app,
+        'user@test.com',
+        'password123',
+      );
 
       const res = await request(app.getHttpServer())
         .get('/payments/status')

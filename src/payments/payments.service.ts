@@ -20,7 +20,9 @@ export class PaymentsService {
     });
   }
 
-  async handleWebhook(body: Record<string, unknown>): Promise<{ received: boolean }> {
+  async handleWebhook(
+    body: Record<string, unknown>,
+  ): Promise<{ received: boolean }> {
     if (body.type === 'payment') {
       const data = body.data as Record<string, unknown> | undefined;
       const externalId = data?.id;

@@ -46,9 +46,14 @@ export class MpSubscriptionStrategy implements PaymentStrategy {
       externalReference: `${subscription.userId}-${data.subscriptionId}`,
     });
 
-    this.logger.log(`Preapproval created: ${data.subscriptionId} -> MP: ${mpResult.id} (subscription mode)`);
+    this.logger.log(
+      `Preapproval created: ${data.subscriptionId} -> MP: ${mpResult.id} (subscription mode)`,
+    );
 
-    return { initPoint: mpResult.init_point!, externalId: mpResult.id?.toString()! };
+    return {
+      initPoint: mpResult.init_point!,
+      externalId: mpResult.id?.toString()!,
+    };
   }
 
   async handlePaymentWebhook(paymentId: string): Promise<{
@@ -63,13 +68,16 @@ export class MpSubscriptionStrategy implements PaymentStrategy {
     if (!preapprovalId) return null;
 
     const status = payment.status as string;
-    this.logger.log(`Payment ${paymentId} status: ${status} for preapproval: ${preapprovalId}`);
+    this.logger.log(
+      `Payment ${paymentId} status: ${status} for preapproval: ${preapprovalId}`,
+    );
 
     const paymentDetails: WebhookPaymentData = {
       paymentExternalId: paymentId,
       amount: payment.transaction_amount ?? 0,
       status: status === 'approved' ? 'sub_approved' : 'sub_rejected',
-      failureReason: status !== 'approved' ? (payment.status_detail ?? status) : undefined,
+      failureReason:
+        status !== 'approved' ? (payment.status_detail ?? status) : undefined,
       paymentMethod: (payment as any).payment_type_id ?? null,
       paymentMethodId: (payment as any).payment_method_id ?? null,
       cardLastFourDigits: (payment as any).card?.last_four_digits ?? null,
@@ -87,7 +95,10 @@ export class MpSubscriptionStrategy implements PaymentStrategy {
     };
   }
 
-  async handleGatewayWebhook(eventType: string, dataId: string): Promise<{
+  async handleGatewayWebhook(
+    eventType: string,
+    dataId: string,
+  ): Promise<{
     externalId: string;
     status: string;
     startDate?: Date;
@@ -97,9 +108,13 @@ export class MpSubscriptionStrategy implements PaymentStrategy {
 
     const preapproval = await this.mercadopago.getPreapproval(dataId);
     const status = preapproval.status as string;
-    const externalReference = (preapproval as any).external_reference as string | undefined;
+    const externalReference = (preapproval as any).external_reference as
+      | string
+      | undefined;
 
-    this.logger.log(`Preapproval ${dataId} status: ${status} | external_reference: ${externalReference ?? 'none'}`);
+    this.logger.log(
+      `Preapproval ${dataId} status: ${status} | external_reference: ${externalReference ?? 'none'}`,
+    );
 
     const statusMap: Record<string, string> = {
       pending: 'pending',
@@ -115,9 +130,11 @@ export class MpSubscriptionStrategy implements PaymentStrategy {
       return null;
     }
 
-    const startDate = (status === 'authorized' || status === 'active') && preapproval.date_created
-      ? new Date(preapproval.date_created)
-      : undefined;
+    const startDate =
+      (status === 'authorized' || status === 'active') &&
+      preapproval.date_created
+        ? new Date(preapproval.date_created)
+        : undefined;
 
     return {
       externalId: dataId,
@@ -127,7 +144,10 @@ export class MpSubscriptionStrategy implements PaymentStrategy {
     };
   }
 
-  async cancelSubscription(externalId: string | null, _endDate: Date | null): Promise<CancelResult> {
+  async cancelSubscription(
+    externalId: string | null,
+    _endDate: Date | null,
+  ): Promise<CancelResult> {
     let endDate = new Date();
 
     if (externalId) {
@@ -138,10 +158,14 @@ export class MpSubscriptionStrategy implements PaymentStrategy {
         const nextPayment = (preapproval as any).next_payment_date;
         if (nextPayment) {
           endDate = new Date(nextPayment);
-          this.logger.log(`Preapproval ${externalId} paid until: ${endDate.toISOString()}`);
+          this.logger.log(
+            `Preapproval ${externalId} paid until: ${endDate.toISOString()}`,
+          );
         }
       } catch (error) {
-        this.logger.warn(`Could not fetch preapproval details for endDate: ${error.message}`);
+        this.logger.warn(
+          `Could not fetch preapproval details for endDate: ${error.message}`,
+        );
       }
     }
 

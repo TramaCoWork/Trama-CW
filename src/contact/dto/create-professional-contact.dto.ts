@@ -2,12 +2,16 @@ import { IsEmail, IsString, IsUUID, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateProfessionalContactDto {
-  @ApiProperty({ example: 'maria@example.com', description: 'Email del remitente' })
+  @ApiProperty({
+    example: 'maria@example.com',
+    description: 'Email del remitente',
+  })
   @IsEmail()
   email: string;
 
   @ApiProperty({
-    example: 'Hola, vi tu perfil y quisiera coordinar una reunión para conversar sobre un proyecto.',
+    example:
+      'Hola, vi tu perfil y quisiera coordinar una reunión para conversar sobre un proyecto.',
     description: 'Mensaje (min 10 caracteres)',
   })
   @IsString()
@@ -21,7 +25,10 @@ export class CreateProfessionalContactDto {
   @IsUUID()
   professionalId: string;
 
-  @ApiProperty({ example: '0.token...', description: 'Token de Cloudflare Turnstile' })
+  @ApiProperty({
+    example: '0.token...',
+    description: 'Token de Cloudflare Turnstile',
+  })
   @IsString()
   turnstileToken: string;
 }

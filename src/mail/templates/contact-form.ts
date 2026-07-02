@@ -4,7 +4,9 @@ export function contactFormTemplate(data: {
   subject: string;
   message: string;
 }): { subject: string; html: string } {
-  const date = new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
+  const date = new Date().toLocaleString('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+  });
 
   return {
     subject: `Contacto: ${data.subject}`,

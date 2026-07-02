@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
 import { CreatePlanDto } from './dto/create-plan.dto';
@@ -46,7 +50,8 @@ export class SubscriptionPlansService {
       const discount = discountPlans[0] ?? null;
       // Verificar límite de usos: maxUses null = sin límite; si maxUses <= currentUses = agotado
       const activeDiscount =
-        discount && (discount.maxUses === null || discount.currentUses < discount.maxUses)
+        discount &&
+        (discount.maxUses === null || discount.currentUses < discount.maxUses)
           ? discount
           : null;
       return { ...rest, discount: activeDiscount };
@@ -74,7 +79,8 @@ export class SubscriptionPlansService {
     const { discountPlans, ...rest } = plan;
     const discount = discountPlans[0] ?? null;
     const activeDiscount =
-      discount && (discount.maxUses === null || discount.currentUses < discount.maxUses)
+      discount &&
+      (discount.maxUses === null || discount.currentUses < discount.maxUses)
         ? discount
         : null;
     return { ...rest, discount: activeDiscount };
@@ -115,7 +121,9 @@ export class SubscriptionPlansService {
 
   /** Revierte el borrado lógico de un plan. */
   async restore(id: string) {
-    const plan = await this.prisma.subscriptionPlan.findUnique({ where: { id } });
+    const plan = await this.prisma.subscriptionPlan.findUnique({
+      where: { id },
+    });
     if (!plan) throw new NotFoundException('Plan no encontrado');
     return this.prisma.subscriptionPlan.update({
       where: { id },

@@ -32,9 +32,13 @@ export class MpCheckoutStrategy implements PaymentStrategy {
     });
 
     const isProduction = this.config.get<string>('NODE_ENV') === 'production';
-    const initPoint = isProduction ? mpResult.init_point! : mpResult.sandbox_init_point!;
+    const initPoint = isProduction
+      ? mpResult.init_point!
+      : mpResult.sandbox_init_point!;
 
-    this.logger.log(`Preference created: ${data.subscriptionId} -> MP: ${mpResult.id} (checkout mode)`);
+    this.logger.log(
+      `Preference created: ${data.subscriptionId} -> MP: ${mpResult.id} (checkout mode)`,
+    );
 
     return { initPoint, externalId: mpResult.id! };
   }
@@ -45,7 +49,9 @@ export class MpCheckoutStrategy implements PaymentStrategy {
     shouldActivate: boolean;
   } | null> {
     const payment = await this.mercadopago.getPayment(paymentId);
-    const externalReference = (payment as any).external_reference as string | undefined;
+    const externalReference = (payment as any).external_reference as
+      | string
+      | undefined;
 
     if (!externalReference) return null;
 
@@ -54,13 +60,16 @@ export class MpCheckoutStrategy implements PaymentStrategy {
     if (preapprovalId) return null;
 
     const status = payment.status as string;
-    this.logger.log(`Checkout payment ${paymentId} status: ${status} for subscription: ${externalReference}`);
+    this.logger.log(
+      `Checkout payment ${paymentId} status: ${status} for subscription: ${externalReference}`,
+    );
 
     const paymentDetails: WebhookPaymentData = {
       paymentExternalId: paymentId,
       amount: payment.transaction_amount ?? 0,
       status: status === 'approved' ? 'sub_approved' : 'sub_rejected',
-      failureReason: status !== 'approved' ? (payment.status_detail ?? status) : undefined,
+      failureReason:
+        status !== 'approved' ? (payment.status_detail ?? status) : undefined,
       paymentMethod: (payment as any).payment_type_id ?? null,
       paymentMethodId: (payment as any).payment_method_id ?? null,
       cardLastFourDigits: (payment as any).card?.last_four_digits ?? null,
@@ -76,7 +85,10 @@ export class MpCheckoutStrategy implements PaymentStrategy {
     };
   }
 
-  async handleGatewayWebhook(_eventType: string, _dataId: string): Promise<{
+  async handleGatewayWebhook(
+    _eventType: string,
+    _dataId: string,
+  ): Promise<{
     externalId: string;
     status: string;
     startDate?: Date;
@@ -86,7 +98,10 @@ export class MpCheckoutStrategy implements PaymentStrategy {
     return null;
   }
 
-  async cancelSubscription(_externalId: string | null, endDate: Date | null): Promise<CancelResult> {
+  async cancelSubscription(
+    _externalId: string | null,
+    endDate: Date | null,
+  ): Promise<CancelResult> {
     // Checkout Pro: no hay nada que cancelar en MP.
     // El perfil permanece activo hasta el endDate existente.
     return { endDate: endDate ?? new Date() };
@@ -95,7 +110,9 @@ export class MpCheckoutStrategy implements PaymentStrategy {
   async handleRenewal(data: CreatePaymentData): Promise<RenewalResult> {
     // Generar nueva Preference para renovación
     const result = await this.createPayment(data);
-    this.logger.log(`Checkout renewal preference created for subscription ${data.subscriptionId}`);
+    this.logger.log(
+      `Checkout renewal preference created for subscription ${data.subscriptionId}`,
+    );
     return result;
   }
 }

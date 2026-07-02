@@ -1,5 +1,10 @@
 import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JobsService } from './jobs.service';
 import { ApplyJobDto } from './dto/apply-job.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -24,10 +29,7 @@ export class JobsController {
   @ApiOperation({ summary: 'Aplicar a un trabajo' })
   @ApiResponse({ status: 201, description: 'Aplicacion enviada' })
   @ApiResponse({ status: 409, description: 'Ya aplicaste a este trabajo' })
-  async apply(
-    @CurrentUser() user: CurrentUserType,
-    @Body() dto: ApplyJobDto,
-  ) {
+  async apply(@CurrentUser() user: CurrentUserType, @Body() dto: ApplyJobDto) {
     return this.jobsService.apply(user.userId, dto);
   }
 }

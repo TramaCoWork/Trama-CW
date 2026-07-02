@@ -8,7 +8,9 @@ export class ConsoleTransport implements MailTransport {
     this.logger.log('─── EMAIL (console) ───────────────────────────────');
     this.logger.log(`To:      ${to}`);
     this.logger.log(`Subject: ${subject}`);
-    this.logger.log(`Body:    ${html.replace(/<[^>]*>/g, '').substring(0, 200)}...`);
+    this.logger.log(
+      `Body:    ${html.replace(/<[^>]*>/g, '').substring(0, 200)}...`,
+    );
     this.logger.log('──────────────────────────────────────────────────');
   }
 }

@@ -3,7 +3,9 @@ export function professionalContactTemplate(data: {
   senderEmail: string;
   message: string;
 }): { subject: string; html: string } {
-  const date = new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
+  const date = new Date().toLocaleString('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+  });
 
   return {
     subject: 'Nueva consulta profesional en Trama CoWork',

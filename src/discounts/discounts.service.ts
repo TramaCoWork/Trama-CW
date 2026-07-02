@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  Logger,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MercadoPagoService } from '../mercadopago/mercadopago.service';
@@ -39,20 +44,22 @@ export class DiscountsService {
       where: {
         professionalId: dto.professionalId,
         restored: false,
-        OR: [
-          { startDate: { lte: endDate }, endDate: { gte: startDate } },
-        ],
+        OR: [{ startDate: { lte: endDate }, endDate: { gte: startDate } }],
       },
     });
     if (overlapping) {
-      throw new BadRequestException('Ya existe un descuento activo en ese período para este profesional');
+      throw new BadRequestException(
+        'Ya existe un descuento activo en ese período para este profesional',
+      );
     }
 
     return this.prisma.discount.create({
       data: {
         professionalId: dto.professionalId,
-        percentage: dto.percentage != null ? new Prisma.Decimal(dto.percentage) : null,
-        fixedAmount: dto.fixedAmount != null ? new Prisma.Decimal(dto.fixedAmount) : null,
+        percentage:
+          dto.percentage != null ? new Prisma.Decimal(dto.percentage) : null,
+        fixedAmount:
+          dto.fixedAmount != null ? new Prisma.Decimal(dto.fixedAmount) : null,
         startDate,
         endDate,
         createdBy: adminUserId,
@@ -101,7 +108,9 @@ export class DiscountsService {
   async remove(id: string) {
     const discount = await this.findOne(id);
     if (discount.applied) {
-      throw new BadRequestException('No se puede eliminar un descuento ya aplicado. Espere a que se restaure automáticamente.');
+      throw new BadRequestException(
+        'No se puede eliminar un descuento ya aplicado. Espere a que se restaure automáticamente.',
+      );
     }
     await this.prisma.discount.delete({ where: { id } });
     return { message: 'Descuento eliminado' };
@@ -140,7 +149,9 @@ export class DiscountsService {
         });
 
         if (!subscription?.externalId) {
-          this.logger.warn(`No active subscription for professional ${discount.professionalId}, skipping discount ${discount.id}`);
+          this.logger.warn(
+            `No active subscription for professional ${discount.professionalId}, skipping discount ${discount.id}`,
+          );
           continue;
         }
 
@@ -149,7 +160,8 @@ export class DiscountsService {
         let discountedAmount: number;
 
         if (discount.percentage) {
-          discountedAmount = originalAmount * (1 - Number(discount.percentage) / 100);
+          discountedAmount =
+            originalAmount * (1 - Number(discount.percentage) / 100);
         } else if (discount.fixedAmount) {
           discountedAmount = originalAmount - Number(discount.fixedAmount);
         } else {
@@ -160,7 +172,10 @@ export class DiscountsService {
         discountedAmount = Math.round(discountedAmount * 100) / 100;
 
         // Actualizar en MercadoPago
-        await this.mercadopago.updatePreapprovalAmount(subscription.externalId, discountedAmount);
+        await this.mercadopago.updatePreapprovalAmount(
+          subscription.externalId,
+          discountedAmount,
+        );
 
         // Marcar como aplicado
         await this.prisma.discount.update({
@@ -168,9 +183,13 @@ export class DiscountsService {
           data: { applied: true, appliedAt: new Date() },
         });
 
-        this.logger.log(`Discount ${discount.id} applied: ${originalAmount} -> ${discountedAmount} for professional ${discount.professionalId}`);
+        this.logger.log(
+          `Discount ${discount.id} applied: ${originalAmount} -> ${discountedAmount} for professional ${discount.professionalId}`,
+        );
       } catch (error) {
-        this.logger.error(`Failed to apply discount ${discount.id}: ${error.message}`);
+        this.logger.error(
+          `Failed to apply discount ${discount.id}: ${error.message}`,
+        );
       }
     }
 
@@ -208,7 +227,9 @@ export class DiscountsService {
         });
 
         if (!subscription?.externalId) {
-          this.logger.warn(`No active subscription for professional ${discount.professionalId}, marking discount ${discount.id} as restored`);
+          this.logger.warn(
+            `No active subscription for professional ${discount.professionalId}, marking discount ${discount.id} as restored`,
+          );
           await this.prisma.discount.update({
             where: { id: discount.id },
             data: { restored: true, restoredAt: new Date() },
@@ -218,7 +239,10 @@ export class DiscountsService {
 
         // Restaurar monto original del plan
         const originalAmount = Number(subscription.plan.amount);
-        await this.mercadopago.updatePreapprovalAmount(subscription.externalId, originalAmount);
+        await this.mercadopago.updatePreapprovalAmount(
+          subscription.externalId,
+          originalAmount,
+        );
 
         // Marcar como restaurado
         await this.prisma.discount.update({
@@ -226,9 +250,13 @@ export class DiscountsService {
           data: { restored: true, restoredAt: new Date() },
         });
 
-        this.logger.log(`Discount ${discount.id} restored: amount back to ${originalAmount} for professional ${discount.professionalId}`);
+        this.logger.log(
+          `Discount ${discount.id} restored: amount back to ${originalAmount} for professional ${discount.professionalId}`,
+        );
       } catch (error) {
-        this.logger.error(`Failed to restore discount ${discount.id}: ${error.message}`);
+        this.logger.error(
+          `Failed to restore discount ${discount.id}: ${error.message}`,
+        );
       }
     }
 

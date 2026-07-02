@@ -65,15 +65,22 @@ export class CommunityUploadsController {
   @UseInterceptors(FileInterceptor('file'))
   async uploadImage(
     @CurrentUser() user: CurrentUserType,
-    @UploadedFile(createPhotoFileValidationPipe(HttpStatus.BAD_REQUEST)) file: Express.Multer.File,
+    @UploadedFile(createPhotoFileValidationPipe(HttpStatus.BAD_REQUEST))
+    file: Express.Multer.File,
   ) {
-    const upload = await this.storageService.upload(file, `community/${user.userId}`);
+    const upload = await this.storageService.upload(
+      file,
+      `community/${user.userId}`,
+    );
 
-    const imageRecord = await this.communityImagesService.createRecord(user.userId, {
-      url: upload.url,
-      mimeType: file.mimetype,
-      size: file.size,
-    });
+    const imageRecord = await this.communityImagesService.createRecord(
+      user.userId,
+      {
+        url: upload.url,
+        mimeType: file.mimetype,
+        size: file.size,
+      },
+    );
 
     return { id: imageRecord.id, url: imageRecord.url };
   }
@@ -83,9 +90,15 @@ export class CommunityUploadsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Asociar imágenes de community a una entidad' })
   @ApiResponse({ status: 200, description: 'Imágenes asociadas correctamente' })
-  @ApiResponse({ status: 400, description: 'Payload inválido o límite excedido' })
+  @ApiResponse({
+    status: 400,
+    description: 'Payload inválido o límite excedido',
+  })
   @ApiResponse({ status: 401, description: 'No autenticado' })
-  @ApiResponse({ status: 403, description: 'No autorizado para asociar alguna imagen' })
+  @ApiResponse({
+    status: 403,
+    description: 'No autorizado para asociar alguna imagen',
+  })
   async associateImages(
     @CurrentUser() user: CurrentUserType,
     @Body() body: AssociateImagesDto,

@@ -1,6 +1,9 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PaymentStrategy, PAYMENT_STRATEGIES } from './payment-strategy.interface';
+import {
+  PaymentStrategy,
+  PAYMENT_STRATEGIES,
+} from './payment-strategy.interface';
 
 /**
  * Mapeo de PAYMENT_MODE (env var legacy) a strategy codes.
@@ -41,7 +44,9 @@ export class PaymentStrategyFactory {
     const strategy = this.strategiesMap.get(resolvedCode);
 
     if (!strategy) {
-      throw new Error(`Payment strategy '${resolvedCode}' not found. Available: ${this.getAvailableCodes().join(', ')}`);
+      throw new Error(
+        `Payment strategy '${resolvedCode}' not found. Available: ${this.getAvailableCodes().join(', ')}`,
+      );
     }
 
     return strategy;

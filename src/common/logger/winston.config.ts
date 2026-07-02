@@ -1,7 +1,9 @@
 import * as winston from 'winston';
 import 'winston-daily-rotate-file';
 
-export const createWinstonConfig = (retentionDays: number = 90): winston.LoggerOptions => {
+export const createWinstonConfig = (
+  retentionDays: number = 90,
+): winston.LoggerOptions => {
   const isProduction = process.env.NODE_ENV === 'production';
 
   // Formato JSON para archivos
@@ -18,7 +20,9 @@ export const createWinstonConfig = (retentionDays: number = 90): winston.LoggerO
       const ctx = context
         ? `[${typeof context === 'string' ? context : (context as any).context || 'App'}]`
         : '';
-      const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
+      const metaStr = Object.keys(meta).length
+        ? ` ${JSON.stringify(meta)}`
+        : '';
       return `${timestamp} ${level} ${ctx} ${message}${metaStr}`;
     }),
   );

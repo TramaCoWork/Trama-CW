@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const request = require('supertest');
 import { createTestApp, registerProfessional } from './test-app.factory';
 import { cleanDatabase } from './clean-database';
@@ -24,8 +24,14 @@ describe('Contacts (e2e)', () => {
 
   describe('POST /contacts/log', () => {
     it('should log a contact', async () => {
-      const { userId } = await registerProfessional(app, 'pro@test.com', 'password123');
-      const profile = await prisma.professionalProfile.findFirst({ where: { userId } });
+      const { userId } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
+      const profile = await prisma.professionalProfile.findFirst({
+        where: { userId },
+      });
 
       const res = await request(app.getHttpServer())
         .post('/contacts/log')

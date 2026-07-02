@@ -10,7 +10,12 @@ import {
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -30,7 +35,8 @@ export class DiscountPlansController {
   @ApiOperation({ summary: 'Crear discount plan' })
   @ApiResponse({ status: 201, description: 'Discount plan creado' })
   create(
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: CreateDiscountPlanDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: CreateDiscountPlanDto,
   ) {
     return this.discountPlansService.create(dto);
   }
@@ -55,7 +61,8 @@ export class DiscountPlansController {
   @ApiResponse({ status: 200, description: 'Discount plan actualizado' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: UpdateDiscountPlanDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: UpdateDiscountPlanDto,
   ) {
     return this.discountPlansService.update(id, dto);
   }

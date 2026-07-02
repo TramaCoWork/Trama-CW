@@ -19,7 +19,9 @@ describe('AdminChangeProfessionalPasswordDto', () => {
 
     const errors = await validate(dto);
 
-    expect(errors.some((error) => error.property === 'confirmPassword')).toBe(true);
+    expect(errors.some((error) => error.property === 'confirmPassword')).toBe(
+      true,
+    );
   });
 
   it('rejects password shorter than 8 characters', async () => {

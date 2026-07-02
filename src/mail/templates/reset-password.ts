@@ -1,4 +1,7 @@
-export function resetPasswordTemplate(resetUrl: string, name?: string): { subject: string; html: string } {
+export function resetPasswordTemplate(
+  resetUrl: string,
+  name?: string,
+): { subject: string; html: string } {
   const greeting = name ? `Hola <strong>${name}</strong>,` : 'Hola,';
 
   return {

@@ -400,7 +400,9 @@ export class AuthService {
    * A diferencia de `resendVerification`, no oculta la existencia del usuario:
    * lanza error si no existe o si ya está verificado.
    */
-  async resendVerificationByUserId(userId: string): Promise<{ message: string }> {
+  async resendVerificationByUserId(
+    userId: string,
+  ): Promise<{ message: string }> {
     const user = await this.prisma.user.findUnique({
       where: withoutDeleted({ id: userId }),
     });
@@ -431,7 +433,10 @@ export class AuthService {
     this.mailService.sendEmailVerification(email, verificationUrl, name);
   }
 
-  private async generateToken(userId: string, email: string): Promise<TokenResponse> {
+  private async generateToken(
+    userId: string,
+    email: string,
+  ): Promise<TokenResponse> {
     const userRoles = await this.prisma.userRole.findMany({
       where: { userId },
       include: {
@@ -455,7 +460,9 @@ export class AuthService {
     const permissions = [
       ...new Set(
         userRoles.flatMap((userRole) =>
-          userRole.role.permissions.map((rolePermission) => rolePermission.permission.key),
+          userRole.role.permissions.map(
+            (rolePermission) => rolePermission.permission.key,
+          ),
         ),
       ),
     ];
@@ -484,7 +491,9 @@ export class AuthService {
   // ─── Referral code ───────────────────────────────────────────────────────
 
   /** Devuelve el referralCode del usuario autenticado. */
-  async getMyReferralCode(userId: string): Promise<{ referralCode: string | null }> {
+  async getMyReferralCode(
+    userId: string,
+  ): Promise<{ referralCode: string | null }> {
     const user = await this.prisma.user.findUnique({
       where: withoutDeleted({ id: userId }),
       select: { referralCode: true },
@@ -494,7 +503,10 @@ export class AuthService {
   }
 
   /** Actualiza el referralCode del usuario autenticado. Valida unicidad. */
-  async updateMyReferralCode(userId: string, dto: UpdateReferralCodeDto): Promise<{ referralCode: string }> {
+  async updateMyReferralCode(
+    userId: string,
+    dto: UpdateReferralCodeDto,
+  ): Promise<{ referralCode: string }> {
     const code = dto.referralCode.trim();
 
     const existing = await this.prisma.user.findFirst({

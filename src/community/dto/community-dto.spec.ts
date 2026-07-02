@@ -53,6 +53,8 @@ describe('Community DTOs', () => {
     const commentErrors = await validate(commentDto);
 
     expect(postErrors.some((error) => error.property === 'content')).toBe(true);
-    expect(commentErrors.some((error) => error.property === 'content')).toBe(true);
+    expect(commentErrors.some((error) => error.property === 'content')).toBe(
+      true,
+    );
   });
 });

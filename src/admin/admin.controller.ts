@@ -14,7 +14,15 @@ import {
   ParseUUIDPipe,
   UsePipes,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { CreateJobDto } from './dto/create-job.dto';
 import { ValidateProfileDto } from './dto/validate-profile.dto';
@@ -30,7 +38,12 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
-import { ProfileStatus, SubscriptionPaymentStatus, FrequencyType, SubscriptionStatus } from '@prisma/client';
+import {
+  ProfileStatus,
+  SubscriptionPaymentStatus,
+  FrequencyType,
+  SubscriptionStatus,
+} from '@prisma/client';
 import { UpdateSubscriptionAmountDto } from './dto/update-subscription-amount.dto';
 import { UpdateReferralCodeDto } from '../auth/dto/update-referral-code.dto';
 
@@ -49,15 +62,58 @@ export class AdminController {
   }
 
   @Get('professionals')
-  @ApiOperation({ summary: 'Listar todos los profesionales (incluye inactivos y todos los estados)' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Pagina actual (default: 1)' })
-  @ApiQuery({ name: 'sizePage', required: false, type: Number, description: 'Resultados por pagina (default: 10)' })
-  @ApiQuery({ name: 'profileStatus', required: false, enum: ProfileStatus, description: 'Filtrar por estado del perfil' })
-  @ApiQuery({ name: 'isActive', required: false, type: Boolean, description: 'Filtrar por activo/inactivo' })
-  @ApiQuery({ name: 'search', required: false, type: String, description: 'Buscar por nombre o email' })
-  @ApiQuery({ name: 'rubroId', required: false, type: Number, description: 'Filtrar por rubro' })
-  @ApiQuery({ name: 'countryId', required: false, type: Number, description: 'Filtrar por pais' })
-  @ApiQuery({ name: 'provinceId', required: false, type: Number, description: 'Filtrar por provincia' })
+  @ApiOperation({
+    summary:
+      'Listar todos los profesionales (incluye inactivos y todos los estados)',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Pagina actual (default: 1)',
+  })
+  @ApiQuery({
+    name: 'sizePage',
+    required: false,
+    type: Number,
+    description: 'Resultados por pagina (default: 10)',
+  })
+  @ApiQuery({
+    name: 'profileStatus',
+    required: false,
+    enum: ProfileStatus,
+    description: 'Filtrar por estado del perfil',
+  })
+  @ApiQuery({
+    name: 'isActive',
+    required: false,
+    type: Boolean,
+    description: 'Filtrar por activo/inactivo',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Buscar por nombre o email',
+  })
+  @ApiQuery({
+    name: 'rubroId',
+    required: false,
+    type: Number,
+    description: 'Filtrar por rubro',
+  })
+  @ApiQuery({
+    name: 'countryId',
+    required: false,
+    type: Number,
+    description: 'Filtrar por pais',
+  })
+  @ApiQuery({
+    name: 'provinceId',
+    required: false,
+    type: Number,
+    description: 'Filtrar por provincia',
+  })
   @ApiResponse({ status: 200, description: 'Lista paginada de profesionales' })
   async getAllProfessionals(
     @Query('page') page = 1,
@@ -82,15 +138,26 @@ export class AdminController {
   }
 
   @Get('professionals/pending')
-  @ApiOperation({ summary: 'Listar profesionales pendientes (incompletos / onboarding)' })
-  @ApiResponse({ status: 200, description: 'Lista de profesionales pendientes' })
+  @ApiOperation({
+    summary: 'Listar profesionales pendientes (incompletos / onboarding)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de profesionales pendientes',
+  })
   async getPendingProfessionals() {
     return this.adminService.getPendingProfessionals();
   }
 
   @Get('professionals/pending-review')
-  @ApiOperation({ summary: 'Listar profesionales enviados para revision (con documentos y validaciones)' })
-  @ApiResponse({ status: 200, description: 'Lista de profesionales en estado pending_review' })
+  @ApiOperation({
+    summary:
+      'Listar profesionales enviados para revision (con documentos y validaciones)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de profesionales en estado pending_review',
+  })
   async getPendingReview() {
     return this.adminService.getPendingReview();
   }
@@ -101,13 +168,16 @@ export class AdminController {
   @ApiResponse({ status: 409, description: 'Email ya en uso' })
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
   async registerProfessional(
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: AdminRegisterProfessionalDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: AdminRegisterProfessionalDto,
   ) {
     return this.adminService.registerProfessional(dto);
   }
 
   @Post('professionals/:id/approve')
-  @ApiOperation({ summary: 'Aprobar un profesional (legacy - sin registro de validacion)' })
+  @ApiOperation({
+    summary: 'Aprobar un profesional (legacy - sin registro de validacion)',
+  })
   @ApiResponse({ status: 201, description: 'Profesional aprobado' })
   @ApiResponse({ status: 404, description: 'Profesional no encontrado' })
   async approveProfessional(@Param('id') id: string) {
@@ -116,7 +186,9 @@ export class AdminController {
 
   @Post('professionals/:id/resend-verification')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Reenviar el email de verificación de cuenta al profesional' })
+  @ApiOperation({
+    summary: 'Reenviar el email de verificación de cuenta al profesional',
+  })
   @ApiParam({ name: 'id', description: 'ID del perfil profesional' })
   @ApiResponse({ status: 200, description: 'Email de verificación reenviado' })
   @ApiResponse({ status: 400, description: 'El email ya fue verificado' })
@@ -126,13 +198,20 @@ export class AdminController {
   }
 
   @Post('professionals/:id/validate')
-  @ApiOperation({ summary: 'Validar perfil profesional (aprobar o rechazar con notas y documentos revisados)' })
-  @ApiResponse({ status: 201, description: 'Validacion registrada, estado del perfil actualizado' })
+  @ApiOperation({
+    summary:
+      'Validar perfil profesional (aprobar o rechazar con notas y documentos revisados)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Validacion registrada, estado del perfil actualizado',
+  })
   @ApiResponse({ status: 404, description: 'Profesional no encontrado' })
   async validateProfile(
     @CurrentUser() user: CurrentUserType,
     @Param('id') id: string,
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: ValidateProfileDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: ValidateProfileDto,
   ) {
     return this.adminService.validateProfile(user.userId, id, dto);
   }
@@ -140,16 +219,25 @@ export class AdminController {
   @Get('professionals/:id/documents')
   @ApiOperation({ summary: 'Ver documentos subidos por un profesional' })
   @ApiParam({ name: 'id', description: 'ID del perfil profesional' })
-  @ApiResponse({ status: 200, description: 'Lista de documentos del profesional' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de documentos del profesional',
+  })
   @ApiResponse({ status: 404, description: 'Profesional no encontrado' })
   async getProfileDocuments(@Param('id') id: string) {
     return this.adminService.getProfileDocuments(id);
   }
 
   @Get('professionals/:id')
-  @ApiOperation({ summary: 'Ver perfil completo de un profesional (sin filtro de estado ni actividad)' })
+  @ApiOperation({
+    summary:
+      'Ver perfil completo de un profesional (sin filtro de estado ni actividad)',
+  })
   @ApiParam({ name: 'id', description: 'ID del perfil profesional' })
-  @ApiResponse({ status: 200, description: 'Perfil completo del profesional con todas sus relaciones' })
+  @ApiResponse({
+    status: 200,
+    description: 'Perfil completo del profesional con todas sus relaciones',
+  })
   @ApiResponse({ status: 404, description: 'Profesional no encontrado' })
   async getOneProfessional(@Param('id') id: string) {
     return this.adminService.findOneProfessional(id);
@@ -157,7 +245,10 @@ export class AdminController {
 
   @Get('professionals/:id/validation-history')
   @ApiOperation({ summary: 'Historial de validaciones de un profesional' })
-  @ApiResponse({ status: 200, description: 'Lista de validaciones con reviewer y notas' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de validaciones con reviewer y notas',
+  })
   @ApiResponse({ status: 404, description: 'Profesional no encontrado' })
   async getValidationHistory(@Param('id') id: string) {
     return this.adminService.getValidationHistory(id);
@@ -165,24 +256,31 @@ export class AdminController {
 
   @Post('documents/:id/verify')
   @ApiOperation({ summary: 'Verificar un documento (aprobar o rechazar)' })
-  @ApiResponse({ status: 201, description: 'Documento verificado exitosamente' })
+  @ApiResponse({
+    status: 201,
+    description: 'Documento verificado exitosamente',
+  })
   @ApiResponse({ status: 404, description: 'Documento no encontrado' })
   async verifyDocument(
     @CurrentUser() user: CurrentUserType,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: VerifyDocumentDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: VerifyDocumentDto,
   ) {
     return this.adminService.verifyDocument(user.userId, id, dto);
   }
 
   @Patch('professionals/:id/trial')
-  @ApiOperation({ summary: 'Setear o limpiar la fecha de fin de prueba de un profesional' })
+  @ApiOperation({
+    summary: 'Setear o limpiar la fecha de fin de prueba de un profesional',
+  })
   @ApiParam({ name: 'id', description: 'ID del perfil profesional' })
   @ApiResponse({ status: 200, description: 'Perfil profesional actualizado' })
   @ApiResponse({ status: 404, description: 'Profesional no encontrado' })
   async setTrialDate(
     @Param('id') id: string,
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: SetTrialDateDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: SetTrialDateDto,
   ) {
     const trialEndDate = dto.trialEndDate ? new Date(dto.trialEndDate) : null;
 
@@ -196,7 +294,8 @@ export class AdminController {
   @ApiResponse({ status: 404, description: 'Profesional no encontrado' })
   async updateProfessional(
     @Param('id') id: string,
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: AdminUpdateProfessionalDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: AdminUpdateProfessionalDto,
   ) {
     return this.adminService.updateProfessional(id, dto);
   }
@@ -210,7 +309,8 @@ export class AdminController {
   @ApiResponse({ status: 404, description: 'Profesional no encontrado' })
   async changeProfessionalPassword(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: AdminChangeProfessionalPasswordDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: AdminChangeProfessionalPasswordDto,
   ) {
     return this.adminService.changeProfessionalPassword(id, dto.password);
   }
@@ -223,12 +323,37 @@ export class AdminController {
   }
 
   @Get('subscription-payments')
-  @ApiOperation({ summary: 'Listar todos los pagos de suscripción (paginado, con filtros)' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Página actual (default: 1)' })
-  @ApiQuery({ name: 'sizePage', required: false, type: Number, description: 'Resultados por página (default: 10)' })
-  @ApiQuery({ name: 'status', required: false, enum: SubscriptionPaymentStatus, description: 'Filtrar por estado del pago' })
-  @ApiQuery({ name: 'search', required: false, type: String, description: 'Buscar por email o external ID' })
-  @ApiResponse({ status: 200, description: 'Lista paginada de pagos de suscripción' })
+  @ApiOperation({
+    summary: 'Listar todos los pagos de suscripción (paginado, con filtros)',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Página actual (default: 1)',
+  })
+  @ApiQuery({
+    name: 'sizePage',
+    required: false,
+    type: Number,
+    description: 'Resultados por página (default: 10)',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: SubscriptionPaymentStatus,
+    description: 'Filtrar por estado del pago',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Buscar por email o external ID',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista paginada de pagos de suscripción',
+  })
   async getSubscriptionPayments(
     @Query('page') page = 1,
     @Query('sizePage') sizePage = 10,
@@ -245,10 +370,30 @@ export class AdminController {
 
   @Get('subscriptions')
   @ApiOperation({ summary: 'Listar suscripciones (paginado, con filtros)' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Página actual (default: 1)' })
-  @ApiQuery({ name: 'sizePage', required: false, type: Number, description: 'Resultados por página (default: 10)' })
-  @ApiQuery({ name: 'status', required: false, enum: SubscriptionStatus, description: 'Filtrar por estado de suscripción' })
-  @ApiQuery({ name: 'search', required: false, type: String, description: 'Buscar por email de usuario' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Página actual (default: 1)',
+  })
+  @ApiQuery({
+    name: 'sizePage',
+    required: false,
+    type: Number,
+    description: 'Resultados por página (default: 10)',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: SubscriptionStatus,
+    description: 'Filtrar por estado de suscripción',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Buscar por email de usuario',
+  })
   @ApiResponse({ status: 200, description: 'Lista paginada de suscripciones' })
   async getSubscriptions(
     @Query('page') page = 1,
@@ -265,13 +410,43 @@ export class AdminController {
   }
 
   @Get('subscription-plans')
-  @ApiOperation({ summary: 'Listar planes de suscripción (paginado, con filtros)' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Página actual (default: 1)' })
-  @ApiQuery({ name: 'sizePage', required: false, type: Number, description: 'Resultados por página (default: 10)' })
-  @ApiQuery({ name: 'isActive', required: false, type: Boolean, description: 'Filtrar por activo/inactivo' })
-  @ApiQuery({ name: 'frequencyType', required: false, enum: FrequencyType, description: 'Filtrar por tipo de frecuencia' })
-  @ApiQuery({ name: 'hasTrial', required: false, type: Boolean, description: 'Filtrar por planes con/sin período de prueba' })
-  @ApiResponse({ status: 200, description: 'Lista paginada de planes de suscripción' })
+  @ApiOperation({
+    summary: 'Listar planes de suscripción (paginado, con filtros)',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Página actual (default: 1)',
+  })
+  @ApiQuery({
+    name: 'sizePage',
+    required: false,
+    type: Number,
+    description: 'Resultados por página (default: 10)',
+  })
+  @ApiQuery({
+    name: 'isActive',
+    required: false,
+    type: Boolean,
+    description: 'Filtrar por activo/inactivo',
+  })
+  @ApiQuery({
+    name: 'frequencyType',
+    required: false,
+    enum: FrequencyType,
+    description: 'Filtrar por tipo de frecuencia',
+  })
+  @ApiQuery({
+    name: 'hasTrial',
+    required: false,
+    type: Boolean,
+    description: 'Filtrar por planes con/sin período de prueba',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista paginada de planes de suscripción',
+  })
   async getSubscriptionPlans(
     @Query('page') page = 1,
     @Query('sizePage') sizePage = 10,
@@ -289,18 +464,37 @@ export class AdminController {
   }
 
   @Get('professionals/:id/payments')
-  @ApiOperation({ summary: 'Historial de pagos de suscripción de un profesional' })
+  @ApiOperation({
+    summary: 'Historial de pagos de suscripción de un profesional',
+  })
   @ApiParam({ name: 'id', description: 'ID del perfil profesional' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Página actual (default: 1)' })
-  @ApiQuery({ name: 'sizePage', required: false, type: Number, description: 'Resultados por página (default: 10)' })
-  @ApiResponse({ status: 200, description: 'Lista paginada de pagos del profesional' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Página actual (default: 1)',
+  })
+  @ApiQuery({
+    name: 'sizePage',
+    required: false,
+    type: Number,
+    description: 'Resultados por página (default: 10)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista paginada de pagos del profesional',
+  })
   @ApiResponse({ status: 404, description: 'Profesional no encontrado' })
   async getProfessionalPayments(
     @Param('id') id: string,
     @Query('page') page = 1,
     @Query('sizePage') sizePage = 10,
   ) {
-    return this.adminService.getProfessionalSubscriptionPayments(id, Number(page), Number(sizePage));
+    return this.adminService.getProfessionalSubscriptionPayments(
+      id,
+      Number(page),
+      Number(sizePage),
+    );
   }
 
   @Get('payments')
@@ -316,14 +510,20 @@ export class AdminController {
   @ApiResponse({ status: 409, description: 'Email ya en uso' })
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
   async createAdminUser(
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: AdminCreateUserDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: AdminCreateUserDto,
   ) {
     return this.adminService.createAdminUser(dto);
   }
 
   @Get('users')
   @ApiOperation({ summary: 'Listar usuarios activos' })
-  @ApiQuery({ name: 'search', required: false, type: String, description: 'Filtrar usuarios por email' })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Filtrar usuarios por email',
+  })
   @ApiResponse({ status: 200, description: 'Lista de usuarios activos' })
   async listAdminUsers(@Query('search') search?: string) {
     return this.adminService.listAdminUsers(search);
@@ -331,8 +531,18 @@ export class AdminController {
 
   @Get('users/deleted')
   @ApiOperation({ summary: 'Listar usuarios soft-deleted' })
-  @ApiQuery({ name: 'skip', required: false, type: Number, description: 'Offset (default: 0)' })
-  @ApiQuery({ name: 'take', required: false, type: Number, description: 'Limit (default: 20)' })
+  @ApiQuery({
+    name: 'skip',
+    required: false,
+    type: Number,
+    description: 'Offset (default: 0)',
+  })
+  @ApiQuery({
+    name: 'take',
+    required: false,
+    type: Number,
+    description: 'Limit (default: 20)',
+  })
   @ApiResponse({ status: 200, description: 'Lista de usuarios soft-deleted' })
   async listSoftDeletedUsers(
     @Query('skip') skip = 0,
@@ -363,12 +573,16 @@ export class AdminController {
   @ApiOperation({ summary: 'Actualizar usuario (admin)' })
   @ApiParam({ name: 'id', description: 'ID del usuario' })
   @ApiResponse({ status: 200, description: 'Usuario actualizado' })
-  @ApiResponse({ status: 403, description: 'No puedes modificar tu propia cuenta' })
+  @ApiResponse({
+    status: 403,
+    description: 'No puedes modificar tu propia cuenta',
+  })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   async updateAdminUser(
     @CurrentUser() user: CurrentUserType,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: AdminUpdateUserDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: AdminUpdateUserDto,
   ) {
     this.assertCanMutateUser(user, id);
     return this.adminService.updateAdminUser(user.userId, id, dto);
@@ -379,7 +593,10 @@ export class AdminController {
   @ApiOperation({ summary: 'Eliminar usuario (soft-delete)' })
   @ApiParam({ name: 'id', description: 'ID del usuario' })
   @ApiResponse({ status: 200, description: 'Usuario eliminado' })
-  @ApiResponse({ status: 403, description: 'No puedes eliminar tu propia cuenta' })
+  @ApiResponse({
+    status: 403,
+    description: 'No puedes eliminar tu propia cuenta',
+  })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   async softDeleteAdminUser(
     @CurrentUser() user: CurrentUserType,
@@ -390,12 +607,21 @@ export class AdminController {
   }
 
   @Patch('subscriptions/:id/amount')
-  @ApiOperation({ summary: 'Actualizar monto de cobro de una suscripción activa en Mercado Pago' })
+  @ApiOperation({
+    summary:
+      'Actualizar monto de cobro de una suscripción activa en Mercado Pago',
+  })
   @ApiParam({ name: 'id', type: String, description: 'UUID de la suscripción' })
   @ApiBody({ type: UpdateSubscriptionAmountDto })
-  @ApiResponse({ status: 200, description: 'Monto actualizado en MP y descuento limpiado en DB' })
+  @ApiResponse({
+    status: 200,
+    description: 'Monto actualizado en MP y descuento limpiado en DB',
+  })
   @ApiResponse({ status: 404, description: 'Suscripción no encontrada' })
-  @ApiResponse({ status: 422, description: 'Suscripción sin PreApproval activo o estrategia incompatible' })
+  @ApiResponse({
+    status: 422,
+    description: 'Suscripción sin PreApproval activo o estrategia incompatible',
+  })
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   updateSubscriptionAmount(
     @Param('id', ParseUUIDPipe) id: string,
@@ -414,12 +640,17 @@ export class AdminController {
   }
 
   @Patch('users/:id/referral-code')
-  @ApiOperation({ summary: 'Setear o cambiar el código de referido de un usuario' })
+  @ApiOperation({
+    summary: 'Setear o cambiar el código de referido de un usuario',
+  })
   @ApiParam({ name: 'id', type: String, description: 'UUID del usuario' })
   @ApiBody({ type: UpdateReferralCodeDto })
   @ApiResponse({ status: 200, description: 'Código actualizado exitosamente' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
-  @ApiResponse({ status: 409, description: 'Código ya en uso por otro usuario' })
+  @ApiResponse({
+    status: 409,
+    description: 'Código ya en uso por otro usuario',
+  })
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   setUserReferralCode(
     @Param('id', ParseUUIDPipe) id: string,

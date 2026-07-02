@@ -21,9 +21,10 @@ export class SubscriptionsCronService {
    * Para cada strategy registrada, busca suscripciones activas con endDate expirado
    * y delega la renovación al strategy correspondiente.
    */
-  async handleRenewals() {
+  async handleRenewals(): Promise<number> {
     const now = new Date();
     const strategies = this.strategyFactory.getAllStrategies();
+    let processedCount = 0;
 
     for (const strategy of strategies) {
       // Buscar suscripciones activas con endDate vencido para esta strategy
@@ -41,10 +42,17 @@ export class SubscriptionsCronService {
 
       if (!expiredSubs.length) continue;
 
-      this.logger.log(`[${strategy.code}] Found ${expiredSubs.length} subscriptions to renew`);
+      this.logger.log(
+        `[${strategy.code}] Found ${expiredSubs.length} subscriptions to renew`,
+      );
 
-      const notificationUrl = this.config.getOrThrow<string>('SUBSCRIPTION_NOTIFICATION_URL');
-      const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:4321');
+      const notificationUrl = this.config.getOrThrow<string>(
+        'SUBSCRIPTION_NOTIFICATION_URL',
+      );
+      const frontendUrl = this.config.get<string>(
+        'FRONTEND_URL',
+        'http://localhost:4321',
+      );
 
       for (const sub of expiredSubs) {
         try {
@@ -99,11 +107,20 @@ export class SubscriptionsCronService {
             result.initPoint,
           );
 
-          this.logger.log(`[${strategy.code}] Renewal processed: subscription ${sub.id}, email sent to ${sub.user.email}`);
+          processedCount += 1;
+
+          this.logger.log(
+            `[${strategy.code}] Renewal processed: subscription ${sub.id}, email sent to ${sub.user.email}`,
+          );
         } catch (error) {
-          this.logger.error(`[${strategy.code}] Error processing renewal for subscription ${sub.id}: ${error.message}`, error.stack);
+          this.logger.error(
+            `[${strategy.code}] Error processing renewal for subscription ${sub.id}: ${error.message}`,
+            error.stack,
+          );
         }
       }
     }
+
+    return processedCount;
   }
 }

@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const request = require('supertest');
 import { createTestApp, registerUser } from './test-app.factory';
 import { cleanDatabase } from './clean-database';
@@ -21,7 +21,11 @@ describe('Community (e2e)', () => {
 
   describe('GET /community/posts', () => {
     it('should return posts', async () => {
-      const { access_token } = await registerUser(app, 'user@test.com', 'password123');
+      const { access_token } = await registerUser(
+        app,
+        'user@test.com',
+        'password123',
+      );
 
       const res = await request(app.getHttpServer())
         .get('/community/posts')
@@ -34,7 +38,11 @@ describe('Community (e2e)', () => {
 
   describe('POST /community/posts', () => {
     it('should create a post (auth)', async () => {
-      const { access_token } = await registerUser(app, 'user@test.com', 'password123');
+      const { access_token } = await registerUser(
+        app,
+        'user@test.com',
+        'password123',
+      );
 
       const res = await request(app.getHttpServer())
         .post('/community/posts')
@@ -56,7 +64,11 @@ describe('Community (e2e)', () => {
 
   describe('POST /community/comments', () => {
     it('should create a comment on a post', async () => {
-      const { access_token } = await registerUser(app, 'user@test.com', 'password123');
+      const { access_token } = await registerUser(
+        app,
+        'user@test.com',
+        'password123',
+      );
 
       const postRes = await request(app.getHttpServer())
         .post('/community/posts')

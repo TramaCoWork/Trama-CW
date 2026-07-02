@@ -40,7 +40,9 @@ describe('ProfessionCategoriesService', () => {
       ],
     }).compile();
 
-    service = module.get<ProfessionCategoriesService>(ProfessionCategoriesService);
+    service = module.get<ProfessionCategoriesService>(
+      ProfessionCategoriesService,
+    );
   });
 
   it('adminCreateRubro crea rubro con slug autogenerado desde name', async () => {
@@ -91,9 +93,9 @@ describe('ProfessionCategoriesService', () => {
   it('adminCreateRubro lanza ConflictException cuando slug ya existe', async () => {
     mockPrisma.professionCategory.findFirst.mockResolvedValue({ id: 99 });
 
-    await expect(service.adminCreateRubro({ name: 'Tecnología', slug: 'tecnologia' })).rejects.toThrow(
-      ConflictException,
-    );
+    await expect(
+      service.adminCreateRubro({ name: 'Tecnología', slug: 'tecnologia' }),
+    ).rejects.toThrow(ConflictException);
 
     expect(mockPrisma.professionCategory.findFirst).toHaveBeenCalledWith({
       where: { slug: 'tecnologia' },
@@ -103,12 +105,25 @@ describe('ProfessionCategoriesService', () => {
   });
 
   it('adminCreateSubrubro crea subrubro validando rubro padre existente', async () => {
-    const created = { id: 10, name: 'Software', slug: 'software', level: 2, parentId: 1 };
-    mockPrisma.professionCategory.findUnique.mockResolvedValue({ id: 1, level: 1, isActive: true });
+    const created = {
+      id: 10,
+      name: 'Software',
+      slug: 'software',
+      level: 2,
+      parentId: 1,
+    };
+    mockPrisma.professionCategory.findUnique.mockResolvedValue({
+      id: 1,
+      level: 1,
+      isActive: true,
+    });
     mockPrisma.professionCategory.findFirst.mockResolvedValue(null);
     mockPrisma.professionCategory.create.mockResolvedValue(created);
 
-    const result = await service.adminCreateSubrubro({ name: 'Software', rubroId: 1 });
+    const result = await service.adminCreateSubrubro({
+      name: 'Software',
+      rubroId: 1,
+    });
 
     expect(mockPrisma.professionCategory.findUnique).toHaveBeenCalledWith({
       where: { id: 1 },
@@ -134,9 +149,9 @@ describe('ProfessionCategoriesService', () => {
   it('adminCreateSubrubro lanza NotFoundException si rubro padre no existe', async () => {
     mockPrisma.professionCategory.findUnique.mockResolvedValue(null);
 
-    await expect(service.adminCreateSubrubro({ name: 'Software', rubroId: 1 })).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(
+      service.adminCreateSubrubro({ name: 'Software', rubroId: 1 }),
+    ).rejects.toThrow(NotFoundException);
 
     expect(mockPrisma.professionCategory.findUnique).toHaveBeenCalledWith({
       where: { id: 1 },
@@ -147,12 +162,25 @@ describe('ProfessionCategoriesService', () => {
   });
 
   it('adminCreateProfesion crea profesion validando subrubro padre', async () => {
-    const created = { id: 30, name: 'Backend', slug: 'backend', level: 3, parentId: 10 };
-    mockPrisma.professionCategory.findUnique.mockResolvedValue({ id: 10, level: 2, isActive: true });
+    const created = {
+      id: 30,
+      name: 'Backend',
+      slug: 'backend',
+      level: 3,
+      parentId: 10,
+    };
+    mockPrisma.professionCategory.findUnique.mockResolvedValue({
+      id: 10,
+      level: 2,
+      isActive: true,
+    });
     mockPrisma.professionCategory.findFirst.mockResolvedValue(null);
     mockPrisma.professionCategory.create.mockResolvedValue(created);
 
-    const result = await service.adminCreateProfesion({ name: 'Backend', subrubroId: 10 });
+    const result = await service.adminCreateProfesion({
+      name: 'Backend',
+      subrubroId: 10,
+    });
 
     expect(mockPrisma.professionCategory.findUnique).toHaveBeenCalledWith({
       where: { id: 10 },
@@ -207,7 +235,9 @@ describe('ProfessionCategoriesService', () => {
   it('adminFindRubro lanza NotFoundException cuando rubro no existe', async () => {
     mockPrisma.professionCategory.findUnique.mockResolvedValue(null);
 
-    await expect(service.adminFindRubro(999)).rejects.toThrow(NotFoundException);
+    await expect(service.adminFindRubro(999)).rejects.toThrow(
+      NotFoundException,
+    );
 
     expect(mockPrisma.professionCategory.findUnique).toHaveBeenCalledWith({
       where: { id: 999 },
@@ -219,9 +249,15 @@ describe('ProfessionCategoriesService', () => {
   });
 
   it('adminDeactivateRubro desactiva rubro sin hijos activos', async () => {
-    mockPrisma.professionCategory.findUnique.mockResolvedValue({ id: 1, level: 1 });
+    mockPrisma.professionCategory.findUnique.mockResolvedValue({
+      id: 1,
+      level: 1,
+    });
     mockPrisma.professionCategory.count.mockResolvedValue(0);
-    mockPrisma.professionCategory.update.mockResolvedValue({ id: 1, isActive: false });
+    mockPrisma.professionCategory.update.mockResolvedValue({
+      id: 1,
+      isActive: false,
+    });
 
     const result = await service.adminDeactivateRubro(1);
 
@@ -240,10 +276,15 @@ describe('ProfessionCategoriesService', () => {
   });
 
   it('adminDeactivateRubro lanza BadRequestException si tiene subrubros activos', async () => {
-    mockPrisma.professionCategory.findUnique.mockResolvedValue({ id: 1, level: 1 });
+    mockPrisma.professionCategory.findUnique.mockResolvedValue({
+      id: 1,
+      level: 1,
+    });
     mockPrisma.professionCategory.count.mockResolvedValue(2);
 
-    await expect(service.adminDeactivateRubro(1)).rejects.toThrow(BadRequestException);
+    await expect(service.adminDeactivateRubro(1)).rejects.toThrow(
+      BadRequestException,
+    );
 
     expect(mockPrisma.professionCategory.findUnique).toHaveBeenCalledWith({
       where: { id: 1 },
@@ -256,10 +297,15 @@ describe('ProfessionCategoriesService', () => {
   });
 
   it('adminDeactivateSubrubro lanza BadRequestException si tiene profesiones activas', async () => {
-    mockPrisma.professionCategory.findUnique.mockResolvedValue({ id: 10, level: 2 });
+    mockPrisma.professionCategory.findUnique.mockResolvedValue({
+      id: 10,
+      level: 2,
+    });
     mockPrisma.professionCategory.count.mockResolvedValue(1);
 
-    await expect(service.adminDeactivateSubrubro(10)).rejects.toThrow(BadRequestException);
+    await expect(service.adminDeactivateSubrubro(10)).rejects.toThrow(
+      BadRequestException,
+    );
 
     expect(mockPrisma.professionCategory.findUnique).toHaveBeenCalledWith({
       where: { id: 10 },
@@ -272,10 +318,16 @@ describe('ProfessionCategoriesService', () => {
   });
 
   it('adminDeactivateProfesion desactiva profesion sin referencias', async () => {
-    mockPrisma.professionCategory.findUnique.mockResolvedValue({ id: 30, level: 3 });
+    mockPrisma.professionCategory.findUnique.mockResolvedValue({
+      id: 30,
+      level: 3,
+    });
     mockPrisma.professionalProfile.count.mockResolvedValue(0);
     mockPrisma.document.count.mockResolvedValue(0);
-    mockPrisma.professionCategory.update.mockResolvedValue({ id: 30, isActive: false });
+    mockPrisma.professionCategory.update.mockResolvedValue({
+      id: 30,
+      isActive: false,
+    });
 
     const result = await service.adminDeactivateProfesion(30);
 
@@ -284,9 +336,15 @@ describe('ProfessionCategoriesService', () => {
       select: { id: true, level: true },
     });
     expect(mockPrisma.professionalProfile.count).toHaveBeenCalledWith({
-      where: { deletedAt: null, professionCategories: { some: { id: 30 } }, isActive: true },
+      where: {
+        deletedAt: null,
+        professionCategories: { some: { id: 30 } },
+        isActive: true,
+      },
     });
-    expect(mockPrisma.document.count).toHaveBeenCalledWith({ where: { professionId: 30 } });
+    expect(mockPrisma.document.count).toHaveBeenCalledWith({
+      where: { professionId: 30 },
+    });
     expect(mockPrisma.professionCategory.update).toHaveBeenCalledWith({
       where: { id: 30 },
       data: { isActive: false },
@@ -295,20 +353,31 @@ describe('ProfessionCategoriesService', () => {
   });
 
   it('adminDeactivateProfesion lanza BadRequestException si tiene profesionales asociados', async () => {
-    mockPrisma.professionCategory.findUnique.mockResolvedValue({ id: 30, level: 3 });
+    mockPrisma.professionCategory.findUnique.mockResolvedValue({
+      id: 30,
+      level: 3,
+    });
     mockPrisma.professionalProfile.count.mockResolvedValue(1);
     mockPrisma.document.count.mockResolvedValue(0);
 
-    await expect(service.adminDeactivateProfesion(30)).rejects.toThrow(BadRequestException);
+    await expect(service.adminDeactivateProfesion(30)).rejects.toThrow(
+      BadRequestException,
+    );
 
     expect(mockPrisma.professionCategory.findUnique).toHaveBeenCalledWith({
       where: { id: 30 },
       select: { id: true, level: true },
     });
     expect(mockPrisma.professionalProfile.count).toHaveBeenCalledWith({
-      where: { deletedAt: null, professionCategories: { some: { id: 30 } }, isActive: true },
+      where: {
+        deletedAt: null,
+        professionCategories: { some: { id: 30 } },
+        isActive: true,
+      },
     });
-    expect(mockPrisma.document.count).toHaveBeenCalledWith({ where: { professionId: 30 } });
+    expect(mockPrisma.document.count).toHaveBeenCalledWith({
+      where: { professionId: 30 },
+    });
     expect(mockPrisma.professionCategory.update).not.toHaveBeenCalled();
   });
 
@@ -338,20 +407,31 @@ describe('ProfessionCategoriesService', () => {
   it('adminUpdateSubrubro actualiza rubroId padre', async () => {
     const updated = { id: 10, parentId: 2 };
     mockPrisma.professionCategory.findUnique
-      .mockResolvedValueOnce({ id: 10, name: 'Software', level: 2, slug: 'software' })
+      .mockResolvedValueOnce({
+        id: 10,
+        name: 'Software',
+        level: 2,
+        slug: 'software',
+      })
       .mockResolvedValueOnce({ id: 2, level: 1, isActive: true });
     mockPrisma.professionCategory.update.mockResolvedValue(updated);
 
     const result = await service.adminUpdateSubrubro(10, { rubroId: 2 });
 
-    expect(mockPrisma.professionCategory.findUnique).toHaveBeenNthCalledWith(1, {
-      where: { id: 10 },
-      select: { id: true, name: true, level: true, slug: true },
-    });
-    expect(mockPrisma.professionCategory.findUnique).toHaveBeenNthCalledWith(2, {
-      where: { id: 2 },
-      select: { id: true, level: true, isActive: true },
-    });
+    expect(mockPrisma.professionCategory.findUnique).toHaveBeenNthCalledWith(
+      1,
+      {
+        where: { id: 10 },
+        select: { id: true, name: true, level: true, slug: true },
+      },
+    );
+    expect(mockPrisma.professionCategory.findUnique).toHaveBeenNthCalledWith(
+      2,
+      {
+        where: { id: 2 },
+        select: { id: true, level: true, isActive: true },
+      },
+    );
     expect(mockPrisma.professionCategory.update).toHaveBeenCalledWith({
       where: { id: 10 },
       data: { parent: { connect: { id: 2 } } },

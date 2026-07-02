@@ -77,7 +77,10 @@ export interface PaymentStrategy {
    * Procesar eventos de webhook específicos del gateway (e.g. subscription_preapproval).
    * Retorna datos para actualizar el status, o null si no aplica.
    */
-  handleGatewayWebhook(eventType: string, dataId: string): Promise<{
+  handleGatewayWebhook(
+    eventType: string,
+    dataId: string,
+  ): Promise<{
     externalId: string;
     status: string;
     startDate?: Date;
@@ -85,7 +88,10 @@ export interface PaymentStrategy {
   } | null>;
 
   /** Cancelar una suscripción. Retorna la fecha hasta la que el servicio permanece activo. */
-  cancelSubscription(externalId: string | null, endDate: Date | null): Promise<CancelResult>;
+  cancelSubscription(
+    externalId: string | null,
+    endDate: Date | null,
+  ): Promise<CancelResult>;
 
   /**
    * Generar una renovación (nuevo link de pago) para suscripciones expiradas.

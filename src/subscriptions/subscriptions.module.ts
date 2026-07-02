@@ -15,7 +15,12 @@ import { SubscriptionPlansModule } from '../subscription-plans/subscription-plan
 import { MailModule } from '../mail/mail.module';
 
 @Module({
-  imports: [PrismaModule, MercadoPagoModule, SubscriptionPlansModule, MailModule],
+  imports: [
+    PrismaModule,
+    MercadoPagoModule,
+    SubscriptionPlansModule,
+    MailModule,
+  ],
   controllers: [SubscriptionsController, SubscriptionsWebhookController],
   providers: [
     SubscriptionsService,
@@ -32,7 +37,12 @@ import { MailModule } from '../mail/mail.module';
         mpBricks: MpBricksStrategy,
         mpBricksSubscription: MpBricksSubscriptionStrategy,
       ) => [mpCheckout, mpSubscription, mpBricks, mpBricksSubscription],
-      inject: [MpCheckoutStrategy, MpSubscriptionStrategy, MpBricksStrategy, MpBricksSubscriptionStrategy],
+      inject: [
+        MpCheckoutStrategy,
+        MpSubscriptionStrategy,
+        MpBricksStrategy,
+        MpBricksSubscriptionStrategy,
+      ],
     },
     PaymentStrategyFactory,
   ],

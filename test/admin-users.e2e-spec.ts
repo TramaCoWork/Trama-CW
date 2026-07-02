@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const request = require('supertest');
 import { createTestApp } from './test-app.factory';
 import { cleanDatabase } from './clean-database';
@@ -24,8 +24,13 @@ describe('Admin users CRUD (e2e)', () => {
     await app.close();
   });
 
-  async function createAdminToken(): Promise<{ token: string; userId: string }> {
-    const adminRole = await prisma.role.findUniqueOrThrow({ where: { name: 'admin' } });
+  async function createAdminToken(): Promise<{
+    token: string;
+    userId: string;
+  }> {
+    const adminRole = await prisma.role.findUniqueOrThrow({
+      where: { name: 'admin' },
+    });
 
     const admin = await prisma.user.create({
       data: {
@@ -48,11 +53,17 @@ describe('Admin users CRUD (e2e)', () => {
   }
 
   async function createUser(
-    overrides: Partial<{ email: string; roles: string[]; deletedAt: Date }> = {},
+    overrides: Partial<{
+      email: string;
+      roles: string[];
+      deletedAt: Date;
+    }> = {},
   ) {
     const timestamp = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
     const roleNames = overrides.roles?.length ? overrides.roles : ['client'];
-    const roles = await prisma.role.findMany({ where: { name: { in: roleNames } } });
+    const roles = await prisma.role.findMany({
+      where: { name: { in: roleNames } },
+    });
 
     return prisma.user.create({
       data: {
@@ -145,9 +156,19 @@ describe('Admin users CRUD (e2e)', () => {
         .expect(200);
 
       expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body.some((user: { id: string }) => user.id === active.id)).toBe(true);
-      expect(res.body.some((user: { email: string }) => user.email === 'deleted-user@test.com')).toBe(false);
-      expect(res.body.every((user: { deletedAt: string | null }) => user.deletedAt === null)).toBe(true);
+      expect(
+        res.body.some((user: { id: string }) => user.id === active.id),
+      ).toBe(true);
+      expect(
+        res.body.some(
+          (user: { email: string }) => user.email === 'deleted-user@test.com',
+        ),
+      ).toBe(false);
+      expect(
+        res.body.every(
+          (user: { deletedAt: string | null }) => user.deletedAt === null,
+        ),
+      ).toBe(true);
     });
   });
 
@@ -213,10 +234,14 @@ describe('Admin users CRUD (e2e)', () => {
       );
       expect(updated.body).not.toHaveProperty('passwordHash');
 
-      const persisted = await prisma.user.findUnique({ where: { id: user.id } });
+      const persisted = await prisma.user.findUnique({
+        where: { id: user.id },
+      });
       expect(persisted).not.toBeNull();
       expect(persisted!.passwordHash).not.toBe('test-password-hash');
-      expect(await bcrypt.compare('new-password-123', persisted!.passwordHash)).toBe(true);
+      expect(
+        await bcrypt.compare('new-password-123', persisted!.passwordHash),
+      ).toBe(true);
 
       const noop = await request(app.getHttpServer())
         .patch(`/admin/users/${user.id}`)
@@ -271,7 +296,9 @@ describe('Admin users CRUD (e2e)', () => {
 
       expect(deleted.body.message).toBe('User deleted successfully');
 
-      const persisted = await prisma.user.findUnique({ where: { id: target.id } });
+      const persisted = await prisma.user.findUnique({
+        where: { id: target.id },
+      });
       expect(persisted?.deletedAt).not.toBeNull();
 
       const before = await prisma.user.findUnique({ where: { id: adminId } });

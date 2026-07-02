@@ -102,19 +102,24 @@ export class SubscriptionsService {
           data: { currentUses: { increment: 1 } },
         });
       } catch (e) {
-        this.logger.warn(`Failed to increment discount currentUses: ${e?.message}`);
+        this.logger.warn(
+          `Failed to increment discount currentUses: ${e?.message}`,
+        );
       }
     }
 
     // Delegar creación del pago al strategy
-    const notificationUrl = this.config.getOrThrow<string>('SUBSCRIPTION_NOTIFICATION_URL');
+    const notificationUrl = this.config.getOrThrow<string>(
+      'SUBSCRIPTION_NOTIFICATION_URL',
+    );
     let initPoint: string;
     let externalId: string;
 
     // Si hay descuento, MP recibe el monto ya descontado (original - discountAmount)
-    const effectivePlan = (discountFields != null && discountFields.discountedAmount != null)
-      ? { ...plan, amount: discountFields.discountedAmount }
-      : plan;
+    const effectivePlan =
+      discountFields != null && discountFields.discountedAmount != null
+        ? { ...plan, amount: discountFields.discountedAmount }
+        : plan;
 
     try {
       const mpResult = await strategy.createPayment({
@@ -134,8 +139,12 @@ export class SubscriptionsService {
           cancellationReason: 'mp_preapproval_failed',
         },
       });
-      this.logger.error(`MP preapproval failed for subscription ${subscription.id}: ${error?.message ?? error}`);
-      throw new InternalServerErrorException('No se pudo iniciar la suscripción');
+      this.logger.error(
+        `MP preapproval failed for subscription ${subscription.id}: ${error?.message ?? error}`,
+      );
+      throw new InternalServerErrorException(
+        'No se pudo iniciar la suscripción',
+      );
     }
 
     // Actualizar con externalId e initPoint
@@ -153,7 +162,9 @@ export class SubscriptionsService {
           error: 'DB update failed post-MP',
         },
       });
-      throw new InternalServerErrorException('No se pudo iniciar la suscripción');
+      throw new InternalServerErrorException(
+        'No se pudo iniciar la suscripción',
+      );
     }
 
     return { initPoint, subscriptionId: subscription.id };
@@ -197,12 +208,21 @@ export class SubscriptionsService {
       where: { userId, status: 'pending' },
     });
 
-    let bricksDiscountFields = null as ({ discountPlanId: string; discountedAmount: Prisma.Decimal; discountAppliedAt: Date; discountExpiresAt: Date | null } | null);
+    let bricksDiscountFields = null as {
+      discountPlanId: string;
+      discountedAmount: Prisma.Decimal;
+      discountAppliedAt: Date;
+      discountExpiresAt: Date | null;
+    } | null;
 
     const subscription = pending
       ? await this.prisma.subscription.update({
           where: { id: pending.id },
-          data: { planId: plan.id, mpPayerEmail: payerEmail, paymentStrategy: 'mp_bricks' },
+          data: {
+            planId: plan.id,
+            mpPayerEmail: payerEmail,
+            paymentStrategy: 'mp_bricks',
+          },
         })
       : await (async () => {
           bricksDiscountFields = await this._resolveDiscount(plan.id, plan);
@@ -224,18 +244,24 @@ export class SubscriptionsService {
                 data: { currentUses: { increment: 1 } },
               });
             } catch (e) {
-              this.logger.warn(`Failed to increment discount currentUses: ${e?.message}`);
+              this.logger.warn(
+                `Failed to increment discount currentUses: ${e?.message}`,
+              );
             }
           }
           return sub;
         })();
 
-    const notificationUrl = this.config.getOrThrow<string>('SUBSCRIPTION_NOTIFICATION_URL');
+    const notificationUrl = this.config.getOrThrow<string>(
+      'SUBSCRIPTION_NOTIFICATION_URL',
+    );
 
     // Si hay descuento, MP recibe el monto ya descontado (original - discountAmount)
-    const bricksEffectivePlan = (bricksDiscountFields != null && bricksDiscountFields.discountedAmount != null)
-      ? { ...plan, amount: bricksDiscountFields.discountedAmount }
-      : plan;
+    const bricksEffectivePlan =
+      bricksDiscountFields != null &&
+      bricksDiscountFields.discountedAmount != null
+        ? { ...plan, amount: bricksDiscountFields.discountedAmount }
+        : plan;
 
     const result = await this.bricksStrategy.payWithToken({
       subscriptionId: subscription.id,
@@ -290,7 +316,10 @@ export class SubscriptionsService {
     await this.registerPaymentBySubscriptionId(subscription.id, result.data);
     await this.prisma.subscription.update({
       where: { id: subscription.id },
-      data: { status: 'cancelled', cancellationReason: result.statusDetail ?? 'payment_rejected' },
+      data: {
+        status: 'cancelled',
+        cancellationReason: result.statusDetail ?? 'payment_rejected',
+      },
     });
 
     return {
@@ -326,19 +355,30 @@ export class SubscriptionsService {
     }
 
     const payerEmail = dto.payerEmail ?? user.email;
-    const backUrl = dto.backUrl ?? this.config.get<string>('FRONTEND_URL', 'http://localhost:4321');
+    const backUrl =
+      dto.backUrl ??
+      this.config.get<string>('FRONTEND_URL', 'http://localhost:4321');
 
     // Reusar una suscripción pendiente o crear una nueva
     const pending = await this.prisma.subscription.findFirst({
       where: { userId, status: 'pending' },
     });
 
-    let subscribeDiscountFields = null as ({ discountPlanId: string; discountedAmount: Prisma.Decimal; discountAppliedAt: Date; discountExpiresAt: Date | null } | null);
+    let subscribeDiscountFields = null as {
+      discountPlanId: string;
+      discountedAmount: Prisma.Decimal;
+      discountAppliedAt: Date;
+      discountExpiresAt: Date | null;
+    } | null;
 
     const subscription = pending
       ? await this.prisma.subscription.update({
           where: { id: pending.id },
-          data: { planId: plan.id, mpPayerEmail: payerEmail, paymentStrategy: 'mp_bricks_subscription' },
+          data: {
+            planId: plan.id,
+            mpPayerEmail: payerEmail,
+            paymentStrategy: 'mp_bricks_subscription',
+          },
         })
       : await (async () => {
           subscribeDiscountFields = await this._resolveDiscount(plan.id, plan);
@@ -360,17 +400,23 @@ export class SubscriptionsService {
                 data: { currentUses: { increment: 1 } },
               });
             } catch (e) {
-              this.logger.warn(`Failed to increment discount currentUses: ${e?.message}`);
+              this.logger.warn(
+                `Failed to increment discount currentUses: ${e?.message}`,
+              );
             }
           }
           return sub;
         })();
 
-    const notificationUrl = this.config.getOrThrow<string>('SUBSCRIPTION_NOTIFICATION_URL');
+    const notificationUrl = this.config.getOrThrow<string>(
+      'SUBSCRIPTION_NOTIFICATION_URL',
+    );
     // Si hay descuento, MP recibe el monto ya descontado (original - discountAmount)
-    const subscribeEffectivePlan = (subscribeDiscountFields != null && subscribeDiscountFields.discountedAmount != null)
-      ? { ...plan, amount: subscribeDiscountFields.discountedAmount }
-      : plan;
+    const subscribeEffectivePlan =
+      subscribeDiscountFields != null &&
+      subscribeDiscountFields.discountedAmount != null
+        ? { ...plan, amount: subscribeDiscountFields.discountedAmount }
+        : plan;
 
     const result = await this.bricksSubscriptionStrategy.payWithCardToken({
       subscriptionId: subscription.id,
@@ -397,7 +443,9 @@ export class SubscriptionsService {
         externalId: result.externalId,
         status: mappedStatus,
         startDate: isActive ? new Date() : undefined,
-        nextPaymentDate: result.nextPaymentDate ? new Date(result.nextPaymentDate) : undefined,
+        nextPaymentDate: result.nextPaymentDate
+          ? new Date(result.nextPaymentDate)
+          : undefined,
       },
     });
 
@@ -445,12 +493,19 @@ export class SubscriptionsService {
       },
     });
     if (!subscription) {
-      throw new NotFoundException('No tenés una suscripción activa para cancelar');
+      throw new NotFoundException(
+        'No tenés una suscripción activa para cancelar',
+      );
     }
 
     // Resolver strategy desde la suscripción
-    const strategy = this.strategyFactory.getStrategy(subscription.paymentStrategy);
-    const { endDate } = await strategy.cancelSubscription(subscription.externalId, subscription.endDate);
+    const strategy = this.strategyFactory.getStrategy(
+      subscription.paymentStrategy,
+    );
+    const { endDate } = await strategy.cancelSubscription(
+      subscription.externalId,
+      subscription.endDate,
+    );
 
     // Actualizar DB — NO tocar el perfil profesional
     // El cron se encarga de desactivar cuando endDate expire
@@ -463,14 +518,25 @@ export class SubscriptionsService {
       },
     });
 
-    this.logger.log(`Subscription cancelled: ${subscription.id} (${strategy.code})${reason ? ` — reason: ${reason}` : ''}`);
+    this.logger.log(
+      `Subscription cancelled: ${subscription.id} (${strategy.code})${reason ? ` — reason: ${reason}` : ''}`,
+    );
 
-    return { message: 'Suscripción cancelada. Tu perfil seguirá activo hasta el fin del período pagado.', paidUntil: endDate };
+    return {
+      message:
+        'Suscripción cancelada. Tu perfil seguirá activo hasta el fin del período pagado.',
+      paidUntil: endDate,
+    };
   }
 
   // --- Métodos usados por el webhook ---
 
-  async updateStatus(externalId: string, status: SubscriptionStatus, startDate?: Date, externalReference?: string) {
+  async updateStatus(
+    externalId: string,
+    status: SubscriptionStatus,
+    startDate?: Date,
+    externalReference?: string,
+  ) {
     // Buscar por externalId (MP preapproval ID), con fallback a external_reference (nuestro subscription.id)
     let subscription = await this.prisma.subscription.findUnique({
       where: { externalId },
@@ -483,7 +549,9 @@ export class SubscriptionsService {
         include: { plan: true },
       });
       if (subscription) {
-        this.logger.log(`Subscription found by external_reference: ${externalReference}`);
+        this.logger.log(
+          `Subscription found by external_reference: ${externalReference}`,
+        );
         if (!subscription.externalId) {
           await this.prisma.subscription.update({
             where: { id: subscription.id },
@@ -494,20 +562,26 @@ export class SubscriptionsService {
     }
 
     if (!subscription) {
-      this.logger.warn(`Subscription not found for externalId: ${externalId} / external_reference: ${externalReference}`);
+      this.logger.warn(
+        `Subscription not found for externalId: ${externalId} / external_reference: ${externalReference}`,
+      );
       return;
     }
 
     const data: any = { status };
-    const computedTrialEnd = startDate && subscription.plan.trialDays > 0
-      ? new Date(startDate.getTime() + subscription.plan.trialDays * 86400000)
-      : undefined;
+    const computedTrialEnd =
+      startDate && subscription.plan.trialDays > 0
+        ? new Date(startDate.getTime() + subscription.plan.trialDays * 86400000)
+        : undefined;
 
     if (startDate) {
       data.startDate = startDate;
     }
 
-    await this.prisma.subscription.update({ where: { id: subscription.id }, data });
+    await this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data,
+    });
 
     if (computedTrialEnd) {
       await this.prisma.professionalProfile.updateMany({
@@ -556,7 +630,9 @@ export class SubscriptionsService {
       include: { plan: true },
     });
     if (!subscription) {
-      this.logger.warn(`Subscription not found for checkout payment: ${subscriptionId}`);
+      this.logger.warn(
+        `Subscription not found for checkout payment: ${subscriptionId}`,
+      );
       return;
     }
 
@@ -590,7 +666,9 @@ export class SubscriptionsService {
       },
     });
 
-    this.logger.log(`Checkout payment approved: subscription ${subscriptionId} active until ${endDate.toISOString()}`);
+    this.logger.log(
+      `Checkout payment approved: subscription ${subscriptionId} active until ${endDate.toISOString()}`,
+    );
   }
 
   async registerPayment(data: {
@@ -621,7 +699,9 @@ export class SubscriptionsService {
       include: { plan: true },
     });
     if (!subscription) {
-      this.logger.warn(`Subscription not found for payment: ${data.subscriptionExternalId}`);
+      this.logger.warn(
+        `Subscription not found for payment: ${data.subscriptionExternalId}`,
+      );
       return;
     }
 
@@ -683,7 +763,10 @@ export class SubscriptionsService {
     );
   }
 
-  async registerPaymentBySubscriptionId(subscriptionId: string, data: WebhookPaymentData) {
+  async registerPaymentBySubscriptionId(
+    subscriptionId: string,
+    data: WebhookPaymentData,
+  ) {
     // Idempotencia
     const existing = await this.prisma.subscriptionPayment.findUnique({
       where: { externalId: data.paymentExternalId },
@@ -696,7 +779,10 @@ export class SubscriptionsService {
     return this._createPaymentRecord(subscriptionId, data);
   }
 
-  private async _createPaymentRecord(subscriptionId: string, data: WebhookPaymentData) {
+  private async _createPaymentRecord(
+    subscriptionId: string,
+    data: WebhookPaymentData,
+  ) {
     const attemptCount = await this.prisma.subscriptionPayment.count({
       where: { subscriptionId },
     });
@@ -809,7 +895,10 @@ export class SubscriptionsService {
     if (!discountPlan) return null;
 
     // Verificar límite de usos (post-query JS check)
-    if (discountPlan.maxUses !== null && discountPlan.currentUses >= discountPlan.maxUses) {
+    if (
+      discountPlan.maxUses !== null &&
+      discountPlan.currentUses >= discountPlan.maxUses
+    ) {
       return null;
     }
 

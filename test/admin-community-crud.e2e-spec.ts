@@ -3,7 +3,6 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { cleanDatabase } from './clean-database';
 import { createTestApp, registerUser } from './test-app.factory';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const request = require('supertest');
 
 describe('Admin Community CRUD (e2e)', () => {
@@ -24,13 +23,22 @@ describe('Admin Community CRUD (e2e)', () => {
   });
 
   it('Admin list posts returns paginated data/meta and excludes soft-deleted rows', async () => {
-    const admin = await registerUser(app, 'admin-community-list@test.com', 'password123', 'admin');
+    const admin = await registerUser(
+      app,
+      'admin-community-list@test.com',
+      'password123',
+      'admin',
+    );
 
     await prisma.communityPost.createMany({
       data: [
         { userId: admin.userId, channelSlug: 'general', content: 'General 1' },
         { userId: admin.userId, channelSlug: 'general', content: 'General 2' },
-        { userId: admin.userId, channelSlug: 'marketing', content: 'Marketing 1' },
+        {
+          userId: admin.userId,
+          channelSlug: 'marketing',
+          content: 'Marketing 1',
+        },
         {
           userId: admin.userId,
           channelSlug: 'general',
@@ -47,12 +55,26 @@ describe('Admin Community CRUD (e2e)', () => {
 
     expect(Array.isArray(res.body.data)).toBe(true);
     expect(res.body.data).toHaveLength(2);
-    expect(res.body.data.every((post: { deletedAt: Date | null }) => post.deletedAt === null)).toBe(true);
-    expect(res.body.meta).toMatchObject({ page: 1, limit: 10, total: 2, totalPages: 1 });
+    expect(
+      res.body.data.every(
+        (post: { deletedAt: Date | null }) => post.deletedAt === null,
+      ),
+    ).toBe(true);
+    expect(res.body.meta).toMatchObject({
+      page: 1,
+      limit: 10,
+      total: 2,
+      totalPages: 1,
+    });
   });
 
   it('Admin list posts returns an empty result for an unknown channelSlug', async () => {
-    const admin = await registerUser(app, 'admin-community-empty@test.com', 'password123', 'admin');
+    const admin = await registerUser(
+      app,
+      'admin-community-empty@test.com',
+      'password123',
+      'admin',
+    );
 
     const res = await request(app.getHttpServer())
       .get('/admin/community/posts?page=1&limit=10&channelSlug=unknown-channel')
@@ -60,11 +82,21 @@ describe('Admin Community CRUD (e2e)', () => {
       .expect(200);
 
     expect(res.body.data).toEqual([]);
-    expect(res.body.meta).toMatchObject({ page: 1, limit: 10, total: 0, totalPages: 0 });
+    expect(res.body.meta).toMatchObject({
+      page: 1,
+      limit: 10,
+      total: 0,
+      totalPages: 0,
+    });
   });
 
   it('Admin can create a comment with the JWT userId as author', async () => {
-    const admin = await registerUser(app, 'admin-community-comment@test.com', 'password123', 'admin');
+    const admin = await registerUser(
+      app,
+      'admin-community-comment@test.com',
+      'password123',
+      'admin',
+    );
 
     const post = await prisma.communityPost.create({
       data: {
@@ -86,10 +118,17 @@ describe('Admin Community CRUD (e2e)', () => {
   });
 
   it('Admin comment creation returns 404 for missing or soft-deleted posts', async () => {
-    const admin = await registerUser(app, 'admin-community-comment-404@test.com', 'password123', 'admin');
+    const admin = await registerUser(
+      app,
+      'admin-community-comment-404@test.com',
+      'password123',
+      'admin',
+    );
 
     await request(app.getHttpServer())
-      .post('/admin/community/posts/00000000-0000-0000-0000-000000000000/comments')
+      .post(
+        '/admin/community/posts/00000000-0000-0000-0000-000000000000/comments',
+      )
       .set('Authorization', `Bearer ${admin.access_token}`)
       .send({ content: 'Should fail' })
       .expect(404);
@@ -114,7 +153,12 @@ describe('Admin Community CRUD (e2e)', () => {
   });
 
   it('Admin post delete is soft-delete only and idempotent', async () => {
-    const admin = await registerUser(app, 'admin-community-delete-post@test.com', 'password123', 'admin');
+    const admin = await registerUser(
+      app,
+      'admin-community-delete-post@test.com',
+      'password123',
+      'admin',
+    );
 
     const post = await prisma.communityPost.create({
       data: {
@@ -130,7 +174,9 @@ describe('Admin Community CRUD (e2e)', () => {
       .expect(200)
       .expect({ message: 'Post eliminado logicamente' });
 
-    const afterFirstDelete = await prisma.communityPost.findUnique({ where: { id: post.id } });
+    const afterFirstDelete = await prisma.communityPost.findUnique({
+      where: { id: post.id },
+    });
     expect(afterFirstDelete?.deletedAt).not.toBeNull();
 
     await request(app.getHttpServer())
@@ -139,12 +185,19 @@ describe('Admin Community CRUD (e2e)', () => {
       .expect(200)
       .expect({ message: 'Post eliminado logicamente' });
 
-    const afterSecondDelete = await prisma.communityPost.findUnique({ where: { id: post.id } });
+    const afterSecondDelete = await prisma.communityPost.findUnique({
+      where: { id: post.id },
+    });
     expect(afterSecondDelete?.deletedAt).not.toBeNull();
   });
 
   it('Admin comment delete is soft-delete only and idempotent', async () => {
-    const admin = await registerUser(app, 'admin-community-delete-comment@test.com', 'password123', 'admin');
+    const admin = await registerUser(
+      app,
+      'admin-community-delete-comment@test.com',
+      'password123',
+      'admin',
+    );
 
     const post = await prisma.communityPost.create({
       data: {
@@ -168,7 +221,9 @@ describe('Admin Community CRUD (e2e)', () => {
       .expect(200)
       .expect({ message: 'Comentario eliminado logicamente' });
 
-    const afterFirstDelete = await prisma.communityComment.findUnique({ where: { id: comment.id } });
+    const afterFirstDelete = await prisma.communityComment.findUnique({
+      where: { id: comment.id },
+    });
     expect(afterFirstDelete?.deletedAt).not.toBeNull();
 
     await request(app.getHttpServer())
@@ -177,7 +232,9 @@ describe('Admin Community CRUD (e2e)', () => {
       .expect(200)
       .expect({ message: 'Comentario eliminado logicamente' });
 
-    const afterSecondDelete = await prisma.communityComment.findUnique({ where: { id: comment.id } });
+    const afterSecondDelete = await prisma.communityComment.findUnique({
+      where: { id: comment.id },
+    });
     expect(afterSecondDelete?.deletedAt).not.toBeNull();
   });
 });

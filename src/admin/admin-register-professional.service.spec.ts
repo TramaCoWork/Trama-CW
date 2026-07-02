@@ -63,17 +63,24 @@ describe('AdminService.registerProfessional', () => {
 
   it('should create user and profile successfully with defaults', async () => {
     mockPrisma.user.findUnique.mockResolvedValue(null);
-    mockPrisma.professionCategory.findFirst.mockResolvedValue({ id: 1, level: 1, isActive: true });
-    mockPrisma.professionCategory.findMany.mockResolvedValue([{ id: 10 }, { id: 11 }]);
+    mockPrisma.professionCategory.findFirst.mockResolvedValue({
+      id: 1,
+      level: 1,
+      isActive: true,
+    });
+    mockPrisma.professionCategory.findMany.mockResolvedValue([
+      { id: 10 },
+      { id: 11 },
+    ]);
     mockPrisma.role.findUnique.mockResolvedValue({ id: 'role-professional' });
-    mockPrisma.$transaction.mockImplementation(async (cb: any) => cb(mockPrisma));
+    mockPrisma.$transaction.mockImplementation(async (cb: any) =>
+      cb(mockPrisma),
+    );
     mockPrisma.user.create.mockResolvedValue({
       id: 'uuid-1',
       email: 'juan@example.com',
       emailVerified: true,
-      userRoles: [
-        { role: { name: 'professional', type: 'professional' } },
-      ],
+      userRoles: [{ role: { name: 'professional', type: 'professional' } }],
       profile: {
         id: 'uuid-profile',
         name: 'Juan Pérez',
@@ -95,37 +102,58 @@ describe('AdminService.registerProfessional', () => {
   it('should throw ConflictException if email exists', async () => {
     mockPrisma.user.findUnique.mockResolvedValue({ id: 'existing' });
 
-    await expect(service.registerProfessional(validDto)).rejects.toThrow(ConflictException);
+    await expect(service.registerProfessional(validDto)).rejects.toThrow(
+      ConflictException,
+    );
   });
 
   it('should throw BadRequestException if rubroId is invalid', async () => {
     mockPrisma.user.findUnique.mockResolvedValue(null);
     mockPrisma.professionCategory.findFirst.mockResolvedValue(null);
 
-    await expect(service.registerProfessional(validDto)).rejects.toThrow(BadRequestException);
+    await expect(service.registerProfessional(validDto)).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('should throw BadRequestException if professionCategoryIds without rubroId', async () => {
     mockPrisma.user.findUnique.mockResolvedValue(null);
     const dto = { ...validDto, rubroId: undefined };
 
-    await expect(service.registerProfessional(dto)).rejects.toThrow(BadRequestException);
+    await expect(service.registerProfessional(dto)).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('should throw BadRequestException if professionCategoryIds mismatch rubro', async () => {
     mockPrisma.user.findUnique.mockResolvedValue(null);
-    mockPrisma.professionCategory.findFirst.mockResolvedValue({ id: 1, level: 1, isActive: true });
+    mockPrisma.professionCategory.findFirst.mockResolvedValue({
+      id: 1,
+      level: 1,
+      isActive: true,
+    });
     mockPrisma.professionCategory.findMany.mockResolvedValue([{ id: 10 }]);
 
-    await expect(service.registerProfessional(validDto)).rejects.toThrow(BadRequestException);
+    await expect(service.registerProfessional(validDto)).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('should use custom emailVerified and profileStatus when provided', async () => {
     mockPrisma.user.findUnique.mockResolvedValue(null);
-    mockPrisma.professionCategory.findFirst.mockResolvedValue({ id: 1, level: 1, isActive: true });
-    mockPrisma.professionCategory.findMany.mockResolvedValue([{ id: 10 }, { id: 11 }]);
+    mockPrisma.professionCategory.findFirst.mockResolvedValue({
+      id: 1,
+      level: 1,
+      isActive: true,
+    });
+    mockPrisma.professionCategory.findMany.mockResolvedValue([
+      { id: 10 },
+      { id: 11 },
+    ]);
     mockPrisma.role.findUnique.mockResolvedValue({ id: 'role-professional' });
-    mockPrisma.$transaction.mockImplementation(async (cb: any) => cb(mockPrisma));
+    mockPrisma.$transaction.mockImplementation(async (cb: any) =>
+      cb(mockPrisma),
+    );
     mockPrisma.user.create.mockResolvedValue({
       id: 'uuid-2',
       email: 'test@test.com',
@@ -147,7 +175,9 @@ describe('AdminService.registerProfessional', () => {
   it('should accept minimal DTO with only required fields', async () => {
     mockPrisma.user.findUnique.mockResolvedValue(null);
     mockPrisma.role.findUnique.mockResolvedValue({ id: 'role-professional' });
-    mockPrisma.$transaction.mockImplementation(async (cb: any) => cb(mockPrisma));
+    mockPrisma.$transaction.mockImplementation(async (cb: any) =>
+      cb(mockPrisma),
+    );
     mockPrisma.user.create.mockResolvedValue({
       id: 'uuid-3',
       email: 'minimal@test.com',

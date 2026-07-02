@@ -3,7 +3,10 @@
  * Permite migrar de disco local a S3/MinIO sin cambiar el resto del codigo.
  */
 export interface StorageService {
-  upload(file: Express.Multer.File, folder: string): Promise<{ url: string; path: string }>;
+  upload(
+    file: Express.Multer.File,
+    folder: string,
+  ): Promise<{ url: string; path: string }>;
   delete(filePath: string): Promise<void>;
   getAbsolutePath(filePath: string): string;
 }

@@ -19,12 +19,18 @@ export class MailService {
     @Inject(MAIL_TRANSPORT) private readonly transport: MailTransport,
   ) {}
 
-  async sendEmailVerification(email: string, verificationUrl: string, name?: string): Promise<void> {
+  async sendEmailVerification(
+    email: string,
+    verificationUrl: string,
+    name?: string,
+  ): Promise<void> {
     const { subject, html } = emailVerificationTemplate(verificationUrl, name);
     try {
       await this.transport.send(email, subject, html);
     } catch (error) {
-      this.logger.error(`Error sending verification email to ${email}: ${error.message}`);
+      this.logger.error(
+        `Error sending verification email to ${email}: ${error.message}`,
+      );
     }
   }
 
@@ -33,7 +39,9 @@ export class MailService {
     try {
       await this.transport.send(email, subject, html);
     } catch (error) {
-      this.logger.error(`Error sending welcome email to ${email}: ${error.message}`);
+      this.logger.error(
+        `Error sending welcome email to ${email}: ${error.message}`,
+      );
     }
   }
 
@@ -42,34 +50,59 @@ export class MailService {
     try {
       await this.transport.send(email, subject, html);
     } catch (error) {
-      this.logger.error(`Error sending approval email to ${email}: ${error.message}`);
+      this.logger.error(
+        `Error sending approval email to ${email}: ${error.message}`,
+      );
     }
   }
 
-  async sendPasswordReset(email: string, resetUrl: string, name?: string): Promise<void> {
+  async sendPasswordReset(
+    email: string,
+    resetUrl: string,
+    name?: string,
+  ): Promise<void> {
     const { subject, html } = resetPasswordTemplate(resetUrl, name);
     try {
       await this.transport.send(email, subject, html);
     } catch (error) {
-      this.logger.error(`Error sending password reset email to ${email}: ${error.message}`);
+      this.logger.error(
+        `Error sending password reset email to ${email}: ${error.message}`,
+      );
     }
   }
 
-  async sendProfileRejected(email: string, name: string, notes?: string): Promise<void> {
+  async sendProfileRejected(
+    email: string,
+    name: string,
+    notes?: string,
+  ): Promise<void> {
     const { subject, html } = profileRejectedTemplate(name, notes);
     try {
       await this.transport.send(email, subject, html);
     } catch (error) {
-      this.logger.error(`Error sending rejection email to ${email}: ${error.message}`);
+      this.logger.error(
+        `Error sending rejection email to ${email}: ${error.message}`,
+      );
     }
   }
 
-  async sendPaymentReminder(email: string, name: string, planName: string, paymentUrl: string): Promise<void> {
-    const { subject, html } = paymentReminderTemplate(name, planName, paymentUrl);
+  async sendPaymentReminder(
+    email: string,
+    name: string,
+    planName: string,
+    paymentUrl: string,
+  ): Promise<void> {
+    const { subject, html } = paymentReminderTemplate(
+      name,
+      planName,
+      paymentUrl,
+    );
     try {
       await this.transport.send(email, subject, html);
     } catch (error) {
-      this.logger.error(`Error sending payment reminder to ${email}: ${error.message}`);
+      this.logger.error(
+        `Error sending payment reminder to ${email}: ${error.message}`,
+      );
     }
   }
 
@@ -78,11 +111,16 @@ export class MailService {
     try {
       await this.transport.send(email, subject, html);
     } catch (error) {
-      this.logger.error(`Error sending trial expiring reminder to ${email}: ${error.message}`);
+      this.logger.error(
+        `Error sending trial expiring reminder to ${email}: ${error.message}`,
+      );
     }
   }
 
-  async sendContactForm(to: string, data: { name: string; email: string; subject: string; message: string }): Promise<void> {
+  async sendContactForm(
+    to: string,
+    data: { name: string; email: string; subject: string; message: string },
+  ): Promise<void> {
     const { subject, html } = contactFormTemplate(data);
     try {
       await this.transport.send(to, subject, html);
@@ -91,12 +129,17 @@ export class MailService {
     }
   }
 
-  async sendProfessionalContact(to: string, data: { senderName: string; senderEmail: string; message: string }): Promise<void> {
+  async sendProfessionalContact(
+    to: string,
+    data: { senderName: string; senderEmail: string; message: string },
+  ): Promise<void> {
     const { subject, html } = professionalContactTemplate(data);
     try {
       await this.transport.send(to, subject, html);
     } catch (error) {
-      this.logger.error(`Error sending professional contact email: ${error.message}`);
+      this.logger.error(
+        `Error sending professional contact email: ${error.message}`,
+      );
     }
   }
 }

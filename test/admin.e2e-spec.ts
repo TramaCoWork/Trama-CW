@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const request = require('supertest');
 import { createTestApp, registerProfessional } from './test-app.factory';
 import { cleanDatabase } from './clean-database';
@@ -28,7 +28,9 @@ describe('Admin (e2e)', () => {
   });
 
   async function createAdminToken(): Promise<string> {
-    const adminRole = await prisma.role.findUniqueOrThrow({ where: { name: 'admin' } });
+    const adminRole = await prisma.role.findUniqueOrThrow({
+      where: { name: 'admin' },
+    });
 
     const admin = await prisma.user.create({
       data: {
@@ -48,9 +50,18 @@ describe('Admin (e2e)', () => {
     });
   }
 
-  async function createPendingProfile(): Promise<{ profileId: string; proToken: string }> {
-    const { access_token, userId } = await registerProfessional(app, `pro${Date.now()}@test.com`, 'password123');
-    const profile = await prisma.professionalProfile.findFirst({ where: { userId } });
+  async function createPendingProfile(): Promise<{
+    profileId: string;
+    proToken: string;
+  }> {
+    const { access_token, userId } = await registerProfessional(
+      app,
+      `pro${Date.now()}@test.com`,
+      'password123',
+    );
+    const profile = await prisma.professionalProfile.findFirst({
+      where: { userId },
+    });
     await prisma.professionalProfile.update({
       where: { id: profile!.id },
       data: { profileStatus: 'pending_review' },
@@ -59,7 +70,9 @@ describe('Admin (e2e)', () => {
   }
 
   async function createProfessionalToken(): Promise<string> {
-    const professionalRole = await prisma.role.findUniqueOrThrow({ where: { name: 'professional' } });
+    const professionalRole = await prisma.role.findUniqueOrThrow({
+      where: { name: 'professional' },
+    });
 
     const professional = await prisma.user.create({
       data: {
@@ -119,7 +132,11 @@ describe('Admin (e2e)', () => {
     });
 
     it('should reject non-admin', async () => {
-      const { access_token } = await registerProfessional(app, 'pro@test.com', 'password123');
+      const { access_token } = await registerProfessional(
+        app,
+        'pro@test.com',
+        'password123',
+      );
 
       await request(app.getHttpServer())
         .get('/admin/professionals/pending')
@@ -152,7 +169,9 @@ describe('Admin (e2e)', () => {
         .set('Authorization', `Bearer ${token}`)
         .expect(201);
 
-      const profile = await prisma.professionalProfile.findUnique({ where: { id: profileId } });
+      const profile = await prisma.professionalProfile.findUnique({
+        where: { id: profileId },
+      });
       expect(profile!.isActive).toBe(true);
       expect(profile!.profileStatus).toBe('active');
     });
@@ -193,7 +212,9 @@ describe('Admin (e2e)', () => {
   describe('PATCH /admin/professionals/:id', () => {
     it('should toggle isActive to false with is_active payload', async () => {
       const token = await createAdminToken();
-      const created = await adminRegisterProfessional(token, { is_active: true });
+      const created = await adminRegisterProfessional(token, {
+        is_active: true,
+      });
       expect(created.status).toBe(201);
       const profileId = created.body.user.profile.id;
 
@@ -208,7 +229,9 @@ describe('Admin (e2e)', () => {
 
     it('should keep isActive unchanged when omitted', async () => {
       const token = await createAdminToken();
-      const created = await adminRegisterProfessional(token, { is_active: true });
+      const created = await adminRegisterProfessional(token, {
+        is_active: true,
+      });
       expect(created.status).toBe(201);
       const profileId = created.body.user.profile.id;
 
@@ -234,7 +257,9 @@ describe('Admin (e2e)', () => {
 
     it('should reject non-admin', async () => {
       const token = await createAdminToken();
-      const created = await adminRegisterProfessional(token, { is_active: true });
+      const created = await adminRegisterProfessional(token, {
+        is_active: true,
+      });
       expect(created.status).toBe(201);
       const profileId = created.body.user.profile.id;
       const { access_token: proToken } = await registerProfessional(
@@ -252,7 +277,9 @@ describe('Admin (e2e)', () => {
 
     it('should return isActive in GET professional response', async () => {
       const token = await createAdminToken();
-      const created = await adminRegisterProfessional(token, { is_active: true });
+      const created = await adminRegisterProfessional(token, {
+        is_active: true,
+      });
       expect(created.status).toBe(201);
       const profileId = created.body.user.profile.id;
 
@@ -310,8 +337,12 @@ describe('Admin (e2e)', () => {
 
       expect(profileBefore).not.toBeNull();
       expect(profileAfter).not.toBeNull();
-      expect(profileBefore!.user.passwordHash).not.toBe(profileAfter!.user.passwordHash);
-      await expect(bcrypt.compare('newPassword123', profileAfter!.user.passwordHash)).resolves.toBe(true);
+      expect(profileBefore!.user.passwordHash).not.toBe(
+        profileAfter!.user.passwordHash,
+      );
+      await expect(
+        bcrypt.compare('newPassword123', profileAfter!.user.passwordHash),
+      ).resolves.toBe(true);
     });
 
     it('should return 400 when confirmPassword does not match', async () => {
@@ -321,7 +352,10 @@ describe('Admin (e2e)', () => {
       const response = await request(app.getHttpServer())
         .patch(`/admin/professionals/${profileId}/password`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ password: 'newPassword123', confirmPassword: 'differentPassword123' })
+        .send({
+          password: 'newPassword123',
+          confirmPassword: 'differentPassword123',
+        })
         .expect(400);
 
       expect(JSON.stringify(response.body)).toContain('confirmPassword');
@@ -331,7 +365,9 @@ describe('Admin (e2e)', () => {
       const adminToken = await createAdminToken();
 
       await request(app.getHttpServer())
-        .patch('/admin/professionals/00000000-0000-0000-0000-000000000000/password')
+        .patch(
+          '/admin/professionals/00000000-0000-0000-0000-000000000000/password',
+        )
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ password: 'newPassword123', confirmPassword: 'newPassword123' })
         .expect(404);
@@ -365,7 +401,9 @@ describe('Admin (e2e)', () => {
 
       expect(res.body.status).toBe('manual_rejected');
 
-      const profile = await prisma.professionalProfile.findUnique({ where: { id: profileId } });
+      const profile = await prisma.professionalProfile.findUnique({
+        where: { id: profileId },
+      });
       expect(profile!.profileStatus).toBe('rejected');
     });
   });
@@ -422,7 +460,10 @@ describe('Admin (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post(`/admin/documents/${docId}/verify`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ status: 'approved', verificationNotes: 'CV verificado correctamente' })
+        .send({
+          status: 'approved',
+          verificationNotes: 'CV verificado correctamente',
+        })
         .expect(201);
 
       expect(res.body.verificationStatus).toBe('approved');

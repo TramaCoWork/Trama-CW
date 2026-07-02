@@ -85,7 +85,12 @@ describe('CommunityImagesService', () => {
     ]);
 
     await expect(
-      service.associate('user-1', ['img-1'], CommunityImageEntityType.POST, 'post-1'),
+      service.associate(
+        'user-1',
+        ['img-1'],
+        CommunityImageEntityType.POST,
+        'post-1',
+      ),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
@@ -96,7 +101,12 @@ describe('CommunityImagesService', () => {
     prisma.communityImage.count.mockResolvedValue(2);
 
     await expect(
-      service.associate('user-1', ['img-1'], CommunityImageEntityType.POST, 'post-1'),
+      service.associate(
+        'user-1',
+        ['img-1'],
+        CommunityImageEntityType.POST,
+        'post-1',
+      ),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -104,7 +114,12 @@ describe('CommunityImagesService', () => {
     prisma.communityImage.findMany.mockResolvedValue([]);
 
     await expect(
-      service.associate('user-1', ['img-1'], CommunityImageEntityType.POST, 'post-1'),
+      service.associate(
+        'user-1',
+        ['img-1'],
+        CommunityImageEntityType.POST,
+        'post-1',
+      ),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -115,7 +130,9 @@ describe('CommunityImagesService', () => {
       user: { emailVerified: true },
     });
 
-    await expect(service.validateProfessional('user-1')).resolves.toBeUndefined();
+    await expect(
+      service.validateProfessional('user-1'),
+    ).resolves.toBeUndefined();
   });
 
   it('validateProfessional rechaza no validado', async () => {
@@ -125,6 +142,8 @@ describe('CommunityImagesService', () => {
       user: { emailVerified: true },
     });
 
-    await expect(service.validateProfessional('user-1')).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.validateProfessional('user-1')).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
   });
 });

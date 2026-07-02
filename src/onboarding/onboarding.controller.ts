@@ -1,5 +1,10 @@
 import { Controller, Get, Post, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { OnboardingService } from './onboarding.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -17,7 +22,10 @@ export class OnboardingController {
   @Roles('professional')
   @Get('checklist')
   @ApiOperation({ summary: 'Obtener checklist de onboarding del profesional' })
-  @ApiResponse({ status: 200, description: 'Checklist con estado de cada seccion' })
+  @ApiResponse({
+    status: 200,
+    description: 'Checklist con estado de cada seccion',
+  })
   async getChecklist(@CurrentUser() user: CurrentUserType) {
     return this.onboardingService.getChecklist(user.userId);
   }
@@ -27,7 +35,10 @@ export class OnboardingController {
   @Post('complete')
   @ApiOperation({ summary: 'Marcar onboarding como completado' })
   @ApiResponse({ status: 201, description: 'Onboarding completado' })
-  @ApiResponse({ status: 400, description: 'Perfil no alcanza el porcentaje minimo' })
+  @ApiResponse({
+    status: 400,
+    description: 'Perfil no alcanza el porcentaje minimo',
+  })
   async completeOnboarding(@CurrentUser() user: CurrentUserType) {
     return this.onboardingService.completeOnboarding(user.userId);
   }

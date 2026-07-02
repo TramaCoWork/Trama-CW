@@ -1,4 +1,7 @@
-export function trialExpiringReminderTemplate(name: string): { subject: string; html: string } {
+export function trialExpiringReminderTemplate(name: string): {
+  subject: string;
+  html: string;
+} {
   return {
     subject: 'Tu período de prueba en Trama vence en 5 días',
     html: `

@@ -1,6 +1,12 @@
 import { CommunityImageEntityType } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
-import { ArrayNotEmpty, IsArray, IsEnum, IsString, IsUUID } from 'class-validator';
+import {
+  ArrayNotEmpty,
+  IsArray,
+  IsEnum,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 export class AssociateImagesDto {
   @ApiProperty({ type: [String], description: 'IDs de imágenes a asociar' })

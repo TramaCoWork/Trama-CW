@@ -13,7 +13,11 @@ import { CreateEducationDto } from './dto/create-education.dto';
 import { CreateCertificationDto } from './dto/create-certification.dto';
 import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 import { UpdateMotivationDto } from './dto/update-motivation.dto';
-import { ProfessionalProfile, Prisma, SubscriptionStatus } from '@prisma/client';
+import {
+  ProfessionalProfile,
+  Prisma,
+  SubscriptionStatus,
+} from '@prisma/client';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 @Injectable()

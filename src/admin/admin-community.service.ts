@@ -29,7 +29,13 @@ export class AdminCommunityService {
         skip: (page - 1) * limit,
         take: limit,
         include: {
-          user: { select: { id: true, email: true, profile: { select: { name: true } } } },
+          user: {
+            select: {
+              id: true,
+              email: true,
+              profile: { select: { name: true } },
+            },
+          },
           _count: { select: { comments: { where: { deletedAt: null } } } },
         },
       }),
@@ -59,7 +65,13 @@ export class AdminCommunityService {
         deletedAt: null,
       },
       include: {
-        user: { select: { id: true, email: true, profile: { select: { name: true } } } },
+        user: {
+          select: {
+            id: true,
+            email: true,
+            profile: { select: { name: true } },
+          },
+        },
         _count: { select: { comments: { where: { deletedAt: null } } } },
       },
     });
@@ -77,7 +89,9 @@ export class AdminCommunityService {
   }
 
   async createComment(postId: string, userId: string, content: string) {
-    const post = await this.prisma.communityPost.findUnique({ where: { id: postId } });
+    const post = await this.prisma.communityPost.findUnique({
+      where: { id: postId },
+    });
 
     if (!post || post.deletedAt) {
       throw new NotFoundException('Post no encontrado');

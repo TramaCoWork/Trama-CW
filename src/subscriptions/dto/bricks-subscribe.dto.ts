@@ -6,12 +6,15 @@ export class BricksSubscribeDto {
   @IsUUID()
   planId: string;
 
-  @ApiProperty({ description: 'Card token generado por el Brick en el cliente (un solo uso)' })
+  @ApiProperty({
+    description: 'Card token generado por el Brick en el cliente (un solo uso)',
+  })
   @IsString()
   token: string;
 
   @ApiPropertyOptional({
-    description: 'Email del pagador. Si no se envía, usa el del usuario autenticado.',
+    description:
+      'Email del pagador. Si no se envía, usa el del usuario autenticado.',
   })
   @IsOptional()
   @IsEmail()
@@ -19,7 +22,8 @@ export class BricksSubscribeDto {
 
   @ApiPropertyOptional({
     example: 'https://miapp.com/subscription',
-    description: 'URL de retorno (back_url de MP). Si no se envía, usa FRONTEND_URL.',
+    description:
+      'URL de retorno (back_url de MP). Si no se envía, usa FRONTEND_URL.',
   })
   @IsOptional()
   @IsUrl()

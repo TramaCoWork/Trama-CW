@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
 import { PrismaService } from '../prisma/prisma.service';
@@ -60,7 +64,8 @@ export class DiscountPlansService {
       await this.ensureSubscriptionPlanExists(dto.subscriptionPlanId);
     }
 
-    const nextSubscriptionPlanId = dto.subscriptionPlanId ?? existing.subscriptionPlanId;
+    const nextSubscriptionPlanId =
+      dto.subscriptionPlanId ?? existing.subscriptionPlanId;
     const nextIsActive = dto.isActive ?? existing.isActive;
     const nextFromDate = dto.fromDate ?? existing.fromDate.toISOString();
     const nextToDate = dto.toDate ?? existing.toDate.toISOString();
@@ -75,8 +80,10 @@ export class DiscountPlansService {
 
     const data: Prisma.DiscountPlanUncheckedUpdateInput = {};
 
-    if (dto.subscriptionPlanId !== undefined) data.subscriptionPlanId = dto.subscriptionPlanId;
-    if (dto.discountAmount !== undefined) data.discountAmount = new Prisma.Decimal(dto.discountAmount);
+    if (dto.subscriptionPlanId !== undefined)
+      data.subscriptionPlanId = dto.subscriptionPlanId;
+    if (dto.discountAmount !== undefined)
+      data.discountAmount = new Prisma.Decimal(dto.discountAmount);
     if (dto.description !== undefined) data.description = dto.description;
     if (dto.isActive !== undefined) data.isActive = dto.isActive;
     if (dto.fromDate !== undefined) data.fromDate = new Date(dto.fromDate);
@@ -145,7 +152,9 @@ export class DiscountPlansService {
     });
 
     if (overlap) {
-      throw new BadRequestException('Ya existe un discount plan activo en ese rango para este subscription plan');
+      throw new BadRequestException(
+        'Ya existe un discount plan activo en ese rango para este subscription plan',
+      );
     }
   }
 }

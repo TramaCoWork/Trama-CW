@@ -70,24 +70,36 @@ export class MpBricksStrategy implements PaymentStrategy {
     });
 
     const payment = order?.transactions?.payments?.[0] ?? {};
-    const rawStatus = (payment.status as string) ?? (order.status as string) ?? 'pending';
-    const statusDetail = (payment.status_detail as string) ?? (order.status_detail as string) ?? null;
+    const rawStatus =
+      (payment.status as string) ?? (order.status as string) ?? 'pending';
+    const statusDetail =
+      (payment.status_detail as string) ??
+      (order.status_detail as string) ??
+      null;
     const paymentId = String(payment.id ?? order.id);
 
     // Normalizar estados de Orders API → modelo interno
     // processed = aprobado | rejected = rechazado | resto (pending/in_process/action_required) = pendiente
     const status =
-      rawStatus === 'processed' ? 'approved' : rawStatus === 'rejected' ? 'rejected' : 'pending';
+      rawStatus === 'processed'
+        ? 'approved'
+        : rawStatus === 'rejected'
+          ? 'rejected'
+          : 'pending';
 
     const paymentData: WebhookPaymentData = {
       paymentExternalId: paymentId,
       amount: Number(payment.amount ?? data.plan.amount),
       status: status === 'approved' ? 'sub_approved' : 'sub_rejected',
-      failureReason: status !== 'approved' ? (statusDetail ?? rawStatus) : undefined,
+      failureReason:
+        status !== 'approved' ? (statusDetail ?? rawStatus) : undefined,
       paymentMethod: payment.payment_method?.type ?? data.paymentType ?? null,
-      paymentMethodId: payment.payment_method?.id ?? data.paymentMethodId ?? null,
-      cardLastFourDigits: payment.payment_method?.card?.last_four_digits ?? null,
-      installments: payment.payment_method?.installments ?? data.installments ?? null,
+      paymentMethodId:
+        payment.payment_method?.id ?? data.paymentMethodId ?? null,
+      cardLastFourDigits:
+        payment.payment_method?.card?.last_four_digits ?? null,
+      installments:
+        payment.payment_method?.installments ?? data.installments ?? null,
       statusDetail,
       metadata: order,
     };
@@ -105,7 +117,9 @@ export class MpBricksStrategy implements PaymentStrategy {
     shouldActivate: boolean;
   } | null> {
     const payment = await this.mercadopago.getPayment(paymentId);
-    const externalReference = (payment as any).external_reference as string | undefined;
+    const externalReference = (payment as any).external_reference as
+      | string
+      | undefined;
     if (!externalReference) return null;
 
     // Los pagos de preapproval los maneja MpSubscriptionStrategy
@@ -121,7 +135,8 @@ export class MpBricksStrategy implements PaymentStrategy {
       paymentExternalId: paymentId,
       amount: payment.transaction_amount ?? 0,
       status: status === 'approved' ? 'sub_approved' : 'sub_rejected',
-      failureReason: status !== 'approved' ? (payment.status_detail ?? status) : undefined,
+      failureReason:
+        status !== 'approved' ? (payment.status_detail ?? status) : undefined,
       paymentMethod: (payment as any).payment_type_id ?? null,
       paymentMethodId: (payment as any).payment_method_id ?? null,
       cardLastFourDigits: (payment as any).card?.last_four_digits ?? null,
@@ -130,7 +145,11 @@ export class MpBricksStrategy implements PaymentStrategy {
       metadata: JSON.parse(JSON.stringify(payment)),
     };
 
-    return { subscriptionId: externalReference, data, shouldActivate: status === 'approved' };
+    return {
+      subscriptionId: externalReference,
+      data,
+      shouldActivate: status === 'approved',
+    };
   }
 
   async handleGatewayWebhook(): Promise<null> {
@@ -138,7 +157,10 @@ export class MpBricksStrategy implements PaymentStrategy {
     return null;
   }
 
-  async cancelSubscription(_externalId: string | null, endDate: Date | null): Promise<CancelResult> {
+  async cancelSubscription(
+    _externalId: string | null,
+    endDate: Date | null,
+  ): Promise<CancelResult> {
     // Bricks es un pago único por período: no hay nada que cancelar en MP.
     // El perfil permanece activo hasta el endDate ya pagado.
     return { endDate: endDate ?? new Date() };

@@ -22,9 +22,14 @@ describe('UsersService soft-delete', () => {
 
   it('soft-deletes user and profile atomically', async () => {
     prisma.user.findUnique.mockResolvedValue({ id: 'user-id' });
-    prisma.user.update.mockResolvedValue({ id: 'user-id', deletedAt: new Date() });
+    prisma.user.update.mockResolvedValue({
+      id: 'user-id',
+      deletedAt: new Date(),
+    });
     prisma.professionalProfile.updateMany.mockResolvedValue({ count: 1 });
-    prisma.$transaction.mockImplementation(async (ops: Promise<unknown>[]) => Promise.all(ops));
+    prisma.$transaction.mockImplementation(async (ops: Promise<unknown>[]) =>
+      Promise.all(ops),
+    );
 
     const result = await service.softDeleteUser('user-id');
 
@@ -35,6 +40,8 @@ describe('UsersService soft-delete', () => {
   it('throws when user is already deleted or missing', async () => {
     prisma.user.findUnique.mockResolvedValue(null);
 
-    await expect(service.softDeleteUser('missing-id')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.softDeleteUser('missing-id')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 });

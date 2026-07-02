@@ -6,7 +6,8 @@ export class DeleteMessageDto {
   @ApiPropertyOptional({
     example: false,
     default: false,
-    description: 'Si es true, elimina el mensaje para ambas partes (solo remitente).',
+    description:
+      'Si es true, elimina el mensaje para ambas partes (solo remitente).',
   })
   @IsOptional()
   @Transform(({ value }) => {

@@ -34,7 +34,9 @@ export class GmailTransport implements MailTransport {
       });
       this.logger.log(`Email sent via Gmail to ${to}: ${subject}`);
     } catch (error) {
-      this.logger.error(`Failed to send email via Gmail to ${to}: ${error.message}`);
+      this.logger.error(
+        `Failed to send email via Gmail to ${to}: ${error.message}`,
+      );
       throw error;
     }
   }
