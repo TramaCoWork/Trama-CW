@@ -116,9 +116,13 @@ export class SearchService {
       const profileIds = profileRows.map((row) => row.id);
       const categoryIds = categoryRows.map((row) => row.id);
 
-      where.OR = [
-        { id: { in: profileIds } },
-        { professionCategories: { some: { id: { in: categoryIds } } } },
+      where.AND = [
+        {
+          OR: [
+            { id: { in: profileIds } },
+            { professionCategories: { some: { id: { in: categoryIds } } } },
+          ],
+        },
       ];
     }
 
