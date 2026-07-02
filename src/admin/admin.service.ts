@@ -767,33 +767,17 @@ export class AdminService {
   async triggerJob(
     jobName: string,
   ): Promise<{ message: string; jobName: string }> {
-    const jobMap: Record<string, () => Promise<void>> = {
-      expiredTrials: async () => {
-        await this.professionalsCronService.handleExpiredTrials();
-      },
-      expiredCancelledSubs: async () => {
-        await this.professionalsCronService.handleExpiredCancelledSubscriptions();
-      },
-      subscriptionRenewals: async () => {
-        await this.subscriptionsCronService.handleRenewals();
-      },
-      applyDiscounts: async () => {
-        await this.discountsCronService.handleApplyDiscounts();
-      },
-      restoreDiscounts: async () => {
-        await this.discountsCronService.handleRestoreDiscounts();
-      },
-      'trial-expiring-reminder': async () => {
-        await this.trialReminderCronService.handleTrialExpiringReminder();
-      },
-    };
+    const services = [
+      this.professionalsCronService,
+      this.discountsCronService,
+      this.trialReminderCronService,
+      this.subscriptionsCronService,
+    ];
 
-    const handler = jobMap[jobName];
-    if (!handler) {
-      throw new NotFoundException(`Job "${jobName}" no encontrado`);
-    }
+    const owner = services.find((service) => service.hasJob(jobName));
+    if (!owner) throw new NotFoundException(`Job "${jobName}" no encontrado`);
 
-    handler().catch(() => undefined);
+    owner.triggerManually(jobName).catch(() => {});
 
     return { message: 'Job iniciado en background', jobName };
   }
