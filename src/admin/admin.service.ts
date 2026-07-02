@@ -35,7 +35,8 @@ import { STORAGE_SERVICE } from '../uploads/storage.interface';
 import { ProfessionalsCronService } from '../background-jobs/professionals-cron.service';
 import { DiscountsCronService } from '../background-jobs/discounts-cron.service';
 import { TrialReminderCronService } from '../background-jobs/trial-reminder-cron.service';
-import { SubscriptionsCronService } from '../subscriptions/subscriptions-cron.service';
+import { BaseCronService } from '../background-jobs/base-cron.service';
+import { SubscriptionsCronBridge } from '../background-jobs/subscriptions-cron-bridge.service';
 
 @Injectable()
 export class AdminService {
@@ -48,7 +49,7 @@ export class AdminService {
     private readonly professionalsCronService: ProfessionalsCronService,
     private readonly discountsCronService: DiscountsCronService,
     private readonly trialReminderCronService: TrialReminderCronService,
-    private readonly subscriptionsCronService: SubscriptionsCronService,
+    private readonly subscriptionsCronBridge: SubscriptionsCronBridge,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
 
@@ -767,11 +768,11 @@ export class AdminService {
   async triggerJob(
     jobName: string,
   ): Promise<{ message: string; jobName: string }> {
-    const services = [
+    const services: BaseCronService[] = [
       this.professionalsCronService,
       this.discountsCronService,
       this.trialReminderCronService,
-      this.subscriptionsCronService,
+      this.subscriptionsCronBridge,
     ];
 
     const owner = services.find((service) => service.hasJob(jobName));
