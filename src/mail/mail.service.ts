@@ -9,6 +9,7 @@ import { resetPasswordTemplate } from './templates/reset-password';
 import { paymentReminderTemplate } from './templates/payment-reminder';
 import { contactFormTemplate } from './templates/contact-form';
 import { professionalContactTemplate } from './templates/professional-contact';
+import { trialExpiringReminderTemplate } from './templates/trial-expiring-reminder';
 
 @Injectable()
 export class MailService {
@@ -69,6 +70,15 @@ export class MailService {
       await this.transport.send(email, subject, html);
     } catch (error) {
       this.logger.error(`Error sending payment reminder to ${email}: ${error.message}`);
+    }
+  }
+
+  async sendTrialExpiringReminder(email: string, name: string): Promise<void> {
+    const { subject, html } = trialExpiringReminderTemplate(name);
+    try {
+      await this.transport.send(email, subject, html);
+    } catch (error) {
+      this.logger.error(`Error sending trial expiring reminder to ${email}: ${error.message}`);
     }
   }
 

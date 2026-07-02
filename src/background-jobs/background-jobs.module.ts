@@ -1,13 +1,15 @@
 import { Module } from '@nestjs/common';
 import { DiscountsModule } from '../discounts/discounts.module';
+import { MailModule } from '../mail/mail.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { ProfessionalsCronService } from './professionals-cron.service';
 import { DiscountsCronService } from './discounts-cron.service';
 import { SubscriptionsCronBridge } from './subscriptions-cron-bridge.service';
+import { TrialReminderCronService } from './trial-reminder-cron.service';
 
 @Module({
-  imports: [DiscountsModule, SubscriptionsModule],
-  providers: [ProfessionalsCronService, DiscountsCronService, SubscriptionsCronBridge],
+  imports: [DiscountsModule, MailModule, SubscriptionsModule],
+  providers: [ProfessionalsCronService, DiscountsCronService, SubscriptionsCronBridge, TrialReminderCronService],
 })
 export class BackgroundJobsModule {}
 

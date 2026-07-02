@@ -89,7 +89,7 @@ import { AppController } from './app.controller';
             }
           })
           .default(
-            '{"expiredTrials":"0 0 * * *","expiredCancelledSubs":"0 0 * * *","subscriptionRenewals":"0 0 * * *","applyDiscounts":"0 1 * * *","restoreDiscounts":"0 2 * * *"}',
+            '{"expiredTrials":"0 0 * * *","expiredCancelledSubs":"0 0 * * *","subscriptionRenewals":"0 0 * * *","applyDiscounts":"0 1 * * *","restoreDiscounts":"0 2 * * *","trialExpiringReminder":"0 9 * * *"}',
           ),
         LOG_RETENTION_DAYS: Joi.number().default(90),
         UPLOAD_PATH: Joi.string()
