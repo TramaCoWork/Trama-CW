@@ -732,6 +732,30 @@ export class AdminService {
     });
   }
 
+  async getJobExecutions(filters: {
+    page: number;
+    sizePage: number;
+    jobName?: string;
+  }) {
+    const where = filters.jobName ? { jobName: filters.jobName } : {};
+    const [data, total] = await Promise.all([
+      this.prisma.jobExecution.findMany({
+        where,
+        orderBy: { startedAt: 'desc' },
+        skip: (filters.page - 1) * filters.sizePage,
+        take: filters.sizePage,
+      }),
+      this.prisma.jobExecution.count({ where }),
+    ]);
+
+    return {
+      data,
+      total,
+      page: filters.page,
+      sizePage: filters.sizePage,
+    };
+  }
+
   // ─── Payments ────────────────────────────────────────────────────────────
 
   async getPayments() {

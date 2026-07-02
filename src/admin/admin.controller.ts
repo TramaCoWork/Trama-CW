@@ -322,6 +322,39 @@ export class AdminController {
     return this.adminService.createJob(dto);
   }
 
+  @Get('jobs')
+  @ApiOperation({ summary: 'Listar ejecuciones de jobs (paginado, con filtro)' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Página actual (default: 1)',
+  })
+  @ApiQuery({
+    name: 'sizePage',
+    required: false,
+    type: Number,
+    description: 'Resultados por página (default: 20)',
+  })
+  @ApiQuery({
+    name: 'jobName',
+    required: false,
+    type: String,
+    description: 'Filtrar por nombre del job',
+  })
+  @ApiResponse({ status: 200, description: 'Lista paginada de ejecuciones de jobs' })
+  async getJobExecutions(
+    @Query('page') page = 1,
+    @Query('sizePage') sizePage = 20,
+    @Query('jobName') jobName?: string,
+  ) {
+    return this.adminService.getJobExecutions({
+      page: Number(page),
+      sizePage: Number(sizePage),
+      jobName,
+    });
+  }
+
   @Get('subscription-payments')
   @ApiOperation({
     summary: 'Listar todos los pagos de suscripción (paginado, con filtros)',
