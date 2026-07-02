@@ -32,6 +32,10 @@ import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
 import type { StorageService } from '../uploads/storage.interface';
 import { STORAGE_SERVICE } from '../uploads/storage.interface';
+import { ProfessionalsCronService } from '../background-jobs/professionals-cron.service';
+import { DiscountsCronService } from '../background-jobs/discounts-cron.service';
+import { TrialReminderCronService } from '../background-jobs/trial-reminder-cron.service';
+import { SubscriptionsCronService } from '../subscriptions/subscriptions-cron.service';
 
 @Injectable()
 export class AdminService {
@@ -41,6 +45,10 @@ export class AdminService {
     private readonly configService: ConfigService,
     private readonly authService: AuthService,
     private readonly mercadopago: MercadoPagoService,
+    private readonly professionalsCronService: ProfessionalsCronService,
+    private readonly discountsCronService: DiscountsCronService,
+    private readonly trialReminderCronService: TrialReminderCronService,
+    private readonly subscriptionsCronService: SubscriptionsCronService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
 
@@ -754,6 +762,40 @@ export class AdminService {
       page: filters.page,
       sizePage: filters.sizePage,
     };
+  }
+
+  async triggerJob(
+    jobName: string,
+  ): Promise<{ message: string; jobName: string }> {
+    const jobMap: Record<string, () => Promise<void>> = {
+      expiredTrials: async () => {
+        await this.professionalsCronService.handleExpiredTrials();
+      },
+      expiredCancelledSubs: async () => {
+        await this.professionalsCronService.handleExpiredCancelledSubscriptions();
+      },
+      subscriptionRenewals: async () => {
+        await this.subscriptionsCronService.handleRenewals();
+      },
+      applyDiscounts: async () => {
+        await this.discountsCronService.handleApplyDiscounts();
+      },
+      restoreDiscounts: async () => {
+        await this.discountsCronService.handleRestoreDiscounts();
+      },
+      'trial-expiring-reminder': async () => {
+        await this.trialReminderCronService.handleTrialExpiringReminder();
+      },
+    };
+
+    const handler = jobMap[jobName];
+    if (!handler) {
+      throw new NotFoundException(`Job "${jobName}" no encontrado`);
+    }
+
+    handler().catch(() => undefined);
+
+    return { message: 'Job iniciado en background', jobName };
   }
 
   // ─── Payments ────────────────────────────────────────────────────────────

@@ -355,6 +355,19 @@ export class AdminController {
     });
   }
 
+  @Post('jobs/:jobName/run')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Disparar ejecución manual de un cron job' })
+  @ApiParam({ name: 'jobName', description: 'Nombre del job a ejecutar' })
+  @ApiResponse({
+    status: 200,
+    description: 'Job iniciado en background',
+  })
+  @ApiResponse({ status: 404, description: 'Job no encontrado' })
+  async triggerJob(@Param('jobName') jobName: string) {
+    return this.adminService.triggerJob(jobName);
+  }
+
   @Get('subscription-payments')
   @ApiOperation({
     summary: 'Listar todos los pagos de suscripción (paginado, con filtros)',
