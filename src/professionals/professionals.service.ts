@@ -13,7 +13,7 @@ import { CreateEducationDto } from './dto/create-education.dto';
 import { CreateCertificationDto } from './dto/create-certification.dto';
 import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 import { UpdateMotivationDto } from './dto/update-motivation.dto';
-import { ProfessionalProfile, Prisma } from '@prisma/client';
+import { ProfessionalProfile, Prisma, SubscriptionStatus } from '@prisma/client';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
 
 @Injectable()
@@ -53,7 +53,7 @@ export class ProfessionalsService {
   }
 
   async findAll(page: number, sizePage: number) {
-    const where = {
+    const where: Prisma.ProfessionalProfileWhereInput = {
       deletedAt: null,
       isActive: true,
       hideProfile: false,
@@ -61,7 +61,11 @@ export class ProfessionalsService {
       user: { emailVerified: true },
       OR: [
         { trialEndDate: { gte: new Date() } },
-        { user: { subscriptions: { some: { status: 'active' } } } },
+        {
+          user: {
+            subscriptions: { some: { status: SubscriptionStatus.active } },
+          },
+        },
       ],
     };
     const [data, total] = await Promise.all([
@@ -109,7 +113,11 @@ export class ProfessionalsService {
         user: { emailVerified: true },
         OR: [
           { trialEndDate: { gte: new Date() } },
-          { user: { subscriptions: { some: { status: 'active' } } } },
+          {
+            user: {
+              subscriptions: { some: { status: SubscriptionStatus.active } },
+            },
+          },
         ],
       },
       include: { professionCategories: true, rubro: true },

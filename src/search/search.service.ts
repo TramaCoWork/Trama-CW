@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ProfessionalProfile, Prisma } from '@prisma/client';
+import { ProfessionalProfile, Prisma, SubscriptionStatus } from '@prisma/client';
 
 export interface SearchQuery {
   q?: string;
@@ -29,7 +29,11 @@ export class SearchService {
       user: { emailVerified: true },
       OR: [
         { trialEndDate: { gte: new Date() } },
-        { user: { subscriptions: { some: { status: 'active' } } } },
+        {
+          user: {
+            subscriptions: { some: { status: SubscriptionStatus.active } },
+          },
+        },
       ],
     };
 
