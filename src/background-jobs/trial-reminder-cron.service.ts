@@ -32,28 +32,27 @@ export class TrialReminderCronService
   }
 
   async handleTrialExpiringReminder(): Promise<JobResult> {
-    const now = new Date();
-    const start = new Date(now);
-    start.setDate(start.getDate() + 5);
-    start.setHours(0, 0, 0, 0);
+    const target = new Date();
+    target.setDate(target.getDate() + 5);
 
-    const end = new Date(start);
-    end.setDate(end.getDate() + 1);
+    const yyyy = target.getFullYear();
+    const mm = String(target.getMonth() + 1).padStart(2, '0');
+    const dd = String(target.getDate()).padStart(2, '0');
+    const targetDateStr = `${yyyy}-${mm}-${dd}`;
 
-    const profiles = await this.prisma.professionalProfile.findMany({
-      where: {
-        deletedAt: null,
-        trialEndDate: { gte: start, lt: end },
-      },
-      include: { user: { select: { email: true } } },
-    });
+    const profiles = await this.prisma.$queryRaw<
+      { id: string; name: string | null; email: string }[]
+    >`
+      SELECT pp.id, pp.name, u.email
+      FROM professional_profiles pp
+      JOIN users u ON u.id = pp.user_id
+      WHERE pp.deleted_at IS NULL
+        AND pp.trial_end_date::date = ${targetDateStr}::date
+    `;
 
     for (const profile of profiles) {
-      const name = profile.name ?? profile.user.email;
-      await this.mailService.sendTrialExpiringReminder(
-        profile.user.email,
-        name,
-      );
+      const name = profile.name ?? profile.email;
+      await this.mailService.sendTrialExpiringReminder(profile.email, name);
     }
 
     return { processedCount: profiles.length };
