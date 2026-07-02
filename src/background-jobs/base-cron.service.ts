@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
@@ -13,6 +18,7 @@ export interface JobResult {
 @Injectable()
 export abstract class BaseCronService implements OnModuleInit {
   protected abstract readonly logger: Logger;
+  private readonly jobHandlers = new Map<string, () => Promise<JobResult | void>>();
 
   constructor(
     protected readonly prisma: PrismaService,
@@ -31,6 +37,8 @@ export abstract class BaseCronService implements OnModuleInit {
     schedule: string | null | undefined,
     handler: () => Promise<JobResult | void>,
   ): void {
+    this.jobHandlers.set(jobName, handler);
+
     if (typeof schedule !== 'string') {
       this.logger.warn(
         `Job "${jobName}" no registrado — falta la key en CRON_SCHEDULE`,
@@ -44,6 +52,21 @@ export abstract class BaseCronService implements OnModuleInit {
     this.schedulerRegistry.addCronJob(jobName, job);
     job.start();
     this.logger.log(`Job ${jobName} registrado con schedule: ${schedule}`);
+  }
+
+  hasJob(jobName: string): boolean {
+    return this.jobHandlers.has(jobName);
+  }
+
+  async triggerManually(jobName: string): Promise<void> {
+    const handler = this.jobHandlers.get(jobName);
+    if (!handler) {
+      throw new NotFoundException(
+        `Job "${jobName}" no encontrado en este servicio`,
+      );
+    }
+
+    await this.runWithLogging(jobName, handler);
   }
 
   protected async runWithLogging(
