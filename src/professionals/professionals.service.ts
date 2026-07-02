@@ -30,7 +30,13 @@ export class ProfessionalsService {
         AND pp.hide_profile = false
         AND pp.profile_status = 'active'
         AND u.email_verified = true
-        AND (pp.trial_end_date IS NULL OR pp.trial_end_date >= NOW())
+        AND (
+          (pp.trial_end_date IS NOT NULL AND pp.trial_end_date >= NOW())
+          OR EXISTS (
+            SELECT 1 FROM subscriptions s
+            WHERE s.user_id = u.id AND s.status = 'active'
+          )
+        )
       ORDER BY RANDOM()
       LIMIT 8
     `;
@@ -53,7 +59,10 @@ export class ProfessionalsService {
       hideProfile: false,
       profileStatus: 'active' as const,
       user: { emailVerified: true },
-      OR: [{ trialEndDate: null }, { trialEndDate: { gte: new Date() } }],
+      OR: [
+        { trialEndDate: { gte: new Date() } },
+        { user: { subscriptions: { some: { status: 'active' } } } },
+      ],
     };
     const [data, total] = await Promise.all([
       this.prisma.professionalProfile.findMany({
@@ -98,7 +107,10 @@ export class ProfessionalsService {
         hideProfile: false,
         profileStatus: 'active',
         user: { emailVerified: true },
-        OR: [{ trialEndDate: null }, { trialEndDate: { gte: new Date() } }],
+        OR: [
+          { trialEndDate: { gte: new Date() } },
+          { user: { subscriptions: { some: { status: 'active' } } } },
+        ],
       },
       include: { professionCategories: true, rubro: true },
     });

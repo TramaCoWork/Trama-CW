@@ -27,7 +27,10 @@ export class SearchService {
       hideProfile: false,
       profileStatus: 'active',
       user: { emailVerified: true },
-      OR: [{ trialEndDate: null }, { trialEndDate: { gte: new Date() } }],
+      OR: [
+        { trialEndDate: { gte: new Date() } },
+        { user: { subscriptions: { some: { status: 'active' } } } },
+      ],
     };
 
     if (query.city) {
