@@ -22,7 +22,7 @@ export class CommunityChannelsService {
   }
 
   async getChannelPosts(channelId: string, page: number, limit: number) {
-    const [data, total] = await Promise.all([
+    const [posts, total] = await Promise.all([
       this.prisma.communityChannelPost.findMany({
         where: {
           channelId,
@@ -39,6 +39,44 @@ export class CommunityChannelsService {
         },
       }),
     ]);
+
+    const userIds = [...new Set(posts.map((post) => post.userId))];
+    const users =
+      userIds.length === 0
+        ? []
+        : await this.prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: {
+              id: true,
+              email: true,
+              profile: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          });
+
+    const userMap = new Map(
+      users.map((user) => [
+        user.id,
+        {
+          email: user.email,
+          nombre: user.profile?.name ?? user.email,
+        },
+      ]),
+    );
+
+    const data = posts.map((post) => {
+      const user = userMap.get(post.userId);
+      const email = user?.email ?? '';
+
+      return {
+        ...post,
+        email,
+        nombre: user?.nombre ?? email,
+      };
+    });
 
     return {
       data,
