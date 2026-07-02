@@ -11,6 +11,7 @@ import { AuthModule } from '../auth/auth.module';
 import { UploadsModule } from '../uploads/uploads.module';
 import { MercadoPagoModule } from '../mercadopago/mercadopago.module';
 import { CommunityService } from '../community/community.service';
+import { BackgroundJobsModule } from '../background-jobs/background-jobs.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { CommunityService } from '../community/community.service';
     AuthModule,
     UploadsModule,
     MercadoPagoModule,
+    BackgroundJobsModule,
   ],
   controllers: [
     AdminController,

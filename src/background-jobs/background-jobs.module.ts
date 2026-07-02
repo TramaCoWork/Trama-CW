@@ -14,6 +14,7 @@ import { TrialReminderCronService } from './trial-reminder-cron.service';
   exports: [
     ProfessionalsCronService,
     DiscountsCronService,
+    SubscriptionsCronBridge,
     TrialReminderCronService,
     SubscriptionsModule,
   ],
