@@ -137,6 +137,40 @@ export class CommunityChannelsController {
     );
   }
 
+  @Post(':id/seen')
+  @UseGuards(JwtAuthGuard, ChannelMemberGuard)
+  @ApiOperation({ summary: 'Marcar canal como visto por el usuario actual' })
+  @ApiParam({ name: 'id', description: 'ID del canal' })
+  @ApiResponse({ status: 200, description: 'Canal marcado como visto' })
+  @ApiResponse({
+    status: 403,
+    description: 'Usuario sin membresía aceptada en el canal',
+  })
+  async markChannelSeen(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    await this.communityChannelsService.markChannelSeen(id, user.userId);
+
+    return { message: 'ok' };
+  }
+
+  @Get(':id/unread-count')
+  @UseGuards(JwtAuthGuard, ChannelMemberGuard)
+  @ApiOperation({ summary: 'Obtener cantidad de posts no leídos del canal' })
+  @ApiParam({ name: 'id', description: 'ID del canal' })
+  @ApiResponse({ status: 200, description: 'Cantidad de no leídos' })
+  @ApiResponse({
+    status: 403,
+    description: 'Usuario sin membresía aceptada en el canal',
+  })
+  getChannelUnreadCount(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.communityChannelsService.getChannelUnreadCount(id, user.userId);
+  }
+
   @Post(':id/posts/:postId/comments')
   @UseGuards(JwtAuthGuard, ChannelMemberGuard)
   @ApiOperation({ summary: 'Crear comentario en un post del canal' })

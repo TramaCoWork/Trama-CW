@@ -157,6 +157,30 @@ export class CommunityController {
     );
   }
 
+  @Post('channels/:slug/seen')
+  @ApiOperation({ summary: 'Marcar canal de comunidad como visto' })
+  @ApiParam({ name: 'slug', description: 'Slug del canal' })
+  @ApiResponse({ status: 200, description: 'Canal marcado como visto' })
+  async markCommunitySeen(
+    @CurrentUser() user: CurrentUserType,
+    @Param('slug') slug: string,
+  ) {
+    await this.communityService.markCommunitySeen(slug, user.userId);
+
+    return { message: 'ok' };
+  }
+
+  @Get('channels/:slug/unread-count')
+  @ApiOperation({ summary: 'Obtener cantidad de posts no leídos en el canal' })
+  @ApiParam({ name: 'slug', description: 'Slug del canal' })
+  @ApiResponse({ status: 200, description: 'Cantidad de no leídos' })
+  getCommunityUnreadCount(
+    @CurrentUser() user: CurrentUserType,
+    @Param('slug') slug: string,
+  ) {
+    return this.communityService.getCommunityUnreadCount(slug, user.userId);
+  }
+
   @Get('posts/:id/comments')
   @ApiOperation({
     summary: 'Listar comentarios de un post (paginado, mas antiguos primero)',

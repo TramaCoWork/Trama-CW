@@ -130,6 +130,11 @@ enum JobStatus {
   failed
 }
 
+enum NotifSourceType {
+  community
+  channel
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model User {
@@ -391,6 +396,7 @@ model CommunityChannel {
 
   members CommunityChannelMember[]
   posts   CommunityChannelPost[]
+  lastSeen ChannelLastSeen[]
 
   @@map("community_channels")
 }
@@ -440,6 +446,26 @@ model CommunityChannelComment {
 
   @@index([postId, deletedAt, createdAt])
   @@map("community_channel_comments")
+}
+
+model ChannelLastSeen {
+  userId     String   @map("user_id")
+  channelId  String   @map("channel_id")
+  lastSeenAt DateTime @map("last_seen_at")
+
+  channel CommunityChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@id([userId, channelId])
+  @@map("channel_last_seen")
+}
+
+model CommunityLastSeen {
+  userId      String   @map("user_id")
+  channelSlug String   @map("channel_slug")
+  lastSeenAt  DateTime @map("last_seen_at")
+
+  @@id([userId, channelSlug])
+  @@map("community_last_seen")
 }
 
 model CommunityImage {
@@ -821,4 +847,19 @@ model JobExecution {
 
   @@index([jobName, startedAt])
   @@map("job_executions")
+}
+
+model NotificationPreference {
+  id         String          @id @default(uuid())
+  userId     String          @map("user_id")
+  sourceId   String          @map("source_id")
+  sourceType NotifSourceType @map("source_type")
+  email      Boolean         @default(true)
+  push       Boolean         @default(true)
+  createdAt  DateTime        @default(now()) @map("created_at")
+  updatedAt  DateTime        @updatedAt @map("updated_at")
+
+  @@unique([userId, sourceId, sourceType])
+  @@index([userId])
+  @@map("notification_preferences")
 }

@@ -18,6 +18,33 @@ type UserRolePayload = { name: string; type: string };
 export class CommunityService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async markCommunitySeen(channelSlug: string, userId: string): Promise<void> {
+    await this.prisma.communityLastSeen.upsert({
+      where: { userId_channelSlug: { userId, channelSlug } },
+      update: { lastSeenAt: new Date() },
+      create: { userId, channelSlug, lastSeenAt: new Date() },
+    });
+  }
+
+  async getCommunityUnreadCount(
+    channelSlug: string,
+    userId: string,
+  ): Promise<{ count: number }> {
+    const lastSeen = await this.prisma.communityLastSeen.findUnique({
+      where: { userId_channelSlug: { userId, channelSlug } },
+    });
+
+    const count = await this.prisma.communityPost.count({
+      where: {
+        channelSlug,
+        deletedAt: null,
+        ...(lastSeen ? { createdAt: { gt: lastSeen.lastSeenAt } } : {}),
+      },
+    });
+
+    return { count };
+  }
+
   /**
    * Returns the channels the user can access:
    * - community channels: "general" (always) and user's rubro (if present)

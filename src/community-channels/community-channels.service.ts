@@ -6,6 +6,33 @@ import { sanitizeMarkdown } from '../community/utils/sanitize-markdown';
 export class CommunityChannelsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async markChannelSeen(channelId: string, userId: string): Promise<void> {
+    await this.prisma.channelLastSeen.upsert({
+      where: { userId_channelId: { userId, channelId } },
+      update: { lastSeenAt: new Date() },
+      create: { userId, channelId, lastSeenAt: new Date() },
+    });
+  }
+
+  async getChannelUnreadCount(
+    channelId: string,
+    userId: string,
+  ): Promise<{ count: number }> {
+    const lastSeen = await this.prisma.channelLastSeen.findUnique({
+      where: { userId_channelId: { userId, channelId } },
+    });
+
+    const count = await this.prisma.communityChannelPost.count({
+      where: {
+        channelId,
+        deletedAt: null,
+        ...(lastSeen ? { createdAt: { gt: lastSeen.lastSeenAt } } : {}),
+      },
+    });
+
+    return { count };
+  }
+
   async getChannels(userId: string) {
     return this.prisma.communityChannel.findMany({
       where: {
