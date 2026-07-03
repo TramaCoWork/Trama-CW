@@ -91,7 +91,9 @@ export abstract class BaseCronService implements OnModuleInit {
           finishedAt,
           durationMs,
           processedCount: result?.processedCount ?? null,
-          metadata: result?.metadata,
+          ...(result?.metadata !== undefined
+            ? { metadata: result.metadata }
+            : {}),
         },
       });
       this.logger.log(
