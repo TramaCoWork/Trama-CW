@@ -44,3 +44,4 @@ vault/memory/.engine/.index-state.json
 
 # Defensa: si quedó algún node_modules legacy del install viejo
 vault/memory/.engine/node_modules/
+CLAUDE.md

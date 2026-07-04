@@ -5,6 +5,8 @@ import { AdminCommunityController } from './admin-community.controller';
 import { AdminCommunityService } from './admin-community.service';
 import { AdminChannelsController } from './admin-channels.controller';
 import { AdminChannelsService } from './admin-channels.service';
+import { AdminJobsController } from './admin-jobs.controller';
+import { AdminJobsService } from './admin-jobs.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { MailModule } from '../mail/mail.module';
 import { AuthModule } from '../auth/auth.module';
@@ -26,11 +28,13 @@ import { BackgroundJobsModule } from '../background-jobs/background-jobs.module'
     AdminController,
     AdminCommunityController,
     AdminChannelsController,
+    AdminJobsController,
   ],
   providers: [
     AdminService,
     AdminCommunityService,
     AdminChannelsService,
+    AdminJobsService,
     CommunityService,
   ],
 })

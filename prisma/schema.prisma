@@ -125,6 +125,8 @@ enum CommunityImageEntityType {
 }
 
 enum JobStatus {
+  active
+  paused
   running
   completed
   failed
@@ -328,13 +330,20 @@ model Payment {
 }
 
 model Job {
-  id             String   @id @default(uuid())
-  title          String
-  description    String   @db.Text
-  createdByAdmin Boolean  @default(true) @map("created_by_admin")
-  isActive       Boolean  @default(true) @map("is_active")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id          String    @id @default(uuid())
+  title       String
+  description String    @db.Text
+  email       String
+  status      JobStatus @default(active)
+  validFrom   DateTime? @map("valid_from")
+  validUntil  DateTime? @map("valid_until")
+  clickCount  Int       @default(0) @map("click_count")
+  companyName String?   @map("company_name")
+  companyLogo String?   @map("company_logo")
+  categoryIds Int[]     @map("category_ids")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   applications JobApplication[]
 
@@ -348,7 +357,7 @@ model JobApplication {
   coverLetter String?  @map("cover_letter") @db.Text
   createdAt   DateTime @default(now()) @map("created_at")
 
-  job  Job  @relation(fields: [jobId], references: [id])
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id])
 
   @@unique([jobId, userId])
