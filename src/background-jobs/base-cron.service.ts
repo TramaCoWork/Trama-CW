@@ -29,7 +29,30 @@ export abstract class BaseCronService implements OnModuleInit {
   abstract onModuleInit(): void;
 
   protected getCronSchedule(): Record<string, string | null> {
-    return JSON.parse(this.configService.getOrThrow<string>('CRON_SCHEDULE'));
+    const raw = JSON.parse(
+      this.configService.getOrThrow<string>('CRON_SCHEDULE'),
+    ) as Record<
+      string,
+      { name?: string; schedule?: string | null } | string | null
+    >;
+
+    const cronSchedule: Record<string, string | null> = {};
+    for (const [key, value] of Object.entries(raw)) {
+      if (typeof value === 'string') {
+        cronSchedule[key] = value;
+        continue;
+      }
+
+      if (value && typeof value === 'object') {
+        cronSchedule[key] =
+          typeof value.schedule === 'string' ? value.schedule : null;
+        continue;
+      }
+
+      cronSchedule[key] = null;
+    }
+
+    return cronSchedule;
   }
 
   protected registerJob(

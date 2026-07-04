@@ -322,6 +322,12 @@ export class AdminController {
     return this.adminService.createJob(dto);
   }
 
+  @Get('jobs/available')
+  @ApiOperation({ summary: 'Listar jobs disponibles con metadata' })
+  getAvailableJobs() {
+    return this.adminService.getAvailableJobs();
+  }
+
   @Get('jobs')
   @ApiOperation({ summary: 'Listar ejecuciones de jobs (paginado, con filtro)' })
   @ApiQuery({

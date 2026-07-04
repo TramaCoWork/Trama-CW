@@ -730,6 +730,36 @@ export class AdminService {
 
   // ─── Jobs ────────────────────────────────────────────────────────────────
 
+  getAvailableJobs() {
+    let cronSchedule: Record<
+      string,
+      { name?: string; schedule?: string } | string | null
+    > = {};
+    try {
+      const raw = this.configService.get<string>('CRON_SCHEDULE');
+      if (raw) cronSchedule = JSON.parse(raw);
+    } catch {
+      // Ignore invalid JSON and expose an empty jobs list.
+    }
+
+    return Object.entries(cronSchedule).map(([key, value]) => {
+      const name = (value && typeof value === 'object' ? value.name : null) ?? key;
+      const schedule =
+        (value && typeof value === 'object'
+          ? value.schedule
+          : typeof value === 'string'
+            ? value
+            : null) ?? null;
+
+      return {
+        key,
+        name,
+        schedule,
+        active: typeof schedule === 'string',
+      };
+    });
+  }
+
   async createJob(dto: CreateJobDto) {
     return this.prisma.job.create({
       data: {
