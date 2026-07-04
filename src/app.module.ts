@@ -65,20 +65,7 @@ import { AppController } from './app.controller';
         PAYMENT_MODE: Joi.string()
           .valid('subscription', 'checkout')
           .default('subscription'),
-        CRON_SCHEDULE: Joi.string()
-          .custom((value, helpers) => {
-            if (!value) return value;
-            try {
-              const parsed = JSON.parse(value);
-              if (typeof parsed !== 'object' || Array.isArray(parsed)) {
-                return helpers.error('any.invalid', { message: 'must be a JSON object' });
-              }
-              return value;
-            } catch {
-              return helpers.error('any.invalid', { message: 'must be valid JSON' });
-            }
-          })
-          .optional(),
+        CRON_SCHEDULE: Joi.string().optional(),
         LOG_RETENTION_DAYS: Joi.number().default(90),
         UPLOAD_PATH: Joi.string()
           .trim()
