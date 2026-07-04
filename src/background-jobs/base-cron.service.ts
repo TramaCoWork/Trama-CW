@@ -78,10 +78,40 @@ export abstract class BaseCronService implements OnModuleInit {
     await this.runWithLogging(jobName, handler);
   }
 
+  async restartJob(jobName: string, schedule: string): Promise<void> {
+    const handler = this.jobHandlers.get(jobName);
+    if (!handler) {
+      throw new NotFoundException(`Handler for job "${jobName}" not found`);
+    }
+
+    const job = new CronJob(schedule, () =>
+      this.runWithLogging(jobName, handler),
+    );
+    this.schedulerRegistry.addCronJob(jobName, job);
+    job.start();
+    this.logger.log(`Job "${jobName}" reiniciado con schedule: ${schedule}`);
+  }
+
   protected async runWithLogging(
     jobName: string,
     handler: () => Promise<JobResult | void>,
   ): Promise<void> {
+    try {
+      const jobConfig = await this.prisma.cronJob.findUnique({
+        where: { key: jobName },
+        select: { active: true },
+      });
+
+      if (jobConfig && !jobConfig.active) {
+        this.logger.log(`Job "${jobName}" skipped — marked as inactive in DB`);
+        return;
+      }
+    } catch {
+      this.logger.warn(
+        `Could not verify active status for job "${jobName}" — proceeding`,
+      );
+    }
+
     const startedAt = new Date();
     const execution = await this.prisma.jobExecution.create({
       data: { jobName, status: 'running', startedAt },

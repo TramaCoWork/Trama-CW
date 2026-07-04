@@ -38,6 +38,7 @@ import { DiscountsCronService } from '../background-jobs/discounts-cron.service'
 import { TrialReminderCronService } from '../background-jobs/trial-reminder-cron.service';
 import { BaseCronService } from '../background-jobs/base-cron.service';
 import { SubscriptionsCronBridge } from '../background-jobs/subscriptions-cron-bridge.service';
+import { DailyDigestCronService } from '../background-jobs/daily-digest-cron.service';
 
 @Injectable()
 export class AdminService {
@@ -51,6 +52,7 @@ export class AdminService {
     private readonly discountsCronService: DiscountsCronService,
     private readonly trialReminderCronService: TrialReminderCronService,
     private readonly subscriptionsCronBridge: SubscriptionsCronBridge,
+    private readonly dailyDigestCronService: DailyDigestCronService,
     private readonly schedulerRegistry: SchedulerRegistry,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
@@ -809,6 +811,49 @@ export class AdminService {
     owner.triggerManually(jobName).catch(() => {});
 
     return { message: 'Job iniciado en background', jobName };
+  }
+
+  async restartJob(
+    key: string,
+  ): Promise<{ message: string; key: string; schedule: string }> {
+    const cronJob = await this.prisma.cronJob.findUnique({ where: { key } });
+    if (!cronJob) {
+      throw new NotFoundException(`Job "${key}" not found in cron_jobs table`);
+    }
+    if (!cronJob.active) {
+      throw new BadRequestException(
+        `Job "${key}" is inactive — activate it first`,
+      );
+    }
+
+    const services: BaseCronService[] = [
+      this.professionalsCronService,
+      this.discountsCronService,
+      this.trialReminderCronService,
+      this.subscriptionsCronBridge,
+      this.dailyDigestCronService,
+    ];
+
+    const owner = services.find((service) => service.hasJob(key));
+    if (!owner) {
+      throw new NotFoundException(`Job "${key}" not registered in any service`);
+    }
+
+    try {
+      const existing = this.schedulerRegistry.getCronJob(key);
+      existing.stop();
+      this.schedulerRegistry.deleteCronJob(key);
+    } catch {
+      // job may not be running
+    }
+
+    await owner.restartJob(key, cronJob.schedule);
+
+    return {
+      message: `Job "${key}" reiniciado con schedule "${cronJob.schedule}"`,
+      key,
+      schedule: cronJob.schedule,
+    };
   }
 
   // ─── Payments ────────────────────────────────────────────────────────────

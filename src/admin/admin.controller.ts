@@ -384,6 +384,12 @@ export class AdminController {
     });
   }
 
+  @Post('jobs/:key/restart')
+  @ApiOperation({ summary: 'Reiniciar un job con el schedule actual de la DB' })
+  async restartJob(@Param('key') key: string) {
+    return this.adminService.restartJob(key);
+  }
+
   @Post('jobs/:jobName/run')
   @HttpCode(200)
   @ApiOperation({ summary: 'Disparar ejecución manual de un cron job' })
