@@ -102,6 +102,7 @@ jobs:
 
       - name: Write CRON_SCHEDULE to .env
         env:
+          # Must be JSON with plain cron strings by key, e.g. {"dailyDigest":"0 7 * * *"}
           CRON_VALUE: ${{ vars.CRON_SCHEDULE }}
         run: |
           ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \

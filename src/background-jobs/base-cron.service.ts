@@ -33,21 +33,7 @@ export abstract class BaseCronService implements OnModuleInit {
     if (!raw) return {};
 
     try {
-      const parsed = JSON.parse(raw) as Record<
-        string,
-        { name?: string; schedule?: string } | string | null
-      >;
-      const result: Record<string, string | null> = {};
-      for (const [key, value] of Object.entries(parsed)) {
-        if (typeof value === 'string') {
-          result[key] = value;
-        } else if (value && typeof value === 'object') {
-          result[key] = value.schedule ?? null;
-        } else {
-          result[key] = null;
-        }
-      }
-      return result;
+      return JSON.parse(raw) as Record<string, string | null>;
     } catch {
       this.logger.warn(
         'CRON_SCHEDULE is not valid JSON — no jobs will be registered',

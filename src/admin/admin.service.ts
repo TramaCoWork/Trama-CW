@@ -731,33 +731,30 @@ export class AdminService {
   // ─── Jobs ────────────────────────────────────────────────────────────────
 
   getAvailableJobs() {
-    let cronSchedule: Record<
-      string,
-      { name?: string; schedule?: string } | string | null
-    > = {};
+    let cronSchedule: Record<string, string | null> = {};
     try {
       const raw = this.configService.get<string>('CRON_SCHEDULE');
       if (raw) cronSchedule = JSON.parse(raw);
     } catch {
-      // Ignore invalid JSON and expose an empty jobs list.
+      // Ignore invalid JSON and expose defaults without schedules.
     }
 
-    return Object.entries(cronSchedule).map(([key, value]) => {
-      const name = (value && typeof value === 'object' ? value.name : null) ?? key;
-      const schedule =
-        (value && typeof value === 'object'
-          ? value.schedule
-          : typeof value === 'string'
-            ? value
-            : null) ?? null;
+    const JOB_METADATA = [
+      { key: 'expiredTrials', name: 'Vencimiento de trials' },
+      { key: 'expiredCancelledSubs', name: 'Suscripciones canceladas' },
+      { key: 'subscriptionRenewals', name: 'Renovación de suscripciones' },
+      { key: 'applyDiscounts', name: 'Aplicar descuentos' },
+      { key: 'restoreDiscounts', name: 'Restaurar descuentos' },
+      { key: 'trialExpiringReminder', name: 'Aviso vencimiento de trial' },
+      { key: 'dailyDigest', name: 'Digest diario de canales' },
+    ];
 
-      return {
-        key,
-        name,
-        schedule,
-        active: typeof schedule === 'string',
-      };
-    });
+    return JOB_METADATA.map((job) => ({
+      key: job.key,
+      name: job.name,
+      schedule: cronSchedule[job.key] ?? null,
+      active: typeof cronSchedule[job.key] === 'string',
+    }));
   }
 
   async createJob(dto: CreateJobDto) {
