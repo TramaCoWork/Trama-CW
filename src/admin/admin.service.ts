@@ -24,7 +24,7 @@ import { AuthService } from '../auth/auth.service';
 import { MercadoPagoService } from '../mercadopago/mercadopago.service';
 import { UpdateSubscriptionAmountDto } from './dto/update-subscription-amount.dto';
 import { UpdateReferralCodeDto } from '../auth/dto/update-referral-code.dto';
-import { CreateJobDto } from './dto/create-job.dto';
+import { CreateJobDto } from '../jobs/dto/create-job.dto';
 import { ValidateProfileDto } from './dto/validate-profile.dto';
 import { VerifyDocumentDto } from './dto/verify-document.dto';
 import { AdminRegisterProfessionalDto } from './dto/admin-register-professional.dto';
