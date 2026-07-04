@@ -99,9 +99,14 @@ jobs:
           SUPPORT_EMAIL=${{ vars.SUPPORT_EMAIL }}
           TURNSTILE_SECRET_KEY=${{ secrets.TURNSTILE_SECRET_KEY }}
           EOF"
+
+      - name: Write CRON_SCHEDULE to .env
+        env:
+          CRON_VALUE: ${{ vars.CRON_SCHEDULE }}
+        run: |
           ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "printf 'CRON_SCHEDULE=%s\n' '${{ vars.CRON_SCHEDULE }}' >> ${{ secrets.DEPLOY_PATH }}/.env"
+            "echo \"CRON_SCHEDULE=${CRON_VALUE}\" >> ${{ secrets.DEPLOY_PATH }}/.env"
 
       - name: Install dependencies, run migrations and restart PM2
         run: |
