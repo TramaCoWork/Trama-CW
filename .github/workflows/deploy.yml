@@ -100,15 +100,6 @@ jobs:
           TURNSTILE_SECRET_KEY=${{ secrets.TURNSTILE_SECRET_KEY }}
           EOF"
 
-      - name: Write CRON_SCHEDULE to .env
-        env:
-          # Must be JSON with plain cron strings by key, e.g. {"dailyDigest":"0 7 * * *"}
-          CRON_VALUE: ${{ vars.CRON_SCHEDULE }}
-        run: |
-          ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "echo \"CRON_SCHEDULE=${CRON_VALUE}\" >> ${{ secrets.DEPLOY_PATH }}/.env"
-
       - name: Install dependencies, run migrations and restart PM2
         run: |
           ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \

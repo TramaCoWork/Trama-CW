@@ -26,18 +26,17 @@ export abstract class BaseCronService implements OnModuleInit {
     protected readonly schedulerRegistry: SchedulerRegistry,
   ) {}
 
-  abstract onModuleInit(): void;
+  abstract onModuleInit(): void | Promise<void>;
 
-  protected getCronSchedule(): Record<string, string | null> {
-    const raw = this.configService.get<string>('CRON_SCHEDULE');
-    if (!raw) return {};
-
+  protected async getCronSchedule(): Promise<Record<string, string | null>> {
     try {
-      return JSON.parse(raw) as Record<string, string | null>;
+      const jobs = await this.prisma.cronJob.findMany({
+        where: { active: true },
+        select: { key: true, schedule: true },
+      });
+      return Object.fromEntries(jobs.map((j) => [j.key, j.schedule]));
     } catch {
-      this.logger.warn(
-        'CRON_SCHEDULE is not valid JSON — no jobs will be registered',
-      );
+      this.logger.warn('Could not read cron_jobs from DB');
       return {};
     }
   }
@@ -51,7 +50,7 @@ export abstract class BaseCronService implements OnModuleInit {
 
     if (typeof schedule !== 'string') {
       this.logger.warn(
-        `Job "${jobName}" no registrado — falta la key en CRON_SCHEDULE`,
+        `Job "${jobName}" no registrado — falta la key en cron_jobs`,
       );
       return;
     }

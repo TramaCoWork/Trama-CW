@@ -35,8 +35,8 @@ export class DailyDigestCronService
     super(prisma, configService, schedulerRegistry);
   }
 
-  onModuleInit() {
-    const cronSchedule = this.getCronSchedule();
+  async onModuleInit() {
+    const cronSchedule = await this.getCronSchedule();
     const dailyDigestSchedule = cronSchedule.dailyDigest;
 
     this.registerJob(

@@ -21,8 +21,8 @@ export class DiscountsCronService
     super(prisma, configService, schedulerRegistry);
   }
 
-  onModuleInit() {
-    const cronSchedule = this.getCronSchedule();
+  async onModuleInit() {
+    const cronSchedule = await this.getCronSchedule();
 
     this.registerJob('applyDiscounts', cronSchedule.applyDiscounts, () =>
       this.handleApplyDiscounts(),

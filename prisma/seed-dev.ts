@@ -104,6 +104,108 @@ async function main() {
     }),
   ]);
 
+  // ── Cron Jobs ─────────────────────────────────────────────────────────────
+  await Promise.all([
+    prisma.cronJob.upsert({
+      where: { key: 'expiredTrials' },
+      update: {
+        name: 'Vencimiento de trials',
+        schedule: '0 0 * * *',
+        active: true,
+      },
+      create: {
+        key: 'expiredTrials',
+        name: 'Vencimiento de trials',
+        schedule: '0 0 * * *',
+        active: true,
+      },
+    }),
+    prisma.cronJob.upsert({
+      where: { key: 'expiredCancelledSubs' },
+      update: {
+        name: 'Suscripciones canceladas',
+        schedule: '0 0 * * *',
+        active: true,
+      },
+      create: {
+        key: 'expiredCancelledSubs',
+        name: 'Suscripciones canceladas',
+        schedule: '0 0 * * *',
+        active: true,
+      },
+    }),
+    prisma.cronJob.upsert({
+      where: { key: 'subscriptionRenewals' },
+      update: {
+        name: 'Renovación de suscripciones',
+        schedule: '0 0 * * *',
+        active: true,
+      },
+      create: {
+        key: 'subscriptionRenewals',
+        name: 'Renovación de suscripciones',
+        schedule: '0 0 * * *',
+        active: true,
+      },
+    }),
+    prisma.cronJob.upsert({
+      where: { key: 'applyDiscounts' },
+      update: {
+        name: 'Aplicar descuentos',
+        schedule: '0 1 * * *',
+        active: true,
+      },
+      create: {
+        key: 'applyDiscounts',
+        name: 'Aplicar descuentos',
+        schedule: '0 1 * * *',
+        active: true,
+      },
+    }),
+    prisma.cronJob.upsert({
+      where: { key: 'restoreDiscounts' },
+      update: {
+        name: 'Restaurar descuentos',
+        schedule: '0 2 * * *',
+        active: true,
+      },
+      create: {
+        key: 'restoreDiscounts',
+        name: 'Restaurar descuentos',
+        schedule: '0 2 * * *',
+        active: true,
+      },
+    }),
+    prisma.cronJob.upsert({
+      where: { key: 'trialExpiringReminder' },
+      update: {
+        name: 'Aviso vencimiento de trial',
+        schedule: '0 9 * * *',
+        active: true,
+      },
+      create: {
+        key: 'trialExpiringReminder',
+        name: 'Aviso vencimiento de trial',
+        schedule: '0 9 * * *',
+        active: true,
+      },
+    }),
+    prisma.cronJob.upsert({
+      where: { key: 'dailyDigest' },
+      update: {
+        name: 'Digest diario de canales',
+        schedule: '0 7 * * *',
+        active: true,
+      },
+      create: {
+        key: 'dailyDigest',
+        name: 'Digest diario de canales',
+        schedule: '0 7 * * *',
+        active: true,
+      },
+    }),
+  ]);
+
   // ── Profession Categories (seed first to get IDs for professionals) ──────
   const slugToId = await seedProfessionCategories();
 

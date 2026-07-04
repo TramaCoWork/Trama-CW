@@ -15,6 +15,7 @@ import {
   FrequencyType,
   SubscriptionStatus,
 } from '@prisma/client';
+import { SchedulerRegistry } from '@nestjs/schedule';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
@@ -50,6 +51,7 @@ export class AdminService {
     private readonly discountsCronService: DiscountsCronService,
     private readonly trialReminderCronService: TrialReminderCronService,
     private readonly subscriptionsCronBridge: SubscriptionsCronBridge,
+    private readonly schedulerRegistry: SchedulerRegistry,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
 
@@ -730,31 +732,30 @@ export class AdminService {
 
   // ─── Jobs ────────────────────────────────────────────────────────────────
 
-  getAvailableJobs() {
-    let cronSchedule: Record<string, string | null> = {};
-    try {
-      const raw = this.configService.get<string>('CRON_SCHEDULE');
-      if (raw) cronSchedule = JSON.parse(raw);
-    } catch {
-      // Ignore invalid JSON and expose defaults without schedules.
-    }
+  async getCronJobs(onlyActive?: boolean) {
+    return this.prisma.cronJob.findMany({
+      where: onlyActive ? { active: true } : undefined,
+      orderBy: { key: 'asc' },
+    });
+  }
 
-    const JOB_METADATA = [
-      { key: 'expiredTrials', name: 'Vencimiento de trials' },
-      { key: 'expiredCancelledSubs', name: 'Suscripciones canceladas' },
-      { key: 'subscriptionRenewals', name: 'Renovación de suscripciones' },
-      { key: 'applyDiscounts', name: 'Aplicar descuentos' },
-      { key: 'restoreDiscounts', name: 'Restaurar descuentos' },
-      { key: 'trialExpiringReminder', name: 'Aviso vencimiento de trial' },
-      { key: 'dailyDigest', name: 'Digest diario de canales' },
-    ];
-
-    return JOB_METADATA.map((job) => ({
-      key: job.key,
-      name: job.name,
-      schedule: cronSchedule[job.key] ?? null,
-      active: typeof cronSchedule[job.key] === 'string',
+  getRunningCronJobs() {
+    const jobs = this.schedulerRegistry.getCronJobs();
+    return Array.from(jobs.entries()).map(([key, job]) => ({
+      key,
+      running: true,
+      nextRun: job.nextDate(),
     }));
+  }
+
+  async updateCronJob(
+    id: string,
+    data: Prisma.CronJobUpdateInput,
+  ) {
+    return this.prisma.cronJob.update({
+      where: { id },
+      data,
+    });
   }
 
   async createJob(dto: CreateJobDto) {

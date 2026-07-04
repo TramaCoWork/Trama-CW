@@ -65,7 +65,6 @@ import { AppController } from './app.controller';
         PAYMENT_MODE: Joi.string()
           .valid('subscription', 'checkout')
           .default('subscription'),
-        CRON_SCHEDULE: Joi.string().optional(),
         LOG_RETENTION_DAYS: Joi.number().default(90),
         UPLOAD_PATH: Joi.string()
           .trim()

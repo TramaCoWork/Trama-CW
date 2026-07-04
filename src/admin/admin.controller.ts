@@ -322,10 +322,33 @@ export class AdminController {
     return this.adminService.createJob(dto);
   }
 
-  @Get('jobs/available')
-  @ApiOperation({ summary: 'Listar jobs disponibles con metadata' })
-  getAvailableJobs() {
-    return this.adminService.getAvailableJobs();
+  @Get('cron-jobs/active')
+  @ApiOperation({ summary: 'Listar cron jobs activos' })
+  getActiveCronJobs() {
+    return this.adminService.getCronJobs(true);
+  }
+
+  @Get('cron-jobs/running')
+  @ApiOperation({ summary: 'Listar cron jobs registrados en memoria' })
+  getRunningCronJobs() {
+    return this.adminService.getRunningCronJobs();
+  }
+
+  @Get('cron-jobs')
+  @ApiOperation({ summary: 'Listar cron jobs configurados en base de datos' })
+  getCronJobs() {
+    return this.adminService.getCronJobs();
+  }
+
+  @Patch('cron-jobs/:id')
+  @ApiOperation({ summary: 'Actualizar un cron job' })
+  @ApiParam({ name: 'id', description: 'ID del cron job' })
+  updateCronJob(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body()
+    data: { key?: string; name?: string; schedule?: string; active?: boolean },
+  ) {
+    return this.adminService.updateCronJob(id, data);
   }
 
   @Get('jobs')
