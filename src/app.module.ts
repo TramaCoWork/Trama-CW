@@ -76,11 +76,17 @@ import { AppController } from './app.controller';
                 });
               }
               for (const [key, val] of Object.entries(parsed)) {
-                if (val !== null && typeof val !== 'string') {
-                  return helpers.error('any.invalid', {
-                    message: `value for "${key}" must be a string or null`,
-                  });
-                }
+                if (val === null) continue;
+                if (typeof val === 'string') continue;
+                if (
+                  typeof val === 'object' &&
+                  !Array.isArray(val) &&
+                  typeof (val as any).schedule === 'string'
+                )
+                  continue;
+                return helpers.error('any.invalid', {
+                  message: `value for "${key}" must be a string, null, or { name, schedule } object`,
+                });
               }
               return value;
             } catch {
@@ -90,7 +96,7 @@ import { AppController } from './app.controller';
             }
           })
           .default(
-            '{"expiredTrials":"0 0 * * *","expiredCancelledSubs":"0 0 * * *","subscriptionRenewals":"0 0 * * *","applyDiscounts":"0 1 * * *","restoreDiscounts":"0 2 * * *","trialExpiringReminder":"0 9 * * *"}',
+            '{"expiredTrials":{"name":"Vencimiento de trials","schedule":"0 0 * * *"},"expiredCancelledSubs":{"name":"Suscripciones canceladas","schedule":"0 0 * * *"},"subscriptionRenewals":{"name":"Renovación de suscripciones","schedule":"0 0 * * *"},"applyDiscounts":{"name":"Aplicar descuentos","schedule":"0 1 * * *"},"restoreDiscounts":{"name":"Restaurar descuentos","schedule":"0 2 * * *"},"trialExpiringReminder":{"name":"Aviso vencimiento de trial","schedule":"0 9 * * *"},"dailyDigest":{"name":"Digest diario de canales","schedule":"0 7 * * *"}}',
           ),
         LOG_RETENTION_DAYS: Joi.number().default(90),
         UPLOAD_PATH: Joi.string()
