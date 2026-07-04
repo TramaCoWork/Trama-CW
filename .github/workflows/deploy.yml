@@ -98,6 +98,7 @@ jobs:
           LOG_RETENTION_DAYS=${{ vars.LOG_RETENTION_DAYS || '90' }}
           SUPPORT_EMAIL=${{ vars.SUPPORT_EMAIL }}
           TURNSTILE_SECRET_KEY=${{ secrets.TURNSTILE_SECRET_KEY }}
+          CRON_SCHEDULE=${{ vars.CRON_SCHEDULE }}
           EOF"
 
       - name: Install dependencies, run migrations and restart PM2
