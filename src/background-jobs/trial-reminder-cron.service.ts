@@ -25,7 +25,7 @@ export class TrialReminderCronService
     const cronSchedule = await this.getCronSchedule();
 
     this.registerJob(
-      'trial-expiring-reminder',
+      'trialExpiringReminder',
       cronSchedule.trialExpiringReminder,
       () => this.handleTrialExpiringReminder(),
     );
