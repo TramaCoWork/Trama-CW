@@ -176,6 +176,7 @@ export class DailyDigestCronService
           where: {
             channelSlug: channel.slug,
             deletedAt: null,
+            status: 'published',
             ...(lastSeenAt ? { createdAt: { gt: lastSeenAt } } : {}),
           },
         });
@@ -191,6 +192,7 @@ export class DailyDigestCronService
           where: {
             channelId: channel.slug,
             deletedAt: null,
+            status: 'published',
             ...(lastSeenAt ? { createdAt: { gt: lastSeenAt } } : {}),
           },
         });
