@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateJobDto } from '../jobs/dto/create-job.dto';
 import { UpdateJobDto } from '../jobs/dto/update-job.dto';
 
-type AdminJobStatusFilter = JobStatus.active | JobStatus.paused;
+type AdminJobStatusFilter = 'active' | 'paused';
 
 @Injectable()
 export class AdminJobsService {

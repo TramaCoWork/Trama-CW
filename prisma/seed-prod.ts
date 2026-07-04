@@ -349,8 +349,8 @@ async function main() {
       id: 'seed-job-1',
       title: 'Diseñador UX para startup',
       description: 'Buscamos diseñador UX con experiencia en apps móviles para proyecto de 3 meses.',
-      createdByAdmin: true,
-      isActive: true,
+      email: 'jobs@trama.com',
+      status: 'active',
     },
   });
   console.log('Job:', job1.title);
@@ -362,8 +362,8 @@ async function main() {
       id: 'seed-job-2',
       title: 'Consultor de estrategia digital',
       description: 'Empresa en crecimiento busca consultor para definir roadmap digital 2026.',
-      createdByAdmin: true,
-      isActive: true,
+      email: 'jobs@trama.com',
+      status: 'active',
     },
   });
   console.log('Job:', job2.title);

@@ -112,7 +112,7 @@ export class DashboardService {
 
   async getJobs(userId: string) {
     return this.prisma.job.findMany({
-      where: { isActive: true },
+      where: { status: 'active', deletedAt: null },
       include: {
         applications: {
           where: { userId },

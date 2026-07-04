@@ -34,7 +34,7 @@ import { AdminJobsService } from './admin-jobs.service';
 class UpdateJobStatusDto {
   @ApiProperty({ enum: [JobStatus.active, JobStatus.paused] })
   @IsIn([JobStatus.active, JobStatus.paused])
-  status!: JobStatus.active | JobStatus.paused;
+  status!: 'active' | 'paused';
 }
 
 @ApiTags('Admin Jobs')
@@ -68,7 +68,7 @@ export class AdminJobsController {
   @ApiResponse({ status: 200, description: 'Lista paginada de vacantes' })
   listJobs(
     @Query() pagination: PaginationDto,
-    @Query('status') status?: JobStatus.active | JobStatus.paused,
+    @Query('status') status?: 'active' | 'paused',
     @Query('categoryId', new ParseIntPipe({ optional: true }))
     categoryId?: number,
   ) {

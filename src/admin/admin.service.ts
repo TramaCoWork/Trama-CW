@@ -10,6 +10,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import {
   Prisma,
+  JobStatus,
   ProfileStatus,
   SubscriptionPaymentStatus,
   FrequencyType,
@@ -765,8 +766,8 @@ export class AdminService {
       data: {
         title: dto.title,
         description: dto.description,
-        createdByAdmin: true,
-        isActive: true,
+        email: dto.email,
+        status: dto.status ?? JobStatus.active,
       },
     });
   }
