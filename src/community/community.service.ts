@@ -72,12 +72,12 @@ export class CommunityService {
       },
     });
 
-    const channels = [
+    const communityChannels = [
       { type: 'community' as const, slug: GENERAL_CHANNEL, name: 'General' },
     ];
 
     if (profile?.rubro) {
-      channels.push({
+      communityChannels.push({
         type: 'community' as const,
         slug: profile.rubro.slug,
         name: profile.rubro.name,
@@ -90,7 +90,61 @@ export class CommunityService {
       name: channel.name,
     }));
 
-    return [...channels, ...memberChannels];
+    const communityLastSeenRecords = await this.prisma.communityLastSeen.findMany({
+      where: {
+        userId,
+        channelSlug: { in: communityChannels.map((channel) => channel.slug) },
+      },
+      select: { channelSlug: true, lastSeenAt: true },
+    });
+
+    const channelLastSeenRecords = await this.prisma.channelLastSeen.findMany({
+      where: {
+        userId,
+        channelId: { in: memberChannels.map((channel) => channel.slug) },
+      },
+      select: { channelId: true, lastSeenAt: true },
+    });
+
+    const communityLastSeenMap = new Map(
+      communityLastSeenRecords.map((record) => [record.channelSlug, record.lastSeenAt]),
+    );
+
+    const channelLastSeenMap = new Map(
+      channelLastSeenRecords.map((record) => [record.channelId, record.lastSeenAt]),
+    );
+
+    const communityWithUnread = await Promise.all(
+      communityChannels.map(async (channel) => {
+        const lastSeenAt = communityLastSeenMap.get(channel.slug);
+        const unreadCount = await this.prisma.communityPost.count({
+          where: {
+            channelSlug: channel.slug,
+            deletedAt: null,
+            ...(lastSeenAt ? { createdAt: { gt: lastSeenAt } } : {}),
+          },
+        });
+
+        return { ...channel, unreadCount };
+      }),
+    );
+
+    const memberWithUnread = await Promise.all(
+      memberChannels.map(async (channel) => {
+        const lastSeenAt = channelLastSeenMap.get(channel.slug);
+        const unreadCount = await this.prisma.communityChannelPost.count({
+          where: {
+            channelId: channel.slug,
+            deletedAt: null,
+            ...(lastSeenAt ? { createdAt: { gt: lastSeenAt } } : {}),
+          },
+        });
+
+        return { ...channel, unreadCount };
+      }),
+    );
+
+    return [...communityWithUnread, ...memberWithUnread];
   }
 
   /**

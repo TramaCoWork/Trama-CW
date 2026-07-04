@@ -6,16 +6,24 @@ import { ProfessionalsCronService } from './professionals-cron.service';
 import { DiscountsCronService } from './discounts-cron.service';
 import { SubscriptionsCronBridge } from './subscriptions-cron-bridge.service';
 import { TrialReminderCronService } from './trial-reminder-cron.service';
+import { DailyDigestCronService } from './daily-digest-cron.service';
 
 @Global()
 @Module({
   imports: [DiscountsModule, MailModule, SubscriptionsModule],
-  providers: [ProfessionalsCronService, DiscountsCronService, SubscriptionsCronBridge, TrialReminderCronService],
+  providers: [
+    ProfessionalsCronService,
+    DiscountsCronService,
+    SubscriptionsCronBridge,
+    TrialReminderCronService,
+    DailyDigestCronService,
+  ],
   exports: [
     ProfessionalsCronService,
     DiscountsCronService,
     SubscriptionsCronBridge,
     TrialReminderCronService,
+    DailyDigestCronService,
     SubscriptionsModule,
   ],
 })

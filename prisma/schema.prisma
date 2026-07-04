@@ -452,6 +452,7 @@ model ChannelLastSeen {
   userId     String   @map("user_id")
   channelId  String   @map("channel_id")
   lastSeenAt DateTime @map("last_seen_at")
+  lastNotifiedAt DateTime? @map("last_notified_at")
 
   channel CommunityChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
 
@@ -463,6 +464,7 @@ model CommunityLastSeen {
   userId      String   @map("user_id")
   channelSlug String   @map("channel_slug")
   lastSeenAt  DateTime @map("last_seen_at")
+  lastNotifiedAt DateTime? @map("last_notified_at")
 
   @@id([userId, channelSlug])
   @@map("community_last_seen")

@@ -10,6 +10,7 @@ import { paymentReminderTemplate } from './templates/payment-reminder';
 import { contactFormTemplate } from './templates/contact-form';
 import { professionalContactTemplate } from './templates/professional-contact';
 import { trialExpiringReminderTemplate } from './templates/trial-expiring-reminder';
+import { dailyDigestTemplate } from './templates/daily-digest';
 
 @Injectable()
 export class MailService {
@@ -139,6 +140,20 @@ export class MailService {
     } catch (error) {
       this.logger.error(
         `Error sending professional contact email: ${error.message}`,
+      );
+    }
+  }
+
+  async sendDailyDigest(
+    email: string,
+    channels: { name: string; unreadCount: number; type: string }[],
+  ): Promise<void> {
+    const { subject, html } = dailyDigestTemplate(channels);
+    try {
+      await this.transport.send(email, subject, html);
+    } catch (error) {
+      this.logger.error(
+        `Error sending daily digest email to ${email}: ${error.message}`,
       );
     }
   }
