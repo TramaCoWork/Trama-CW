@@ -11,6 +11,7 @@ import { contactFormTemplate } from './templates/contact-form';
 import { professionalContactTemplate } from './templates/professional-contact';
 import { trialExpiringReminderTemplate } from './templates/trial-expiring-reminder';
 import { dailyDigestTemplate } from './templates/daily-digest';
+import { onboardingReminderTemplate } from './templates/onboarding-reminder';
 
 @Injectable()
 export class MailService {
@@ -154,6 +155,17 @@ export class MailService {
     } catch (error) {
       this.logger.error(
         `Error sending daily digest email to ${email}: ${error.message}`,
+      );
+    }
+  }
+
+  async sendOnboardingReminder(email: string, name: string): Promise<void> {
+    const { subject, html } = onboardingReminderTemplate(name);
+    try {
+      await this.transport.send(email, subject, html);
+    } catch (error) {
+      this.logger.error(
+        `Error sending onboarding reminder email to ${email}: ${error.message}`,
       );
     }
   }

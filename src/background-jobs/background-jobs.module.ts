@@ -7,6 +7,7 @@ import { DiscountsCronService } from './discounts-cron.service';
 import { SubscriptionsCronBridge } from './subscriptions-cron-bridge.service';
 import { TrialReminderCronService } from './trial-reminder-cron.service';
 import { DailyDigestCronService } from './daily-digest-cron.service';
+import { OnboardingReminderCronService } from './onboarding-reminder-cron.service';
 
 @Global()
 @Module({
@@ -17,6 +18,7 @@ import { DailyDigestCronService } from './daily-digest-cron.service';
     SubscriptionsCronBridge,
     TrialReminderCronService,
     DailyDigestCronService,
+    OnboardingReminderCronService,
   ],
   exports: [
     ProfessionalsCronService,
