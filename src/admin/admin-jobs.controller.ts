@@ -39,7 +39,7 @@ class UpdateJobStatusDto {
 
 @ApiTags('Admin Jobs')
 @ApiBearerAuth()
-@Controller('admin/jobs')
+@Controller('admin/work')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin')
 export class AdminJobsController {

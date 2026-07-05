@@ -26,7 +26,7 @@ import type { CurrentUserType } from '../auth/decorators/current-user.decorator'
 import { ApplyJobDto } from './dto/apply-job.dto';
 
 @ApiTags('Jobs')
-@Controller('jobs')
+@Controller('work')
 export class JobsController {
   constructor(private readonly jobsService: JobsService) {}
 
