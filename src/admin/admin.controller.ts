@@ -24,7 +24,7 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
-import { CreateJobDto } from './dto/create-job.dto';
+import { CreateJobDto } from '../jobs/dto/create-job.dto';
 import { ValidateProfileDto } from './dto/validate-profile.dto';
 import { VerifyDocumentDto } from './dto/verify-document.dto';
 import { SetTrialDateDto } from './dto/set-trial-date.dto';
