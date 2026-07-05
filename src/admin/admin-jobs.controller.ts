@@ -27,8 +27,8 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { PaginationDto } from '../common/dto/pagination.dto';
-import { CreateJobDto } from '../jobs/dto/create-job.dto';
-import { UpdateJobDto } from '../jobs/dto/update-job.dto';
+import { CreateWorkDto } from '../work/dto/create-work.dto';
+import { UpdateWorkDto } from '../work/dto/update-work.dto';
 import { AdminJobsService } from './admin-jobs.service';
 
 class UpdateJobStatusDto {
@@ -50,7 +50,7 @@ export class AdminJobsController {
   @ApiResponse({ status: 201, description: 'Vacante creada' })
   createJob(
     @Body(new ValidationPipe({ whitelist: true, transform: true }))
-    dto: CreateJobDto,
+    dto: CreateWorkDto,
   ) {
     return this.adminJobsService.createJob(dto);
   }
@@ -92,7 +92,7 @@ export class AdminJobsController {
   updateJob(
     @Param('id', ParseUUIDPipe) id: string,
     @Body(new ValidationPipe({ whitelist: true, transform: true }))
-    dto: UpdateJobDto,
+    dto: UpdateWorkDto,
   ) {
     return this.adminJobsService.updateJob(id, dto);
   }

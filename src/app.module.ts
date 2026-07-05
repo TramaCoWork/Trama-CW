@@ -17,7 +17,7 @@ import { OnboardingModule } from './onboarding/onboarding.module';
 import { ContactsModule } from './contacts/contacts.module';
 import { CommunityModule } from './community/community.module';
 import { CommunityChannelsModule } from './community-channels/community-channels.module';
-import { JobsModule } from './jobs/jobs.module';
+import { WorkModule } from './work/work.module';
 import { AdminModule } from './admin/admin.module';
 import { ProfessionCategoriesModule } from './profession-categories/profession-categories.module';
 import { UploadsModule } from './uploads/uploads.module';
@@ -104,7 +104,7 @@ import { AppController } from './app.controller';
     ContactsModule,
     CommunityModule,
     CommunityChannelsModule,
-    JobsModule,
+    WorkModule,
     AdminModule,
     ProfessionCategoriesModule,
     UploadsModule,

@@ -24,7 +24,7 @@ import { AuthService } from '../auth/auth.service';
 import { MercadoPagoService } from '../mercadopago/mercadopago.service';
 import { UpdateSubscriptionAmountDto } from './dto/update-subscription-amount.dto';
 import { UpdateReferralCodeDto } from '../auth/dto/update-referral-code.dto';
-import { CreateJobDto } from '../jobs/dto/create-job.dto';
+import { CreateWorkDto } from '../work/dto/create-work.dto';
 import { ValidateProfileDto } from './dto/validate-profile.dto';
 import { VerifyDocumentDto } from './dto/verify-document.dto';
 import { AdminRegisterProfessionalDto } from './dto/admin-register-professional.dto';
@@ -761,7 +761,7 @@ export class AdminService {
     });
   }
 
-  async createJob(dto: CreateJobDto) {
+  async createJob(dto: CreateWorkDto) {
     return this.prisma.job.create({
       data: {
         title: dto.title,

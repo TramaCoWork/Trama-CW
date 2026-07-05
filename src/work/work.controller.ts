@@ -18,17 +18,17 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { JobsService } from './jobs.service';
+import { WorkService } from './work.service';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
-import { ApplyJobDto } from './dto/apply-job.dto';
+import { ApplyWorkDto } from './dto/apply-work.dto';
 
 @ApiTags('Jobs')
 @Controller('work')
-export class JobsController {
-  constructor(private readonly jobsService: JobsService) {}
+export class WorkController {
+  constructor(private readonly workService: WorkService) {}
 
   @Get()
   @ApiOperation({ summary: 'Listar trabajos activos vigentes' })
@@ -42,7 +42,7 @@ export class JobsController {
     @Headers('authorization') authorization?: string,
   ) {
     const categoryIds = this.parseCategoryIds(rawCategoryIds);
-    return this.jobsService.listPublicJobs(
+    return this.workService.listPublicJobs(
       pagination,
       categoryIds,
       authorization,
@@ -60,7 +60,7 @@ export class JobsController {
     @CurrentUser() user: CurrentUserType,
     @Query() pagination: PaginationDto,
   ) {
-    return this.jobsService.listMyApplications(user.userId, pagination);
+    return this.workService.listMyApplications(user.userId, pagination);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -75,7 +75,7 @@ export class JobsController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: CurrentUserType,
   ) {
-    return this.jobsService.getPublicJobById(id, user?.userId);
+    return this.workService.getPublicJobById(id, user?.userId);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -83,7 +83,7 @@ export class JobsController {
   @Post(':id/apply')
   @ApiOperation({ summary: 'Postularse a un trabajo activo vigente' })
   @ApiParam({ name: 'id', description: 'ID del trabajo' })
-  @ApiBody({ type: ApplyJobDto })
+  @ApiBody({ type: ApplyWorkDto })
   @ApiResponse({ status: 201, description: 'Postulacion creada' })
   @ApiResponse({ status: 404, description: 'Trabajo no encontrado' })
   @ApiResponse({ status: 403, description: 'Trabajo no disponible' })
@@ -91,9 +91,9 @@ export class JobsController {
   apply(
     @CurrentUser() user: CurrentUserType,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: ApplyJobDto,
+    @Body() dto: ApplyWorkDto,
   ) {
-    return this.jobsService.apply(user.userId, id, dto);
+    return this.workService.apply(user.userId, id, dto);
   }
 
   private parseCategoryIds(rawCategoryIds?: string): number[] {

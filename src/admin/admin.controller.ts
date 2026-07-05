@@ -24,7 +24,7 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
-import { CreateJobDto } from '../jobs/dto/create-job.dto';
+import { CreateWorkDto } from '../work/dto/create-work.dto';
 import { ValidateProfileDto } from './dto/validate-profile.dto';
 import { VerifyDocumentDto } from './dto/verify-document.dto';
 import { SetTrialDateDto } from './dto/set-trial-date.dto';
@@ -318,7 +318,7 @@ export class AdminController {
   @Post('jobs')
   @ApiOperation({ summary: 'Crear una oferta de trabajo' })
   @ApiResponse({ status: 201, description: 'Trabajo creado' })
-  async createJob(@Body(new ValidationPipe()) dto: CreateJobDto) {
+  async createJob(@Body(new ValidationPipe()) dto: CreateWorkDto) {
     return this.adminService.createJob(dto);
   }
 

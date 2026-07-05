@@ -8,10 +8,10 @@ import { JobStatus, Prisma } from '@prisma/client';
 import { verify } from 'jsonwebtoken';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { ApplyJobDto } from './dto/apply-job.dto';
+import { ApplyWorkDto } from './dto/apply-work.dto';
 
 @Injectable()
-export class JobsService {
+export class WorkService {
   constructor(private readonly prisma: PrismaService) {}
 
   private readonly publicSelect = {
@@ -93,7 +93,7 @@ export class JobsService {
     return { ...job, hasApplied };
   }
 
-  async apply(userId: string, jobId: string, dto: ApplyJobDto) {
+  async apply(userId: string, jobId: string, dto: ApplyWorkDto) {
     await this.ensureJobAvailable(jobId);
 
     const existing = await this.prisma.jobApplication.findUnique({
