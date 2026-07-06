@@ -34,6 +34,7 @@ import { ContactModule } from './contact/contact.module';
 import { MessagesModule } from './messages/messages.module';
 import { UsersModule } from './users/users.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { LandingsModule } from './landings/landings.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -121,6 +122,7 @@ import { AppController } from './app.controller';
     MessagesModule,
     UsersModule,
     NotificationsModule,
+    LandingsModule,
   ],
   controllers: [AppController],
   providers: [
