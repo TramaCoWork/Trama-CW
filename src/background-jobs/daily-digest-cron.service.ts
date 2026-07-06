@@ -53,6 +53,7 @@ export class DailyDigestCronService
     });
 
     let emailsSent = 0;
+    const affectedUserIds: string[] = [];
 
     for (const user of users) {
       const channels = await this.buildUserChannels(user.id);
@@ -90,11 +91,15 @@ export class DailyDigestCronService
 
       await this.mailService.sendDailyDigest(user.email, activeChannels);
       emailsSent += 1;
+      affectedUserIds.push(user.id);
 
       await this.updateLastNotifiedAt(user.id, activeChannels);
     }
 
-    return { processedCount: emailsSent };
+    return {
+      processedCount: emailsSent,
+      metadata: { userIds: affectedUserIds },
+    };
   }
 
   private async buildUserChannels(userId: string): Promise<ChannelDigest[]> {

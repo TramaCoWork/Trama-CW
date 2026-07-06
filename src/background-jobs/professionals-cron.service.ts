@@ -35,6 +35,15 @@ export class ProfessionalsCronService
   async handleExpiredTrials(): Promise<JobResult> {
     const now = new Date();
 
+    const profiles = await this.prisma.professionalProfile.findMany({
+      where: {
+        deletedAt: null,
+        profileStatus: 'active',
+        trialEndDate: { lt: now },
+      },
+      select: { userId: true },
+    });
+
     const result = await this.prisma.professionalProfile.updateMany({
       where: {
         deletedAt: null,
@@ -54,12 +63,16 @@ export class ProfessionalsCronService
       );
     }
 
-    return { processedCount: result.count };
+    return {
+      processedCount: result.count,
+      metadata: { userIds: profiles.map((profile) => profile.userId) },
+    };
   }
 
   async handleExpiredCancelledSubscriptions(): Promise<JobResult> {
     const now = new Date();
     let deactivatedProfiles = 0;
+    const affectedUserIds = new Set<string>();
 
     // Buscar suscripciones canceladas cuyo período pagado ya venció
     const expiredSubs = await this.prisma.subscription.findMany({
@@ -103,13 +116,17 @@ export class ProfessionalsCronService
 
       if (result.count > 0) {
         deactivatedProfiles += result.count;
+        affectedUserIds.add(userId);
         this.logger.log(
           `Cancelled subscription expired: user ${userId} moved to waiting_payment`,
         );
       }
     }
 
-    return { processedCount: deactivatedProfiles };
+    return {
+      processedCount: deactivatedProfiles,
+      metadata: { userIds: Array.from(affectedUserIds) },
+    };
   }
 }
 

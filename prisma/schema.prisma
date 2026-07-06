@@ -886,3 +886,59 @@ model CronJob {
 
   @@map("cron_jobs")
 }
+
+enum FieldType {
+  text
+  email
+  tel
+  textarea
+  number
+  date
+  select
+  checkbox
+}
+
+model LandingPage {
+  id         Int       @id @default(autoincrement())
+  uuid       String    @unique @default(uuid())
+  title      String
+  body       String    @db.Text
+  isPublic   Boolean   @default(false) @map("is_public")
+  validFrom  DateTime? @map("valid_from")
+  validUntil DateTime? @map("valid_until")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  fields      LandingPageField[]
+  submissions LandingPageSubmission[]
+
+  @@map("landing_pages")
+}
+
+model LandingPageField {
+  id        Int       @id @default(autoincrement())
+  landingId Int       @map("landing_id")
+  label     String
+  type      FieldType @default(text)
+  required  Boolean   @default(false)
+  order     Int       @default(0)
+  options   String[] // for select type — list of options
+
+  landing LandingPage @relation(fields: [landingId], references: [id], onDelete: Cascade)
+
+  @@index([landingId, order])
+  @@map("landing_page_fields")
+}
+
+model LandingPageSubmission {
+  id        Int      @id @default(autoincrement())
+  landingId Int      @map("landing_id")
+  data      Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  landing LandingPage @relation(fields: [landingId], references: [id], onDelete: Cascade)
+
+  @@index([landingId, createdAt])
+  @@map("landing_page_submissions")
+}

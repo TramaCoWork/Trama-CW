@@ -41,9 +41,9 @@ export class TrialReminderCronService
     const targetDateStr = `${yyyy}-${mm}-${dd}`;
 
     const profiles = await this.prisma.$queryRaw<
-      { id: string; name: string | null; email: string }[]
+      { id: string; user_id: string; name: string | null; email: string }[]
     >`
-      SELECT pp.id, pp.name, u.email
+      SELECT pp.id, pp.user_id, pp.name, u.email
       FROM professional_profiles pp
       JOIN users u ON u.id = pp.user_id
       WHERE pp.deleted_at IS NULL
@@ -55,6 +55,9 @@ export class TrialReminderCronService
       await this.mailService.sendTrialExpiringReminder(profile.email, name);
     }
 
-    return { processedCount: profiles.length };
+    return {
+      processedCount: profiles.length,
+      metadata: { userIds: profiles.map((profile) => profile.user_id) },
+    };
   }
 }

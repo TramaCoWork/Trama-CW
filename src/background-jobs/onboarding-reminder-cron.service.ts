@@ -41,7 +41,11 @@ export class OnboardingReminderCronService
         profileStatus: 'onboarding',
         createdAt: { gte: threeMonthsAgo },
       },
-      include: { user: { select: { email: true } } },
+      select: {
+        userId: true,
+        name: true,
+        user: { select: { email: true } },
+      },
     });
 
     for (const profile of profiles) {
@@ -49,6 +53,9 @@ export class OnboardingReminderCronService
       await this.mailService.sendOnboardingReminder(profile.user.email, name);
     }
 
-    return { processedCount: profiles.length };
+    return {
+      processedCount: profiles.length,
+      metadata: { userIds: profiles.map((profile) => profile.userId) },
+    };
   }
 }

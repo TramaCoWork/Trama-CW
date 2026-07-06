@@ -33,21 +33,63 @@ export class DiscountsCronService
   }
 
   async handleApplyDiscounts(): Promise<JobResult> {
+    const now = new Date();
+    const subscriptions = await this.prisma.discount.findMany({
+      where: {
+        applied: false,
+        startDate: { lte: now },
+        endDate: { gte: now },
+      },
+      select: {
+        professional: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+
     const count = await this.discountsService.applyPendingDiscounts();
     if (count > 0) {
       this.logger.log(`Processed ${count} pending discounts`);
     }
 
-    return { processedCount: count };
+    return {
+      processedCount: count,
+      metadata: {
+        userIds: subscriptions.map((subscription) => subscription.professional.userId),
+      },
+    };
   }
 
   async handleRestoreDiscounts(): Promise<JobResult> {
+    const now = new Date();
+    const subscriptions = await this.prisma.discount.findMany({
+      where: {
+        applied: true,
+        restored: false,
+        endDate: { lt: now },
+      },
+      select: {
+        professional: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+
     const count = await this.discountsService.restoreExpiredDiscounts();
     if (count > 0) {
       this.logger.log(`Restored ${count} expired discounts`);
     }
 
-    return { processedCount: count };
+    return {
+      processedCount: count,
+      metadata: {
+        userIds: subscriptions.map((subscription) => subscription.professional.userId),
+      },
+    };
   }
 }
 
