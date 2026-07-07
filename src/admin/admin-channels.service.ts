@@ -9,6 +9,7 @@ import { sanitizeMarkdown } from '../community/utils/sanitize-markdown';
 import { CreateCommunityChannelDto } from './dto/create-community-channel.dto';
 import { UpdateCommunityChannelDto } from './dto/update-community-channel.dto';
 import { AdminCreateCommunityChannelPostDto } from './dto/admin-create-community-channel-post.dto';
+import { UpdateChannelPostDto } from './dto/update-channel-post.dto';
 
 @Injectable()
 export class AdminChannelsService {
@@ -236,6 +237,28 @@ export class AdminChannelsService {
         channelId,
         userId: resolvedUserId,
         content: sanitizeMarkdown(dto.content),
+      },
+    });
+  }
+
+  async updateChannelPost(
+    channelId: string,
+    postId: string,
+    dto: UpdateChannelPostDto,
+  ) {
+    const post = await this.prisma.communityChannelPost.findFirst({
+      where: { id: postId, channelId, deletedAt: null },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Post no encontrado');
+    }
+
+    return this.prisma.communityChannelPost.update({
+      where: { id: postId },
+      data: {
+        ...(dto.content ? { content: sanitizeMarkdown(dto.content) } : {}),
+        ...(dto.status ? { status: dto.status } : {}),
       },
     });
   }

@@ -30,6 +30,7 @@ import { CreateCommunityChannelDto } from './dto/create-community-channel.dto';
 import { UpdateCommunityChannelDto } from './dto/update-community-channel.dto';
 import { CreateCommunityChannelMemberDto } from './dto/create-community-channel-member.dto';
 import { AdminCreateCommunityChannelPostDto } from './dto/admin-create-community-channel-post.dto';
+import { UpdateChannelPostDto } from './dto/update-channel-post.dto';
 
 @ApiTags('Admin Channels')
 @ApiBearerAuth()
@@ -173,6 +174,17 @@ export class AdminChannelsController {
   ) {
     const resolvedUserId = dto.userId ?? user.userId;
     return this.adminChannelsService.createChannelPost(id, dto, resolvedUserId);
+  }
+
+  @Patch(':id/posts/:postId')
+  @ApiOperation({ summary: 'Editar contenido o estado de un post del canal' })
+  updateChannelPost(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('postId', ParseUUIDPipe) postId: string,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: UpdateChannelPostDto,
+  ) {
+    return this.adminChannelsService.updateChannelPost(id, postId, dto);
   }
 
   @Delete(':id/posts/:postId')
