@@ -263,6 +263,32 @@ export class AuthService {
       },
     });
 
+    const profile = await this.prisma.professionalProfile.findUnique({
+      where: withoutDeleted({ userId: payload.sub }),
+    });
+
+    if (profile && profile.profileStatus === ProfileStatus.onboarding) {
+      const trialDays = this.configService.get<number>('TRIAL_DAYS', 0);
+
+      if (trialDays > 0) {
+        await this.prisma.professionalProfile.update({
+          where: withoutDeleted({ id: profile.id }),
+          data: {
+            trialEndDate: new Date(Date.now() + trialDays * 86400000),
+            isActive: true,
+          },
+        });
+      } else {
+        await this.prisma.professionalProfile.update({
+          where: withoutDeleted({ id: profile.id }),
+          data: {
+            profileStatus: ProfileStatus.waiting_payment,
+            isActive: false,
+          },
+        });
+      }
+    }
+
     return { message: 'Email verificado exitosamente' };
   }
 
@@ -486,6 +512,54 @@ export class AuthService {
       select: { id: true },
     });
     return user?.id ?? null;
+  }
+
+  async getMe(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: withoutDeleted({ id: userId }),
+      select: {
+        id: true,
+        email: true,
+        emailVerified: true,
+        createdAt: true,
+        lastLoginAt: true,
+        userRoles: {
+          select: {
+            role: { select: { name: true, type: true } },
+          },
+        },
+        profile: {
+          select: {
+            id: true,
+            publicId: true,
+            name: true,
+            profileStatus: true,
+            isActive: true,
+            hideProfile: true,
+            trialEndDate: true,
+            photo: true,
+            city: true,
+            rubroId: true,
+            rubro: { select: { id: true, name: true, slug: true } },
+          },
+        },
+      },
+    });
+
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+
+    return {
+      id: user.id,
+      email: user.email,
+      emailVerified: user.emailVerified,
+      createdAt: user.createdAt,
+      lastLoginAt: user.lastLoginAt,
+      roles: user.userRoles.map((ur) => ({
+        name: ur.role.name,
+        type: ur.role.type,
+      })),
+      profile: user.profile ?? null,
+    };
   }
 
   // ─── Referral code ───────────────────────────────────────────────────────

@@ -181,6 +181,16 @@ export class AuthController {
     );
   }
 
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Obtener datos del usuario autenticado + perfil profesional',
+  })
+  getMe(@CurrentUser() user: CurrentUserType) {
+    return this.authService.getMe(user.userId);
+  }
+
   @Get('me/referral-code')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
