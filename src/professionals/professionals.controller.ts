@@ -10,7 +10,6 @@ import {
   UseGuards,
   UsePipes,
   ValidationPipe,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -107,6 +106,15 @@ export class ProfessionalsController {
   @ApiResponse({ status: 404, description: 'Perfil no encontrado' })
   findByUserId(@Param('userId') userId: string) {
     return this.professionalsService.findByUserId(userId);
+  }
+
+  @Get('by-slug/:slug')
+  @ApiOperation({
+    summary: 'Obtener perfil de profesional por slug (nombre-publicId)',
+  })
+  @ApiParam({ name: 'slug', example: 'sebastian-arce-42' })
+  findBySlug(@Param('slug') slug: string) {
+    return this.professionalsService.findBySlug(slug);
   }
 
   @Get(':id')

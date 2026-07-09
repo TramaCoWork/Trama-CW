@@ -107,10 +107,13 @@ export class ProfessionalsService {
   }
 
   async findOne(id: string) {
+    const numericId = parseInt(id, 10);
+    const isNumeric = !isNaN(numericId) && String(numericId) === id;
+
     const profile = await this.prisma.professionalProfile.findFirst({
       where: {
         deletedAt: null,
-        id,
+        ...(isNumeric ? { publicId: numericId } : { id }),
         isActive: true,
         hideProfile: false,
         profileStatus: 'active',
@@ -131,6 +134,55 @@ export class ProfessionalsService {
       throw new NotFoundException(
         `Professional profile with id ${id} not found`,
       );
+    }
+
+    return profile;
+  }
+
+  async findBySlug(slug: string) {
+    const lastDash = slug.lastIndexOf('-');
+    if (lastDash === -1) {
+      throw new NotFoundException('Perfil no encontrado');
+    }
+
+    const publicId = parseInt(slug.substring(lastDash + 1), 10);
+    if (Number.isNaN(publicId)) {
+      throw new NotFoundException('Perfil no encontrado');
+    }
+
+    const profile = await this.prisma.professionalProfile.findUnique({
+      where: { publicId },
+      include: { professionCategories: true, rubro: true },
+    });
+
+    if (
+      !profile ||
+      profile.deletedAt ||
+      !profile.isActive ||
+      profile.hideProfile ||
+      profile.profileStatus !== 'active'
+    ) {
+      throw new NotFoundException('Perfil no encontrado');
+    }
+
+    const emailVerifiedUser = await this.prisma.user.findUnique({
+      where: { id: profile.userId },
+      select: { emailVerified: true },
+    });
+
+    if (!emailVerifiedUser?.emailVerified) {
+      throw new NotFoundException('Perfil no encontrado');
+    }
+
+    const now = new Date();
+    const hasActiveTrial = profile.trialEndDate && profile.trialEndDate >= now;
+    const hasActiveSubscription = await this.prisma.subscription.findFirst({
+      where: { userId: profile.userId, status: SubscriptionStatus.active },
+      select: { id: true },
+    });
+
+    if (!hasActiveTrial && !hasActiveSubscription) {
+      throw new NotFoundException('Perfil no encontrado');
     }
 
     return profile;

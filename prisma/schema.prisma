@@ -229,6 +229,7 @@ model RolePermission {
 
 model ProfessionalProfile {
   id            String        @id @default(uuid())
+  publicId      Int           @unique @default(autoincrement()) @map("public_id")
   userId        String        @unique @map("user_id")
   name          String
   bio           String?       @db.Text

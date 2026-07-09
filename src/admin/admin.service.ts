@@ -287,6 +287,13 @@ export class AdminService {
     });
   }
 
+  async getRoles() {
+    return this.prisma.role.findMany({
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, type: true },
+    });
+  }
+
   async getAdminUserById(id: string) {
     const user = await this.prisma.user.findUnique({
       where: withoutDeleted({ id }),

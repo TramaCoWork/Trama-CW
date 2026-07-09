@@ -610,6 +610,13 @@ export class AdminController {
     return this.adminService.listAdminUsers(search);
   }
 
+  @Get('roles')
+  @ApiOperation({ summary: 'Listar todos los roles disponibles' })
+  @ApiResponse({ status: 200, description: 'Lista de roles' })
+  getRoles() {
+    return this.adminService.getRoles();
+  }
+
   @Get('users/deleted')
   @ApiOperation({ summary: 'Listar usuarios soft-deleted' })
   @ApiQuery({
