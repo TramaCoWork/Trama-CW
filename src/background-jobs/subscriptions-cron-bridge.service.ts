@@ -23,11 +23,15 @@ export class SubscriptionsCronBridge
 
   async onModuleInit() {
     const cronSchedule = await this.getCronSchedule();
-    this.registerJob(
-      'subscriptionRenewals',
-      cronSchedule.subscriptionRenewals,
-      () => this.handleRenewals(),
-    );
+    const paymentMode = this.configService.get<string>('PAYMENT_MODE');
+
+    if (paymentMode !== 'subscription') {
+      this.registerJob(
+        'subscriptionRenewals',
+        cronSchedule.subscriptionRenewals,
+        () => this.handleRenewals(),
+      );
+    }
   }
 
   private async handleRenewals(): Promise<JobResult> {

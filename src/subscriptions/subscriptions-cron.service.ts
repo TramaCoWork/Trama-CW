@@ -27,6 +27,13 @@ export class SubscriptionsCronService {
     let processedCount = 0;
 
     for (const strategy of strategies) {
+      if (
+        strategy.code === 'mp_subscription' ||
+        strategy.code === 'mp_bricks_subscription'
+      ) {
+        continue;
+      }
+
       // Buscar suscripciones activas con endDate vencido para esta strategy
       const expiredSubs = await this.prisma.subscription.findMany({
         where: {
