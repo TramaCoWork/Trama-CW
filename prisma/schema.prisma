@@ -379,6 +379,7 @@ model CommunityPost {
   comments CommunityComment[]
 
   @@index([channelSlug])
+  @@index([channelSlug, deletedAt, status, createdAt])
   @@map("community_posts")
 }
 

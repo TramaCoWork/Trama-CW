@@ -22,6 +22,7 @@ import { CommunityService } from './community.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdatePostStatusDto } from './dto/update-post-status.dto';
+import { FeedQueryDto } from './dto/feed-query.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
 import { PaginationDto } from '../common/dto/pagination.dto';
@@ -43,6 +44,30 @@ export class CommunityController {
     const data = await this.communityService.getChannels(user.userId);
 
     return { data };
+  }
+
+  @Get('feed')
+  @ApiOperation({
+    summary:
+      'Feed unificado del usuario: posts de community (general + rubro) y de grupos con membresia aceptada, ordenados por fecha desc. Solo publicados y no eliminados.',
+  })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: 'Cursor opaco devuelto en "nextCursor" (omitir en la 1ra pagina)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Posts por pagina (default: 20, max: 50)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Feed paginado por cursor: { data, nextCursor, hasMore }',
+  })
+  getFeed(@CurrentUser() user: CurrentUserType, @Query() query: FeedQueryDto) {
+    return this.communityService.getFeed(user.userId, query.cursor, query.limit);
   }
 
   @Get('my-posts')

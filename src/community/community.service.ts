@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   ForbiddenException,
   NotFoundException,
@@ -372,6 +373,216 @@ export class CommunityService {
       data,
       meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
+  }
+
+  /**
+   * Resuelve los "scopes" a los que el usuario tiene acceso para el feed:
+   * - community: "general" (siempre) + el canal de su rubro (si tiene perfil).
+   * - grupos: canales activos donde tiene membresia aceptada.
+   * Devuelve tambien los mapas slug/id -> nombre legible para pintar el feed.
+   */
+  private async getAccessibleScopes(userId: string) {
+    const profile = await this.prisma.professionalProfile.findUnique({
+      where: withoutDeleted({ userId }),
+      include: { rubro: true },
+    });
+
+    const communitySlugs = [GENERAL_CHANNEL];
+    const communityNameMap = new Map<string, string>([
+      [GENERAL_CHANNEL, 'General'],
+    ]);
+
+    if (profile?.rubro) {
+      communitySlugs.push(profile.rubro.slug);
+      communityNameMap.set(profile.rubro.slug, profile.rubro.name);
+    }
+
+    const memberships = await this.prisma.communityChannelMember.findMany({
+      where: {
+        userId,
+        accepted: true,
+        channel: { isActive: true },
+      },
+      include: { channel: { select: { id: true, name: true } } },
+    });
+
+    const groupIds = memberships.map((member) => member.channel.id);
+    const groupNameMap = new Map(
+      memberships.map((member) => [member.channel.id, member.channel.name]),
+    );
+
+    return { communitySlugs, communityNameMap, groupIds, groupNameMap };
+  }
+
+  private encodeCursor(item: { createdAt: Date; id: string }): string {
+    return Buffer.from(
+      JSON.stringify({ t: item.createdAt.toISOString(), id: item.id }),
+    ).toString('base64');
+  }
+
+  private decodeCursor(cursor?: string): { t: Date; id: string } | null {
+    if (!cursor) {
+      return null;
+    }
+
+    try {
+      const raw = JSON.parse(
+        Buffer.from(cursor, 'base64').toString('utf8'),
+      ) as { t: string; id: string };
+      const t = new Date(raw.t);
+
+      if (Number.isNaN(t.getTime()) || typeof raw.id !== 'string') {
+        throw new Error('cursor malformado');
+      }
+
+      return { t, id: raw.id };
+    } catch {
+      throw new BadRequestException('Cursor invalido');
+    }
+  }
+
+  /**
+   * Feed unificado del usuario: mezcla posts de community (general + rubro) y de
+   * grupos con membresia aceptada, ordenado por fecha de creacion descendente
+   * (mas nuevo primero). Solo posts disponibles: publicados y no eliminados.
+   * Paginacion por cursor (keyset) sobre (createdAt, id).
+   */
+  async getFeed(userId: string, cursor: string | undefined, limit: number) {
+    const scopes = await this.getAccessibleScopes(userId);
+    const decoded = this.decodeCursor(cursor);
+
+    const cursorWhere = decoded
+      ? {
+          OR: [
+            { createdAt: { lt: decoded.t } },
+            { createdAt: decoded.t, id: { lt: decoded.id } },
+          ],
+        }
+      : {};
+
+    // Traemos limit + 1 de cada tabla: alcanza para armar el top-N global exacto
+    // (ningun item mas alla de la posicion limit+1 de una tabla puede entrar).
+    const take = limit + 1;
+    const orderBy = [
+      { createdAt: 'desc' as const },
+      { id: 'desc' as const },
+    ];
+
+    const [communityPosts, channelPosts] = await Promise.all([
+      scopes.communitySlugs.length === 0
+        ? []
+        : this.prisma.communityPost.findMany({
+            where: {
+              channelSlug: { in: scopes.communitySlugs },
+              deletedAt: null,
+              status: PostStatus.published,
+              ...cursorWhere,
+            },
+            orderBy,
+            take,
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  profile: { select: { name: true } },
+                },
+              },
+              _count: { select: { comments: { where: { deletedAt: null } } } },
+            },
+          }),
+      scopes.groupIds.length === 0
+        ? []
+        : this.prisma.communityChannelPost.findMany({
+            where: {
+              channelId: { in: scopes.groupIds },
+              deletedAt: null,
+              status: PostStatus.published,
+              ...cursorWhere,
+            },
+            orderBy,
+            take,
+            include: {
+              _count: { select: { comments: { where: { deletedAt: null } } } },
+            },
+          }),
+    ]);
+
+    // CommunityChannelPost no tiene relacion user en el schema: resolvemos autor
+    // manualmente (mismo patron que CommunityChannelsService).
+    const channelUserIds = [...new Set(channelPosts.map((post) => post.userId))];
+    const channelUsers =
+      channelUserIds.length === 0
+        ? []
+        : await this.prisma.user.findMany({
+            where: { id: { in: channelUserIds } },
+            select: {
+              id: true,
+              email: true,
+              profile: { select: { name: true } },
+            },
+          });
+    const channelUserMap = new Map(
+      channelUsers.map((user) => [user.id, user]),
+    );
+
+    const communityItems = communityPosts.map((post) => ({
+      id: post.id,
+      type: 'community' as const,
+      channelSlug: post.channelSlug,
+      channelId: null as string | null,
+      channelName:
+        scopes.communityNameMap.get(post.channelSlug) ?? post.channelSlug,
+      content: post.content,
+      status: post.status,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+      author: {
+        userId: post.userId,
+        name: post.user?.profile?.name ?? post.user?.email ?? '',
+        email: post.user?.email ?? '',
+      },
+      commentCount: post._count.comments,
+    }));
+
+    const channelItems = channelPosts.map((post) => {
+      const user = channelUserMap.get(post.userId);
+      const email = user?.email ?? '';
+
+      return {
+        id: post.id,
+        type: 'channel' as const,
+        channelSlug: null as string | null,
+        channelId: post.channelId,
+        channelName: scopes.groupNameMap.get(post.channelId) ?? '',
+        content: post.content,
+        status: post.status,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+        author: {
+          userId: post.userId,
+          name: user?.profile?.name ?? email,
+          email,
+        },
+        commentCount: post._count.comments,
+      };
+    });
+
+    const merged = [...communityItems, ...channelItems].sort((a, b) => {
+      const diff = b.createdAt.getTime() - a.createdAt.getTime();
+      if (diff !== 0) {
+        return diff;
+      }
+      // desempate por id descendente (orden total estable)
+      return a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
+    });
+
+    const hasMore = merged.length > limit;
+    const data = merged.slice(0, limit);
+    const last = data[data.length - 1];
+    const nextCursor = hasMore && last ? this.encodeCursor(last) : null;
+
+    return { data, nextCursor, hasMore };
   }
 
   async createPost(
