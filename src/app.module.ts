@@ -35,6 +35,7 @@ import { MessagesModule } from './messages/messages.module';
 import { UsersModule } from './users/users.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { LandingsModule } from './landings/landings.module';
+import { PushModule } from './push/push.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -123,6 +124,7 @@ import { AppController } from './app.controller';
     UsersModule,
     NotificationsModule,
     LandingsModule,
+    PushModule,
   ],
   controllers: [AppController],
   providers: [

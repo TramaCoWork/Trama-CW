@@ -168,9 +168,25 @@ model User {
   referredBy        User?   @relation("UserReferrals", fields: [referralByUserId], references: [id])
   referrals         User[]  @relation("UserReferrals")
   userRoles         UserRole[]
+  pushSubscriptions PushSubscription[]
 
   @@index([deletedAt])
   @@map("users")
+}
+
+model PushSubscription {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  provider       String   @default("onesignal")
+  subscriptionId String   @map("subscription_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, subscriptionId])
+  @@index([userId])
+  @@map("push_subscriptions")
 }
 
 model Role {
