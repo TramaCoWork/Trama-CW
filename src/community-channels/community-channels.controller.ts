@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -26,6 +28,7 @@ import { CommunityChannelsService } from './community-channels.service';
 import { ChannelMemberGuard } from './guards/channel-member.guard';
 import { CreateCommunityChannelCommentDto } from './dto/create-community-channel-comment.dto';
 import { CreateCommunityChannelPostDto } from './dto/create-community-channel-post.dto';
+import { UpdatePostStatusDto } from '../community/dto/update-post-status.dto';
 
 @ApiTags('Community Channels')
 @ApiBearerAuth()
@@ -194,6 +197,61 @@ export class CommunityChannelsController {
       postId,
       user.userId,
       dto.content,
+    );
+  }
+
+  @Patch(':id/posts/:postId/status')
+  @UseGuards(JwtAuthGuard, ChannelMemberGuard)
+  @ApiOperation({
+    summary:
+      'Cambiar estado de un post de canal (published/paused). Solo el owner.',
+  })
+  @ApiParam({ name: 'id', description: 'ID del canal' })
+  @ApiParam({ name: 'postId', description: 'ID del post' })
+  @ApiResponse({ status: 200, description: 'Estado del post actualizado' })
+  @ApiResponse({
+    status: 403,
+    description: 'Solo el creador del post puede cambiar su estado',
+  })
+  @ApiResponse({ status: 404, description: 'Post no encontrado en el canal' })
+  updatePostStatus(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('postId', ParseUUIDPipe) postId: string,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: UpdatePostStatusDto,
+  ) {
+    return this.communityChannelsService.updatePostStatus(
+      id,
+      postId,
+      user.userId,
+      dto.status,
+    );
+  }
+
+  @Delete(':id/posts/:postId')
+  @UseGuards(JwtAuthGuard, ChannelMemberGuard)
+  @ApiOperation({
+    summary: 'Borrado logico de un post de canal (solo owner o admin)',
+  })
+  @ApiParam({ name: 'id', description: 'ID del canal' })
+  @ApiParam({ name: 'postId', description: 'ID del post' })
+  @ApiResponse({ status: 200, description: 'Post eliminado logicamente' })
+  @ApiResponse({
+    status: 403,
+    description: 'Solo el creador del post o un admin pueden eliminarlo',
+  })
+  @ApiResponse({ status: 404, description: 'Post no encontrado en el canal' })
+  deletePost(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('postId', ParseUUIDPipe) postId: string,
+  ) {
+    return this.communityChannelsService.deletePost(
+      id,
+      postId,
+      user.userId,
+      user.roles,
     );
   }
 }

@@ -1,10 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { PostStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { sanitizeMarkdown } from '../community/utils/sanitize-markdown';
+
+type UserRolePayload = { name: string; type: string };
 
 @Injectable()
 export class CommunityChannelsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private isAdmin(roles: UserRolePayload[]): boolean {
+    return roles.some((role) => role.type === 'admin' || role.name === 'admin');
+  }
 
   async markChannelSeen(channelId: string, userId: string): Promise<void> {
     await this.prisma.channelLastSeen.upsert({
@@ -264,6 +275,65 @@ export class CommunityChannelsService {
         userId,
         content: sanitizeMarkdown(content),
       },
+    });
+  }
+
+  /**
+   * Cambia el estado (published/paused) de un post de canal.
+   * Solo el creador del post puede hacerlo.
+   */
+  async updatePostStatus(
+    channelId: string,
+    postId: string,
+    userId: string,
+    status: PostStatus,
+  ) {
+    const post = await this.prisma.communityChannelPost.findFirst({
+      where: { id: postId, channelId, deletedAt: null },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Post no encontrado');
+    }
+
+    if (post.userId !== userId) {
+      throw new ForbiddenException(
+        'Solo el creador del post puede cambiar su estado',
+      );
+    }
+
+    return this.prisma.communityChannelPost.update({
+      where: { id: postId },
+      data: { status },
+    });
+  }
+
+  /**
+   * Borrado logico de un post de canal. Solo el creador o un admin.
+   */
+  async deletePost(
+    channelId: string,
+    postId: string,
+    userId: string,
+    roles: UserRolePayload[],
+  ) {
+    const post = await this.prisma.communityChannelPost.findFirst({
+      where: { id: postId, channelId, deletedAt: null },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Post no encontrado');
+    }
+
+    if (post.userId !== userId && !this.isAdmin(roles)) {
+      throw new ForbiddenException(
+        'Solo el creador del post o un admin pueden eliminarlo',
+      );
+    }
+
+    return this.prisma.communityChannelPost.update({
+      where: { id: postId },
+      data: { deletedAt: new Date() },
     });
   }
 }
