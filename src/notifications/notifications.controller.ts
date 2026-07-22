@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseEnumPipe,
   Patch,
   UseGuards,
 } from '@nestjs/common';
@@ -36,7 +37,8 @@ export class NotificationsController {
   deletePreference(
     @CurrentUser() user: CurrentUserType,
     @Param('sourceId') sourceId: string,
-    @Param('sourceType') sourceType: NotifSourceType,
+    @Param('sourceType', new ParseEnumPipe(NotifSourceType))
+    sourceType: NotifSourceType,
   ) {
     return this.notificationsService.deletePreference(
       user.userId,

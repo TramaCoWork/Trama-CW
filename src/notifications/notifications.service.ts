@@ -39,9 +39,11 @@ export class NotificationsService {
     sourceId: string,
     sourceType: NotifSourceType,
   ) {
-    await this.prisma.notificationPreference.deleteMany({
+    const { count } = await this.prisma.notificationPreference.deleteMany({
       where: { userId, sourceId, sourceType },
     });
+
+    return { ok: true, deleted: count };
   }
 
   async getPreference(
