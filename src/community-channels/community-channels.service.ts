@@ -74,6 +74,9 @@ export class CommunityChannelsService {
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
+        include: {
+          _count: { select: { comments: { where: { deletedAt: null } } } },
+        },
       }),
       this.prisma.communityChannelPost.count({
         where: {
@@ -113,7 +116,7 @@ export class CommunityChannelsService {
       ]),
     );
 
-    const data = posts.map((post) => {
+    const data = posts.map(({ _count, ...post }) => {
       const user = userMap.get(post.userId);
       const email = user?.email ?? '';
 
@@ -122,6 +125,7 @@ export class CommunityChannelsService {
         email,
         nombre: user?.nombre ?? email,
         photoUrl: user?.photoUrl ?? null,
+        commentCount: _count.comments,
       };
     });
 
@@ -143,13 +147,18 @@ export class CommunityChannelsService {
         channelId,
         deletedAt: null,
       },
+      include: {
+        _count: { select: { comments: { where: { deletedAt: null } } } },
+      },
     });
 
     if (!post) {
       throw new NotFoundException('Post no encontrado');
     }
 
-    return post;
+    const { _count, ...postData } = post;
+
+    return { ...postData, commentCount: _count.comments };
   }
 
   async getPostComments(

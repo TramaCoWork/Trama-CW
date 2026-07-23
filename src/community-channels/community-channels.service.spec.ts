@@ -6,11 +6,16 @@ describe('CommunityChannelsService (gestion de posts)', () => {
   const prisma = {
     communityChannelPost: {
       findFirst: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
       update: jest.fn(),
     },
     communityChannelComment: {
       findFirst: jest.fn(),
       update: jest.fn(),
+    },
+    user: {
+      findMany: jest.fn(),
     },
   };
 
@@ -27,6 +32,58 @@ describe('CommunityChannelsService (gestion de posts)', () => {
       prisma as any,
       pushNotifications as any,
     );
+  });
+
+  describe('getChannelPosts', () => {
+    it('incluye commentCount por post (comentarios no borrados)', async () => {
+      prisma.communityChannelPost.findMany.mockResolvedValue([
+        {
+          id: 'post-1',
+          channelId: 'ch-1',
+          userId: 'u-1',
+          content: 'hola',
+          _count: { comments: 3 },
+        },
+      ]);
+      prisma.communityChannelPost.count.mockResolvedValue(1);
+      prisma.user.findMany.mockResolvedValue([
+        { id: 'u-1', email: 'a@x.com', profile: { id: 'p-1', name: 'Ana', photo: null } },
+      ]);
+
+      const res = await service.getChannelPosts('ch-1', 1, 20);
+
+      expect(prisma.communityChannelPost.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: {
+            _count: { select: { comments: { where: { deletedAt: null } } } },
+          },
+        }),
+      );
+      expect(res.data[0]).toMatchObject({
+        id: 'post-1',
+        commentCount: 3,
+        nombre: 'Ana',
+      });
+      // no filtra el _count crudo
+      expect(res.data[0]).not.toHaveProperty('_count');
+    });
+  });
+
+  describe('getPost', () => {
+    it('incluye commentCount en el detalle', async () => {
+      prisma.communityChannelPost.findFirst.mockResolvedValue({
+        id: 'post-1',
+        channelId: 'ch-1',
+        userId: 'u-1',
+        content: 'hola',
+        _count: { comments: 5 },
+      });
+
+      const res = await service.getPost('ch-1', 'post-1');
+
+      expect(res).toMatchObject({ id: 'post-1', commentCount: 5 });
+      expect(res).not.toHaveProperty('_count');
+    });
   });
 
   describe('updatePostStatus', () => {
