@@ -19,9 +19,14 @@ describe('CommunityChannelsService (gestion de posts)', () => {
   const ownerRoles = [{ name: 'professional', type: 'professional' }];
   const adminRoles = [{ name: 'admin', type: 'admin' }];
 
+  const pushNotifications = { notifyNewChannelPost: jest.fn() };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new CommunityChannelsService(prisma as any);
+    service = new CommunityChannelsService(
+      prisma as any,
+      pushNotifications as any,
+    );
   });
 
   describe('updatePostStatus', () => {

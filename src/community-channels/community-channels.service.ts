@@ -7,12 +7,16 @@ import { PostStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { sanitizeMarkdown } from '../community/utils/sanitize-markdown';
 import { buildPhotoUrl } from '../common/utils/author';
+import { PushNotificationsService } from '../onesignal/push-notifications.service';
 
 type UserRolePayload = { name: string; type: string };
 
 @Injectable()
 export class CommunityChannelsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly pushNotifications: PushNotificationsService,
+  ) {}
 
   private isAdmin(roles: UserRolePayload[]): boolean {
     return roles.some((role) => role.type === 'admin' || role.name === 'admin');
@@ -250,13 +254,23 @@ export class CommunityChannelsService {
       throw new NotFoundException('Canal no encontrado');
     }
 
-    return this.prisma.communityChannelPost.create({
+    const post = await this.prisma.communityChannelPost.create({
       data: {
         channelId,
         userId,
         content: sanitizeMarkdown(content),
       },
     });
+
+    // Fire-and-forget: push inmediato a los miembros del grupo.
+    void this.pushNotifications.notifyNewChannelPost({
+      channelId,
+      postId: post.id,
+      authorId: userId,
+      content: post.content,
+    });
+
+    return post;
   }
 
   async createComment(

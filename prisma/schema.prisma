@@ -492,6 +492,7 @@ model CommunityLastSeen {
   channelSlug String   @map("channel_slug")
   lastSeenAt  DateTime @map("last_seen_at")
   lastNotifiedAt DateTime? @map("last_notified_at")
+  lastPushNotifiedAt DateTime? @map("last_push_notified_at")
 
   @@id([userId, channelSlug])
   @@map("community_last_seen")

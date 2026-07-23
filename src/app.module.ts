@@ -8,6 +8,7 @@ import * as Joi from 'joi';
 import { createWinstonConfig } from './common/logger/winston.config';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { PrismaModule } from './prisma/prisma.module';
+import { HttpClientModule } from './common/http/http-client.module';
 import { AuthModule } from './auth/auth.module';
 import { ProfessionalsModule } from './professionals/professionals.module';
 import { SearchModule } from './search/search.module';
@@ -78,6 +79,8 @@ import { AppController } from './app.controller';
           }),
         SUPPORT_EMAIL: Joi.string().optional(),
         TURNSTILE_SECRET_KEY: Joi.string().optional(),
+        ONESIGNAL_APP_ID: Joi.string().optional(),
+        ONESIGNAL_REST_API_KEY: Joi.string().optional(),
       }),
     }),
     ThrottlerModule.forRoot([
@@ -97,6 +100,7 @@ import { AppController } from './app.controller';
       },
     }),
     PrismaModule,
+    HttpClientModule,
     AuthModule,
     ProfessionalsModule,
     SearchModule,
