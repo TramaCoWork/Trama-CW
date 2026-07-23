@@ -209,7 +209,7 @@ export class CommunityController {
 
   @Get('posts/:id/comments')
   @ApiOperation({
-    summary: 'Listar comentarios de un post (paginado, mas antiguos primero)',
+    summary: 'Listar comentarios de un post (paginado, mas nuevos primero)',
   })
   @ApiParam({ name: 'id', description: 'ID del post' })
   @ApiQuery({

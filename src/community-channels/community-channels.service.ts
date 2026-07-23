@@ -172,7 +172,7 @@ export class CommunityChannelsService {
           postId,
           deletedAt: null,
         },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),

@@ -734,7 +734,7 @@ export class CommunityService {
     const [comments, total] = await Promise.all([
       this.prisma.communityComment.findMany({
         where,
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
         include: {
