@@ -309,6 +309,36 @@ export class CommunityChannelsService {
   }
 
   /**
+   * Edita el contenido de un post de canal. Solo el creador o un admin.
+   */
+  async updatePostContent(
+    channelId: string,
+    postId: string,
+    userId: string,
+    roles: UserRolePayload[],
+    content: string,
+  ) {
+    const post = await this.prisma.communityChannelPost.findFirst({
+      where: { id: postId, channelId, deletedAt: null },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Post no encontrado');
+    }
+
+    if (post.userId !== userId && !this.isAdmin(roles)) {
+      throw new ForbiddenException(
+        'Solo el creador del post o un admin pueden editarlo',
+      );
+    }
+
+    return this.prisma.communityChannelPost.update({
+      where: { id: postId },
+      data: { content: sanitizeMarkdown(content) },
+    });
+  }
+
+  /**
    * Borrado logico de un post de canal. Solo el creador o un admin.
    */
   async deletePost(
@@ -333,6 +363,42 @@ export class CommunityChannelsService {
 
     return this.prisma.communityChannelPost.update({
       where: { id: postId },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  /**
+   * Borrado logico de un comentario de canal. Solo el creador o un admin.
+   * Misma regla de negocio que community.
+   */
+  async deleteComment(
+    channelId: string,
+    postId: string,
+    commentId: string,
+    userId: string,
+    roles: UserRolePayload[],
+  ) {
+    const comment = await this.prisma.communityChannelComment.findFirst({
+      where: {
+        id: commentId,
+        postId,
+        deletedAt: null,
+        post: { channelId },
+      },
+    });
+
+    if (!comment) {
+      throw new NotFoundException('Comentario no encontrado');
+    }
+
+    if (comment.userId !== userId && !this.isAdmin(roles)) {
+      throw new ForbiddenException(
+        'Solo el creador del comentario o un admin pueden eliminarlo',
+      );
+    }
+
+    return this.prisma.communityChannelComment.update({
+      where: { id: commentId },
       data: { deletedAt: new Date() },
     });
   }

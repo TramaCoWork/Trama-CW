@@ -29,6 +29,7 @@ import { ChannelMemberGuard } from './guards/channel-member.guard';
 import { CreateCommunityChannelCommentDto } from './dto/create-community-channel-comment.dto';
 import { CreateCommunityChannelPostDto } from './dto/create-community-channel-post.dto';
 import { UpdatePostStatusDto } from '../community/dto/update-post-status.dto';
+import { UpdatePostContentDto } from '../community/dto/update-post-content.dto';
 
 @ApiTags('Community Channels')
 @ApiBearerAuth()
@@ -200,6 +201,35 @@ export class CommunityChannelsController {
     );
   }
 
+  @Patch(':id/posts/:postId')
+  @UseGuards(JwtAuthGuard, ChannelMemberGuard)
+  @ApiOperation({
+    summary: 'Editar el contenido de un post de canal (solo owner o admin)',
+  })
+  @ApiParam({ name: 'id', description: 'ID del canal' })
+  @ApiParam({ name: 'postId', description: 'ID del post' })
+  @ApiResponse({ status: 200, description: 'Contenido del post actualizado' })
+  @ApiResponse({
+    status: 403,
+    description: 'Solo el creador del post o un admin pueden editarlo',
+  })
+  @ApiResponse({ status: 404, description: 'Post no encontrado en el canal' })
+  updatePostContent(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('postId', ParseUUIDPipe) postId: string,
+    @Body(new ValidationPipe({ whitelist: true, transform: true }))
+    dto: UpdatePostContentDto,
+  ) {
+    return this.communityChannelsService.updatePostContent(
+      id,
+      postId,
+      user.userId,
+      user.roles,
+      dto.content,
+    );
+  }
+
   @Patch(':id/posts/:postId/status')
   @UseGuards(JwtAuthGuard, ChannelMemberGuard)
   @ApiOperation({
@@ -250,6 +280,35 @@ export class CommunityChannelsController {
     return this.communityChannelsService.deletePost(
       id,
       postId,
+      user.userId,
+      user.roles,
+    );
+  }
+
+  @Delete(':id/posts/:postId/comments/:commentId')
+  @UseGuards(JwtAuthGuard, ChannelMemberGuard)
+  @ApiOperation({
+    summary: 'Borrado logico de un comentario de canal (solo owner o admin)',
+  })
+  @ApiParam({ name: 'id', description: 'ID del canal' })
+  @ApiParam({ name: 'postId', description: 'ID del post' })
+  @ApiParam({ name: 'commentId', description: 'ID del comentario' })
+  @ApiResponse({ status: 200, description: 'Comentario eliminado logicamente' })
+  @ApiResponse({
+    status: 403,
+    description: 'Solo el creador del comentario o un admin pueden eliminarlo',
+  })
+  @ApiResponse({ status: 404, description: 'Comentario no encontrado' })
+  deleteComment(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('postId', ParseUUIDPipe) postId: string,
+    @Param('commentId', ParseUUIDPipe) commentId: string,
+  ) {
+    return this.communityChannelsService.deleteComment(
+      id,
+      postId,
+      commentId,
       user.userId,
       user.roles,
     );

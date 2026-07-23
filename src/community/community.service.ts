@@ -751,6 +751,35 @@ export class CommunityService {
   }
 
   /**
+   * Edita el contenido de un post. Solo el creador o un admin.
+   */
+  async updatePostContent(
+    userId: string,
+    roles: UserRolePayload[],
+    postId: string,
+    content: string,
+  ) {
+    const post = await this.prisma.communityPost.findUnique({
+      where: { id: postId },
+    });
+
+    if (!post || post.deletedAt) {
+      throw new NotFoundException('Post no encontrado');
+    }
+
+    if (post.userId !== userId && !this.isAdmin(roles)) {
+      throw new ForbiddenException(
+        'Solo el creador del post o un admin pueden editarlo',
+      );
+    }
+
+    return this.prisma.communityPost.update({
+      where: { id: postId },
+      data: { content: sanitizeMarkdown(content) },
+    });
+  }
+
+  /**
    * Update post status (published/paused). Only the post owner can do this.
    */
   async updatePostStatus(userId: string, postId: string, status: PostStatus) {

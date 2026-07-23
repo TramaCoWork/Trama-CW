@@ -23,6 +23,7 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdatePostStatusDto } from './dto/update-post-status.dto';
 import { FeedQueryDto } from './dto/feed-query.dto';
+import { UpdatePostContentDto } from './dto/update-post-content.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserType } from '../auth/decorators/current-user.decorator';
 import { PaginationDto } from '../common/dto/pagination.dto';
@@ -249,6 +250,30 @@ export class CommunityController {
   @ApiResponse({ status: 403, description: 'No tienes acceso a este canal' })
   createPost(@CurrentUser() user: CurrentUserType, @Body() dto: CreatePostDto) {
     return this.communityService.createPost(user.userId, user.roles, dto);
+  }
+
+  @Patch('posts/:id')
+  @ApiOperation({
+    summary: 'Editar el contenido de un post (solo owner o admin)',
+  })
+  @ApiParam({ name: 'id', description: 'ID del post' })
+  @ApiResponse({ status: 200, description: 'Contenido del post actualizado' })
+  @ApiResponse({
+    status: 403,
+    description: 'Solo el creador del post o un admin pueden editarlo',
+  })
+  @ApiResponse({ status: 404, description: 'Post no encontrado' })
+  updatePostContent(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id') id: string,
+    @Body() dto: UpdatePostContentDto,
+  ) {
+    return this.communityService.updatePostContent(
+      user.userId,
+      user.roles,
+      id,
+      dto.content,
+    );
   }
 
   @Patch('posts/:id/status')
