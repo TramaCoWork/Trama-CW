@@ -6,6 +6,7 @@ import {
 import { PostStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { sanitizeMarkdown } from '../community/utils/sanitize-markdown';
+import { buildPhotoUrl } from '../common/utils/author';
 
 type UserRolePayload = { name: string; type: string };
 
@@ -89,7 +90,9 @@ export class CommunityChannelsService {
               email: true,
               profile: {
                 select: {
+                  id: true,
                   name: true,
+                  photo: true,
                 },
               },
             },
@@ -101,6 +104,7 @@ export class CommunityChannelsService {
         {
           email: user.email,
           nombre: user.profile?.name ?? user.email,
+          photoUrl: buildPhotoUrl(user.profile),
         },
       ]),
     );
@@ -113,6 +117,7 @@ export class CommunityChannelsService {
         ...post,
         email,
         nombre: user?.nombre ?? email,
+        photoUrl: user?.photoUrl ?? null,
       };
     });
 
@@ -190,7 +195,9 @@ export class CommunityChannelsService {
               email: true,
               profile: {
                 select: {
+                  id: true,
                   name: true,
+                  photo: true,
                 },
               },
             },
@@ -202,6 +209,7 @@ export class CommunityChannelsService {
         {
           email: user.email,
           nombre: user.profile?.name ?? user.email,
+          photoUrl: buildPhotoUrl(user.profile),
         },
       ]),
     );
@@ -214,6 +222,7 @@ export class CommunityChannelsService {
         ...comment,
         email,
         nombre: user?.nombre ?? email,
+        photoUrl: user?.photoUrl ?? null,
       };
     });
 

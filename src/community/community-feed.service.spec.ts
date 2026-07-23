@@ -76,6 +76,7 @@ describe('CommunityService.getFeed', () => {
       userId: 'author-2',
       name: 'Autor Dos',
       email: 'b@x.com',
+      photoUrl: null,
     });
     expect(res.data[1].type).toBe('community');
     expect(res.data[1].channelName).toBe('General');

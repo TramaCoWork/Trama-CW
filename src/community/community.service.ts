@@ -10,6 +10,7 @@ import { CreateCommentDto } from './dto/create-comment.dto';
 import { PostStatus } from '@prisma/client';
 import { sanitizeMarkdown } from './utils/sanitize-markdown';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
+import { buildPhotoUrl, mapAuthorUser } from '../common/utils/author';
 
 const GENERAL_CHANNEL = 'general';
 
@@ -232,7 +233,7 @@ export class CommunityService {
             select: {
               id: true,
               email: true,
-              profile: { select: { name: true } },
+              profile: { select: { id: true, name: true, photo: true } },
             },
           },
           _count: { select: { comments: { where: { deletedAt: null } } } },
@@ -241,8 +242,9 @@ export class CommunityService {
       this.prisma.communityPost.count({ where }),
     ]);
 
-    const data = posts.map(({ _count, ...post }) => ({
+    const data = posts.map(({ _count, user, ...post }) => ({
       ...post,
+      user: mapAuthorUser(user),
       commentCount: _count.comments,
     }));
 
@@ -263,7 +265,7 @@ export class CommunityService {
           select: {
             id: true,
             email: true,
-            profile: { select: { name: true } },
+            profile: { select: { id: true, name: true, photo: true } },
           },
         },
         _count: { select: { comments: { where: { deletedAt: null } } } },
@@ -276,10 +278,11 @@ export class CommunityService {
 
     await this.checkChannelAccess(userId, roles, post.channelSlug);
 
-    const { _count, ...postData } = post;
+    const { _count, user, ...postData } = post;
 
     return {
       ...postData,
+      user: mapAuthorUser(user),
       commentCount: _count.comments,
     };
   }
@@ -309,7 +312,7 @@ export class CommunityService {
               select: {
                 id: true,
                 email: true,
-                profile: { select: { name: true } },
+                profile: { select: { id: true, name: true, photo: true } },
               },
             },
             _count: { select: { comments: { where: { deletedAt: null } } } },
@@ -350,9 +353,10 @@ export class CommunityService {
       { [GENERAL_CHANNEL]: 'General' },
     );
 
-    const communityData = communityPosts.map(({ _count, ...post }) => ({
+    const communityData = communityPosts.map(({ _count, user, ...post }) => ({
       type: 'community' as const,
       ...post,
+      user: mapAuthorUser(user),
       channelName: slugNameMap[post.channelSlug] ?? post.channelSlug,
       commentCount: _count.comments,
     }));
@@ -485,7 +489,7 @@ export class CommunityService {
                 select: {
                   id: true,
                   email: true,
-                  profile: { select: { name: true } },
+                  profile: { select: { id: true, name: true, photo: true } },
                 },
               },
               _count: { select: { comments: { where: { deletedAt: null } } } },
@@ -519,7 +523,7 @@ export class CommunityService {
             select: {
               id: true,
               email: true,
-              profile: { select: { name: true } },
+              profile: { select: { id: true, name: true, photo: true } },
             },
           });
     const channelUserMap = new Map(
@@ -541,6 +545,7 @@ export class CommunityService {
         userId: post.userId,
         name: post.user?.profile?.name ?? post.user?.email ?? '',
         email: post.user?.email ?? '',
+        photoUrl: buildPhotoUrl(post.user?.profile),
       },
       commentCount: post._count.comments,
     }));
@@ -563,6 +568,7 @@ export class CommunityService {
           userId: post.userId,
           name: user?.profile?.name ?? email,
           email,
+          photoUrl: buildPhotoUrl(user?.profile),
         },
         commentCount: post._count.comments,
       };
@@ -725,7 +731,7 @@ export class CommunityService {
     await this.checkChannelAccess(userId, roles, post.channelSlug);
 
     const where = { postId, deletedAt: null };
-    const [data, total] = await Promise.all([
+    const [comments, total] = await Promise.all([
       this.prisma.communityComment.findMany({
         where,
         orderBy: { createdAt: 'asc' },
@@ -736,13 +742,18 @@ export class CommunityService {
             select: {
               id: true,
               email: true,
-              profile: { select: { name: true } },
+              profile: { select: { id: true, name: true, photo: true } },
             },
           },
         },
       }),
       this.prisma.communityComment.count({ where }),
     ]);
+
+    const data = comments.map(({ user, ...comment }) => ({
+      ...comment,
+      user: mapAuthorUser(user),
+    }));
 
     return {
       data,

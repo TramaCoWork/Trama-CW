@@ -9,11 +9,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { sanitizeMarkdown } from '../community/utils/sanitize-markdown';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
+import { buildPhotoUrl } from '../common/utils/author';
 
 type ConversationSummary = {
   otherUserId: string;
   otherUserName: string | null;
   otherUserEmail: string;
+  otherUserPhotoUrl: string | null;
   lastMessage: PrivateMessage;
   unreadCount: number;
 };
@@ -83,7 +85,9 @@ export class MessagesService {
             email: true,
             profile: {
               select: {
+                id: true,
                 name: true,
+                photo: true,
               },
             },
           },
@@ -102,6 +106,7 @@ export class MessagesService {
           otherUserId,
           otherUserName: otherUser?.profile?.name ?? null,
           otherUserEmail: otherUser?.email ?? '',
+          otherUserPhotoUrl: buildPhotoUrl(otherUser?.profile),
           lastMessage: message,
           unreadCount,
         };
