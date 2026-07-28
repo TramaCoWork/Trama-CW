@@ -71,9 +71,21 @@ export class SearchController {
     type: Number,
     description: 'ID de la provincia',
   })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Numero de pagina (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Resultados por pagina (default: 20, max: 100)',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Lista de profesionales que coinciden con los filtros',
+    description: 'Resultado paginado: { data, meta: { page, limit, total, totalPages } }',
   })
   search(@Query() query: SearchQuery) {
     return this.searchService.search(query);

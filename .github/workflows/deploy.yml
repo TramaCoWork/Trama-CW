@@ -118,4 +118,4 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "sleep 10 && curl -sf http://localhost:${{ vars.PORT || '3000' }}/ && echo ' Server is up!' || (echo 'Health check failed' && exit 1)"
+            "for i in \$(seq 1 20); do curl -sf http://localhost:${{ vars.PORT || '3000' }}/ >/dev/null && echo 'Server is up!' && exit 0; echo \"waiting boot (\$i)...\"; sleep 3; done; echo 'Health check failed'; exit 1"

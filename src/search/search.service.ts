@@ -18,13 +18,24 @@ export interface SearchQuery {
   profession_category?: string;
   countryId?: string;
   provinceId?: string;
+  page?: string;
+  limit?: string;
+}
+
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 100;
+
+export interface SearchResult {
+  data: ProfessionalProfile[];
+  meta: { page: number; limit: number; total: number; totalPages: number };
 }
 
 @Injectable()
 export class SearchService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async search(query: SearchQuery): Promise<ProfessionalProfile[]> {
+  async search(query: SearchQuery): Promise<SearchResult> {
     const where: Prisma.ProfessionalProfileWhereInput = {
       deletedAt: null,
       isActive: true,
@@ -131,14 +142,34 @@ export class SearchService {
       ];
     }
 
-    return this.prisma.professionalProfile.findMany({
-      where,
-      include: {
-        professionCategories: true,
-        rubro: true,
-        country: true,
-        province: true,
-      },
-    });
+    const page = Math.max(
+      Number.parseInt(query.page ?? '', 10) || DEFAULT_PAGE,
+      1,
+    );
+    const limit = Math.min(
+      Math.max(Number.parseInt(query.limit ?? '', 10) || DEFAULT_LIMIT, 1),
+      MAX_LIMIT,
+    );
+
+    const [data, total] = await Promise.all([
+      this.prisma.professionalProfile.findMany({
+        where,
+        include: {
+          professionCategories: true,
+          rubro: true,
+          country: true,
+          province: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.professionalProfile.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
   }
 }
