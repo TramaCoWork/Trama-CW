@@ -25,12 +25,15 @@ describe('CommunityChannelsService (gestion de posts)', () => {
   const adminRoles = [{ name: 'admin', type: 'admin' }];
 
   const pushNotifications = { notifyNewChannelPost: jest.fn() };
+  const entitlements = { isPaid: jest.fn().mockResolvedValue(true) };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    entitlements.isPaid.mockResolvedValue(true);
     service = new CommunityChannelsService(
       prisma as any,
       pushNotifications as any,
+      entitlements as any,
     );
   });
 

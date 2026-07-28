@@ -30,6 +30,7 @@ export class SearchService {
       isActive: true,
       hideProfile: false,
       profileStatus: 'active',
+      validatedAt: { not: null },
       user: { emailVerified: true },
       OR: [
         { trialEndDate: { gte: new Date() } },

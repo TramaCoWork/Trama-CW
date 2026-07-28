@@ -5,11 +5,15 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EntitlementsService } from '../../entitlements/entitlements.service';
 import type { CurrentUserType } from '../../auth/decorators/current-user.decorator';
 
 @Injectable()
 export class ChannelMemberGuard implements CanActivate {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly entitlements: EntitlementsService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<{
@@ -30,6 +34,14 @@ export class ChannelMemberGuard implements CanActivate {
 
     if (!channelId || !userId) {
       throw new ForbiddenException('No autorizado para este canal');
+    }
+
+    // Los grupos (channels) son exclusivos del plan pago.
+    const isPaid = await this.entitlements.isPaid(userId);
+    if (!isPaid) {
+      throw new ForbiddenException(
+        'Los grupos son exclusivos del plan pago. Con el plan gratuito solo tenés acceso al canal general.',
+      );
     }
 
     const membership = await this.prisma.communityChannelMember.findUnique({

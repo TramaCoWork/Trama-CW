@@ -44,9 +44,17 @@ describe('CommunityService.getFeed', () => {
     ...over,
   });
 
+  const entitlements = { isPaid: jest.fn().mockResolvedValue(true) };
+  const configService = { get: jest.fn((_key: string, def: unknown) => def) };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new CommunityService(prisma as any);
+    entitlements.isPaid.mockResolvedValue(true);
+    service = new CommunityService(
+      prisma as any,
+      entitlements as any,
+      configService as any,
+    );
 
     // Default: usuario con rubro "abogacia" y membresia aceptada en "group-1".
     prisma.professionalProfile.findUnique.mockResolvedValue({

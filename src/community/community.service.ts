@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
@@ -11,14 +12,35 @@ import { PostStatus } from '@prisma/client';
 import { sanitizeMarkdown } from './utils/sanitize-markdown';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
 import { buildPhotoUrl, mapAuthorUser } from '../common/utils/author';
+import { EntitlementsService } from '../entitlements/entitlements.service';
 
 const GENERAL_CHANNEL = 'general';
+const DEFAULT_FREE_VISIBLE_POSTS = 5;
+const DEFAULT_FREE_POSTS_PER_MONTH = 1;
 
 type UserRolePayload = { name: string; type: string };
 
 @Injectable()
 export class CommunityService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly entitlements: EntitlementsService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  private get freeVisiblePosts(): number {
+    return this.configService.get<number>(
+      'FREE_TIER_VISIBLE_POSTS',
+      DEFAULT_FREE_VISIBLE_POSTS,
+    );
+  }
+
+  private get freePostsPerMonth(): number {
+    return this.configService.get<number>(
+      'FREE_TIER_POSTS_PER_MONTH',
+      DEFAULT_FREE_POSTS_PER_MONTH,
+    );
+  }
 
   async markCommunitySeen(channelSlug: string, userId: string): Promise<void> {
     await this.prisma.communityLastSeen.upsert({
@@ -53,32 +75,37 @@ export class CommunityService {
    * - channel channels: accepted active memberships from CommunityChannel
    */
   async getChannels(userId: string) {
+    const isPaid = await this.entitlements.isPaid(userId);
+
     const profile = await this.prisma.professionalProfile.findUnique({
       where: withoutDeleted({ userId }),
       include: { rubro: true },
     });
 
-    const channelMembers = await this.prisma.communityChannelMember.findMany({
-      where: {
-        userId,
-        accepted: true,
-        channel: { isActive: true },
-      },
-      include: {
-        channel: {
-          select: {
-            id: true,
-            name: true,
+    // El plan gratuito solo accede al canal general: sin rubro y sin grupos.
+    const channelMembers = isPaid
+      ? await this.prisma.communityChannelMember.findMany({
+          where: {
+            userId,
+            accepted: true,
+            channel: { isActive: true },
           },
-        },
-      },
-    });
+          include: {
+            channel: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        })
+      : [];
 
     const communityChannels = [
       { type: 'community' as const, slug: GENERAL_CHANNEL, name: 'General' },
     ];
 
-    if (profile?.rubro) {
+    if (isPaid && profile?.rubro) {
       communityChannels.push({
         type: 'community' as const,
         slug: profile.rubro.slug,
@@ -179,6 +206,14 @@ export class CommunityService {
       return;
     }
 
+    // Los canales que no son "general" (rubro) son exclusivos del plan pago.
+    const isPaid = await this.entitlements.isPaid(userId);
+    if (!isPaid) {
+      throw new ForbiddenException(
+        'El canal de tu rubro es exclusivo del plan pago. Con el plan gratuito solo tenés acceso al canal general.',
+      );
+    }
+
     const rubroSlug = await this.getUserRubroSlug(userId);
     if (rubroSlug !== channelSlug) {
       throw new ForbiddenException(
@@ -209,6 +244,11 @@ export class CommunityService {
   ) {
     await this.checkChannelAccess(userId, roles, channelSlug);
 
+    // Plan gratuito: solo ve las ultimas N publicaciones (sin paginar mas alla).
+    const isPaid = await this.entitlements.isPaid(userId);
+    const effectivePage = isPaid ? page : 1;
+    const effectiveLimit = isPaid ? limit : this.freeVisiblePosts;
+
     const where =
       this.isProfessional(roles) && channelSlug !== GENERAL_CHANNEL
         ? {
@@ -226,8 +266,8 @@ export class CommunityService {
       this.prisma.communityPost.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
+        skip: (effectivePage - 1) * effectiveLimit,
+        take: effectiveLimit,
         include: {
           user: {
             select: {
@@ -248,9 +288,17 @@ export class CommunityService {
       commentCount: _count.comments,
     }));
 
+    // Para el free el total visible queda topeado a lo que puede ver.
+    const effectiveTotal = isPaid ? total : Math.min(total, effectiveLimit);
+
     return {
       data,
-      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      meta: {
+        page: effectivePage,
+        limit: effectiveLimit,
+        total: effectiveTotal,
+        totalPages: Math.ceil(effectiveTotal / effectiveLimit),
+      },
     };
   }
 
@@ -386,6 +434,8 @@ export class CommunityService {
    * Devuelve tambien los mapas slug/id -> nombre legible para pintar el feed.
    */
   private async getAccessibleScopes(userId: string) {
+    const isPaid = await this.entitlements.isPaid(userId);
+
     const profile = await this.prisma.professionalProfile.findUnique({
       where: withoutDeleted({ userId }),
       include: { rubro: true },
@@ -396,19 +446,22 @@ export class CommunityService {
       [GENERAL_CHANNEL, 'General'],
     ]);
 
-    if (profile?.rubro) {
+    // El plan gratuito solo ve el canal general en su feed.
+    if (isPaid && profile?.rubro) {
       communitySlugs.push(profile.rubro.slug);
       communityNameMap.set(profile.rubro.slug, profile.rubro.name);
     }
 
-    const memberships = await this.prisma.communityChannelMember.findMany({
-      where: {
-        userId,
-        accepted: true,
-        channel: { isActive: true },
-      },
-      include: { channel: { select: { id: true, name: true } } },
-    });
+    const memberships = isPaid
+      ? await this.prisma.communityChannelMember.findMany({
+          where: {
+            userId,
+            accepted: true,
+            channel: { isActive: true },
+          },
+          include: { channel: { select: { id: true, name: true } } },
+        })
+      : [];
 
     const groupIds = memberships.map((member) => member.channel.id);
     const groupNameMap = new Map(
@@ -599,6 +652,28 @@ export class CommunityService {
     const channelSlug = dto.channelSlug ?? GENERAL_CHANNEL;
 
     await this.checkChannelAccess(userId, roles, channelSlug);
+
+    // Plan gratuito: cuota de N publicaciones por mes (solo puede postear en general).
+    const isPaid = await this.entitlements.isPaid(userId);
+    if (!isPaid) {
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const postsThisMonth = await this.prisma.communityPost.count({
+        where: {
+          userId,
+          deletedAt: null,
+          createdAt: { gte: startOfMonth },
+        },
+      });
+
+      if (postsThisMonth >= this.freePostsPerMonth) {
+        throw new ForbiddenException(
+          `Con el plan gratuito podés publicar ${this.freePostsPerMonth} vez por mes. Pasate al plan pago para publicar sin límites.`,
+        );
+      }
+    }
 
     return this.prisma.communityPost.create({
       data: {

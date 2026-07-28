@@ -161,6 +161,11 @@ export class AdminService {
               provinceId: dto.provinceId ?? null,
               whatsapp: dto.whatsapp,
               profileStatus: dto.profileStatus ?? ProfileStatus.active,
+              validatedAt:
+                (dto.profileStatus ?? ProfileStatus.active) ===
+                ProfileStatus.active
+                  ? new Date()
+                  : null,
               isActive: dto.isActive ?? dto.is_active ?? false,
               hideProfile: dto.hideProfile ?? false,
               trialEndDate: dto.trialEndDate
@@ -563,6 +568,7 @@ export class AdminService {
       data: {
         isActive: true,
         profileStatus: 'active',
+        validatedAt: new Date(),
       },
     });
   }
@@ -596,6 +602,7 @@ export class AdminService {
       data: {
         profileStatus: isApproved ? 'active' : 'rejected',
         isActive: isApproved,
+        validatedAt: isApproved ? new Date() : null,
         ...(isApproved &&
           trialDays > 0 && {
             trialEndDate: new Date(Date.now() + trialDays * 86400000),
@@ -697,7 +704,15 @@ export class AdminService {
       data.country = { connect: { id: dto.countryId } };
     if (dto.provinceId !== undefined)
       data.province = { connect: { id: dto.provinceId } };
-    if (dto.profileStatus !== undefined) data.profileStatus = dto.profileStatus;
+    if (dto.profileStatus !== undefined) {
+      data.profileStatus = dto.profileStatus;
+      // La validacion la marca el admin: active => validado; rechazado => sin validar.
+      if (dto.profileStatus === ProfileStatus.active) {
+        data.validatedAt = new Date();
+      } else if (dto.profileStatus === ProfileStatus.rejected) {
+        data.validatedAt = null;
+      }
+    }
     if (dto.trialEndDate !== undefined)
       data.trialEndDate = new Date(dto.trialEndDate);
     if (dto.professionCategoryIds !== undefined) {

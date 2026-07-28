@@ -9,6 +9,7 @@ import { createWinstonConfig } from './common/logger/winston.config';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { PrismaModule } from './prisma/prisma.module';
 import { HttpClientModule } from './common/http/http-client.module';
+import { EntitlementsModule } from './entitlements/entitlements.module';
 import { AuthModule } from './auth/auth.module';
 import { ProfessionalsModule } from './professionals/professionals.module';
 import { SearchModule } from './search/search.module';
@@ -101,6 +102,7 @@ import { AppController } from './app.controller';
     }),
     PrismaModule,
     HttpClientModule,
+    EntitlementsModule,
     AuthModule,
     ProfessionalsModule,
     SearchModule,

@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { sanitizeMarkdown } from '../community/utils/sanitize-markdown';
 import { buildPhotoUrl } from '../common/utils/author';
 import { PushNotificationsService } from '../onesignal/push-notifications.service';
+import { EntitlementsService } from '../entitlements/entitlements.service';
 
 type UserRolePayload = { name: string; type: string };
 
@@ -16,6 +17,7 @@ export class CommunityChannelsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly pushNotifications: PushNotificationsService,
+    private readonly entitlements: EntitlementsService,
   ) {}
 
   private isAdmin(roles: UserRolePayload[]): boolean {
@@ -50,6 +52,12 @@ export class CommunityChannelsService {
   }
 
   async getChannels(userId: string) {
+    // Los grupos son exclusivos del plan pago: el free no ve ninguno.
+    const isPaid = await this.entitlements.isPaid(userId);
+    if (!isPaid) {
+      return [];
+    }
+
     return this.prisma.communityChannel.findMany({
       where: {
         isActive: true,

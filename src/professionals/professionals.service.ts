@@ -33,6 +33,7 @@ export class ProfessionalsService {
       WHERE pp.is_active = true
         AND pp.hide_profile = false
         AND pp.profile_status = 'active'
+        AND pp.validated_at IS NOT NULL
         AND u.email_verified = true
         AND (
           (pp.trial_end_date IS NOT NULL AND pp.trial_end_date >= NOW())
@@ -62,6 +63,7 @@ export class ProfessionalsService {
       isActive: true,
       hideProfile: false,
       profileStatus: 'active' as const,
+      validatedAt: { not: null },
       user: { emailVerified: true },
       OR: [
         { trialEndDate: { gte: new Date() } },
@@ -117,6 +119,7 @@ export class ProfessionalsService {
         isActive: true,
         hideProfile: false,
         profileStatus: 'active',
+        validatedAt: { not: null },
         user: { emailVerified: true },
         OR: [
           { trialEndDate: { gte: new Date() } },
@@ -160,7 +163,8 @@ export class ProfessionalsService {
       profile.deletedAt ||
       !profile.isActive ||
       profile.hideProfile ||
-      profile.profileStatus !== 'active'
+      profile.profileStatus !== 'active' ||
+      !profile.validatedAt
     ) {
       throw new NotFoundException('Perfil no encontrado');
     }

@@ -14,9 +14,16 @@ describe('CommunityService.updatePostContent', () => {
   const ownerRoles = [{ name: 'professional', type: 'professional' }];
   const adminRoles = [{ name: 'admin', type: 'admin' }];
 
+  const entitlements = { isPaid: jest.fn().mockResolvedValue(true) };
+  const configService = { get: jest.fn((_key: string, def: unknown) => def) };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new CommunityService(prisma as any);
+    service = new CommunityService(
+      prisma as any,
+      entitlements as any,
+      configService as any,
+    );
   });
 
   it('el owner edita el contenido (sanitizado)', async () => {
