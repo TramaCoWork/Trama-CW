@@ -4,6 +4,7 @@ import { CommunityService } from './community.service';
 describe('CommunityService — restricciones plan gratuito', () => {
   const prisma = {
     professionalProfile: { findUnique: jest.fn() },
+    company: { findUnique: jest.fn() },
     communityChannelMember: { findMany: jest.fn() },
     communityPost: { findMany: jest.fn(), count: jest.fn() },
     communityLastSeen: { findMany: jest.fn() },
@@ -48,6 +49,17 @@ describe('CommunityService — restricciones plan gratuito', () => {
       });
       await expect(
         service.checkChannelAccess('u-1', proRoles, 'abogacia'),
+      ).resolves.toBeUndefined();
+    });
+
+    it('empresa paga: accede al canal de SU rubro (resuelto desde Company)', async () => {
+      entitlements.isPaid.mockResolvedValue(true);
+      prisma.professionalProfile.findUnique.mockResolvedValue(null); // no es profesional
+      prisma.company.findUnique.mockResolvedValue({
+        rubro: { slug: 'gastronomia', name: 'Gastronomía' },
+      });
+      await expect(
+        service.checkChannelAccess('empresa-1', proRoles, 'gastronomia'),
       ).resolves.toBeUndefined();
     });
   });

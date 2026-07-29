@@ -77,10 +77,7 @@ export class CommunityService {
   async getChannels(userId: string) {
     const isPaid = await this.entitlements.isPaid(userId);
 
-    const profile = await this.prisma.professionalProfile.findUnique({
-      where: withoutDeleted({ userId }),
-      include: { rubro: true },
-    });
+    const rubro = await this.getUserRubro(userId);
 
     // El plan gratuito solo accede al canal general: sin rubro y sin grupos.
     const channelMembers = isPaid
@@ -105,11 +102,11 @@ export class CommunityService {
       { type: 'community' as const, slug: GENERAL_CHANNEL, name: 'General' },
     ];
 
-    if (isPaid && profile?.rubro) {
+    if (isPaid && rubro) {
       communityChannels.push({
         type: 'community' as const,
-        slug: profile.rubro.slug,
-        name: profile.rubro.name,
+        slug: rubro.slug,
+        name: rubro.name,
       });
     }
 
@@ -179,12 +176,34 @@ export class CommunityService {
   /**
    * Get the rubro slug for a user (null if no profile/rubro).
    */
-  private async getUserRubroSlug(userId: string): Promise<string | null> {
+  /**
+   * Resuelve el rubro (nivel 1) del usuario, sea profesional o empresa.
+   * El profesional lo tiene en ProfessionalProfile; la empresa en Company.
+   */
+  private async getUserRubro(
+    userId: string,
+  ): Promise<{ slug: string; name: string } | null> {
     const profile = await this.prisma.professionalProfile.findUnique({
       where: withoutDeleted({ userId }),
       include: { rubro: true },
     });
-    return profile?.rubro?.slug ?? null;
+    if (profile?.rubro) {
+      return { slug: profile.rubro.slug, name: profile.rubro.name };
+    }
+
+    const company = await this.prisma.company.findUnique({
+      where: withoutDeleted({ userId }),
+      include: { rubro: true },
+    });
+    if (company?.rubro) {
+      return { slug: company.rubro.slug, name: company.rubro.name };
+    }
+
+    return null;
+  }
+
+  private async getUserRubroSlug(userId: string): Promise<string | null> {
+    return (await this.getUserRubro(userId))?.slug ?? null;
   }
 
   private isAdmin(roles: UserRolePayload[]): boolean {
@@ -436,10 +455,7 @@ export class CommunityService {
   private async getAccessibleScopes(userId: string) {
     const isPaid = await this.entitlements.isPaid(userId);
 
-    const profile = await this.prisma.professionalProfile.findUnique({
-      where: withoutDeleted({ userId }),
-      include: { rubro: true },
-    });
+    const rubro = await this.getUserRubro(userId);
 
     const communitySlugs = [GENERAL_CHANNEL];
     const communityNameMap = new Map<string, string>([
@@ -447,9 +463,9 @@ export class CommunityService {
     ]);
 
     // El plan gratuito solo ve el canal general en su feed.
-    if (isPaid && profile?.rubro) {
-      communitySlugs.push(profile.rubro.slug);
-      communityNameMap.set(profile.rubro.slug, profile.rubro.name);
+    if (isPaid && rubro) {
+      communitySlugs.push(rubro.slug);
+      communityNameMap.set(rubro.slug, rubro.name);
     }
 
     const memberships = isPaid

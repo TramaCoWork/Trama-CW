@@ -13,8 +13,9 @@ import { MailService } from '../mail/mail.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ProfessionalRegisterDto } from './dto/professional-register.dto';
+import { CompanyRegisterDto } from './dto/company-register.dto';
 import { UpdateReferralCodeDto } from './dto/update-referral-code.dto';
-import { ProfileStatus, RoleType } from '@prisma/client';
+import { AccountType, ProfileStatus, RoleType } from '@prisma/client';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
@@ -220,6 +221,62 @@ export class AuthService {
         },
       },
       include: { profile: true },
+    });
+
+    // Fire-and-forget verification email
+    this.sendVerificationEmail(user.id, user.email, dto.name);
+
+    return this.generateToken(user.id, user.email);
+  }
+
+  async companyRegister(dto: CompanyRegisterDto): Promise<TokenResponse> {
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+    if (existing) {
+      throw new ConflictException('Email already in use');
+    }
+
+    const existingCuit = await this.prisma.company.findFirst({
+      where: { cuit: dto.cuit },
+    });
+    if (existingCuit) {
+      throw new ConflictException('El CUIT ya está registrado');
+    }
+
+    const rubro = await this.prisma.professionCategory.findFirst({
+      where: { id: dto.rubroId, level: 1, isActive: true },
+    });
+    if (!rubro) {
+      throw new BadRequestException(
+        'Rubro invalido. Debe ser un rubro de nivel 1',
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const referralByUserId = dto.referralCode
+      ? await this.findUserByReferralCode(dto.referralCode)
+      : null;
+
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email,
+        passwordHash,
+        accountType: AccountType.company,
+        userRoles: {
+          create: [{ role: { connect: { name: 'company' } } }],
+        },
+        ...(referralByUserId && { referralByUserId }),
+        company: {
+          create: {
+            name: dto.name,
+            cuit: dto.cuit,
+            rubroId: dto.rubroId,
+            status: ProfileStatus.pending_review,
+          },
+        },
+      },
+      include: { company: true },
     });
 
     // Fire-and-forget verification email
@@ -521,6 +578,7 @@ export class AuthService {
         id: true,
         email: true,
         emailVerified: true,
+        accountType: true,
         createdAt: true,
         lastLoginAt: true,
         userRoles: {
@@ -543,6 +601,17 @@ export class AuthService {
             rubro: { select: { id: true, name: true, slug: true } },
           },
         },
+        company: {
+          select: {
+            id: true,
+            name: true,
+            cuit: true,
+            status: true,
+            validatedAt: true,
+            rubroId: true,
+            rubro: { select: { id: true, name: true, slug: true } },
+          },
+        },
       },
     });
 
@@ -552,6 +621,7 @@ export class AuthService {
       id: user.id,
       email: user.email,
       emailVerified: user.emailVerified,
+      accountType: user.accountType,
       createdAt: user.createdAt,
       lastLoginAt: user.lastLoginAt,
       roles: user.userRoles.map((ur) => ({
@@ -559,6 +629,7 @@ export class AuthService {
         type: ur.role.type,
       })),
       profile: user.profile ?? null,
+      company: user.company ?? null,
     };
   }
 

@@ -12,6 +12,12 @@ enum RoleType {
   admin
   professional
   other
+  company
+}
+
+enum AccountType {
+  professional
+  company
 }
 
 enum ProfileStatus {
@@ -146,6 +152,7 @@ model User {
   emailVerified    Boolean   @default(false) @map("email_verified")
   resetToken       String?   @map("reset_token")
   resetTokenExpiry DateTime? @map("reset_token_expiry")
+  accountType      AccountType @default(professional) @map("account_type")
   deletedAt        DateTime? @map("deleted_at")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
@@ -154,6 +161,7 @@ model User {
   referralByUserId  String?   @map("referral_by_user_id")
 
   profile           ProfessionalProfile?
+  company           Company?
   payments          Payment[]
   subscriptions     Subscription[]
   posts             CommunityPost[]
@@ -187,6 +195,25 @@ model PushSubscription {
   @@unique([provider, subscriptionId])
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+model Company {
+  id          String        @id @default(uuid())
+  userId      String        @unique @map("user_id")
+  name        String
+  cuit        String        @unique
+  rubroId     Int           @map("rubro_id")
+  status      ProfileStatus @default(pending_review)
+  validatedAt DateTime?     @map("validated_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  deletedAt   DateTime?     @map("deleted_at")
+
+  user  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rubro ProfessionCategory @relation("CompanyRubro", fields: [rubroId], references: [id])
+
+  @@index([rubroId])
+  @@map("companies")
 }
 
 model Role {
@@ -640,6 +667,9 @@ model ProfessionCategory {
 
   // Profesionales que tienen este nodo como rubro (solo nivel 1)
   professionalsAsRubro ProfessionalProfile[] @relation("ProfessionalRubro")
+
+  // Empresas/emprendedores que tienen este nodo como rubro (solo nivel 1)
+  companiesAsRubro Company[] @relation("CompanyRubro")
 
   // Profesionales que seleccionaron esta profesion (solo nivel 3)
   professionals ProfessionalProfile[]

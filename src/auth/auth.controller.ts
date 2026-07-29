@@ -22,6 +22,7 @@ import { AuthService, TokenResponse } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ProfessionalRegisterDto } from './dto/professional-register.dto';
+import { CompanyRegisterDto } from './dto/company-register.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -93,6 +94,23 @@ export class AuthController {
     @Body() dto: ProfessionalRegisterDto,
   ): Promise<TokenResponse> {
     return this.authService.professionalRegister(dto);
+  }
+
+  @Post('company-register')
+  @ApiOperation({
+    summary:
+      'Registrar nueva cuenta empresa/emprendedor (nombre de fantasía + CUIT + rubro)',
+  })
+  @ApiBody({ type: CompanyRegisterDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Empresa registrada. Se envio email de verificacion.',
+  })
+  @ApiResponse({ status: 400, description: 'Rubro o CUIT invalido' })
+  @ApiResponse({ status: 409, description: 'Email o CUIT ya registrado' })
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  companyRegister(@Body() dto: CompanyRegisterDto): Promise<TokenResponse> {
+    return this.authService.companyRegister(dto);
   }
 
   @Get('verify-email')
