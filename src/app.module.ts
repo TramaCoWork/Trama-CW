@@ -82,6 +82,9 @@ import { AppController } from './app.controller';
         TURNSTILE_SECRET_KEY: Joi.string().optional(),
         ONESIGNAL_APP_ID: Joi.string().optional(),
         ONESIGNAL_REST_API_KEY: Joi.string().optional(),
+        SWAGGER_ENABLED: Joi.boolean().default(false),
+        SWAGGER_PATH: Joi.string().default('docs'),
+        PENDING_SUBSCRIPTION_MAX_AGE_DAYS: Joi.number().default(2),
       }),
     }),
     ThrottlerModule.forRoot([

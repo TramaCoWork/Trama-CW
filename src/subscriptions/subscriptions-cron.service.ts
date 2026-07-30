@@ -17,6 +17,37 @@ export class SubscriptionsCronService {
   ) {}
 
   /**
+   * Cancela suscripciones que quedaron en "pending" con link de pago generado
+   * (initPoint) y llevan mas de N dias sin abonarse. Usa updatedAt como proxy
+   * de "cuando se genero/refresco el link" (para no matar renovaciones nuevas).
+   */
+  async cancelStalePending(): Promise<number> {
+    const maxAgeDays = this.config.get<number>(
+      'PENDING_SUBSCRIPTION_MAX_AGE_DAYS',
+      2,
+    );
+    const threshold = new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000);
+
+    const { count } = await this.prisma.subscription.updateMany({
+      where: {
+        status: 'pending',
+        initPoint: { not: null },
+        updatedAt: { lt: threshold },
+      },
+      data: {
+        status: 'cancelled',
+        cancellationReason: `Cancelada automaticamente: link de pago sin abonar por mas de ${maxAgeDays} dias`,
+      },
+    });
+
+    if (count > 0) {
+      this.logger.log(`Cancelled ${count} stale pending subscriptions`);
+    }
+
+    return count;
+  }
+
+  /**
    * Cron de renovación.
    * Para cada strategy registrada, busca suscripciones activas con endDate expirado
    * y delega la renovación al strategy correspondiente.

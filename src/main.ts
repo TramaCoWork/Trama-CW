@@ -15,9 +15,12 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableCors();
 
-  // Swagger — solo en desarrollo
-  const nodeEnv = config.get<string>('NODE_ENV', 'development');
-  if (nodeEnv !== 'production') {
+  // Swagger — habilitado por variable de entorno (SWAGGER_ENABLED), con
+  // prefijo configurable (SWAGGER_PATH). El UI queda en /{SWAGGER_PATH} y el
+  // OpenAPI JSON en /{SWAGGER_PATH}-json (lo genera SwaggerModule).
+  const swaggerEnabled = config.get<boolean>('SWAGGER_ENABLED', false);
+  const swaggerPath = config.get<string>('SWAGGER_PATH', 'docs');
+  if (swaggerEnabled) {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('Trama Cowork API')
       .setDescription('Marketplace de profesionales — API REST')
@@ -26,14 +29,17 @@ async function bootstrap() {
       .build();
 
     const document = SwaggerModule.createDocument(app, swaggerConfig);
-    SwaggerModule.setup('docs', app, document);
+    SwaggerModule.setup(swaggerPath, app, document);
   }
 
   const port = config.get<number>('PORT') ?? 3000;
   await app.listen(port, '0.0.0.0');
   console.log(`App running on http://localhost:${port}`);
-  if (nodeEnv !== 'production') {
-    console.log(`Docs at http://localhost:${port}/docs`);
+  if (swaggerEnabled) {
+    console.log(`Docs (UI) at http://localhost:${port}/${swaggerPath}`);
+    console.log(
+      `OpenAPI JSON at http://localhost:${port}/${swaggerPath}-json`,
+    );
   }
 }
 bootstrap();

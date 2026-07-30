@@ -32,10 +32,23 @@ export class SubscriptionsCronBridge
         () => this.handleRenewals(),
       );
     }
+
+    // Cancelacion de pendientes viejos: aplica en cualquier PAYMENT_MODE.
+    this.registerJob(
+      'cancelStalePendingSubscriptions',
+      cronSchedule.cancelStalePendingSubscriptions ?? '0 2 * * *',
+      () => this.handleCancelStalePending(),
+    );
   }
 
   private async handleRenewals(): Promise<JobResult> {
     const processedCount = await this.subscriptionsCronService.handleRenewals();
+    return { processedCount };
+  }
+
+  private async handleCancelStalePending(): Promise<JobResult> {
+    const processedCount =
+      await this.subscriptionsCronService.cancelStalePending();
     return { processedCount };
   }
 }
