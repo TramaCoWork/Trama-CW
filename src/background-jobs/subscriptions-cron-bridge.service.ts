@@ -47,9 +47,9 @@ export class SubscriptionsCronBridge
   }
 
   private async handleCancelStalePending(): Promise<JobResult> {
-    const processedCount =
+    const { count, userIds } =
       await this.subscriptionsCronService.cancelStalePending();
-    return { processedCount };
+    return { processedCount: count, metadata: { userIds } };
   }
 }
 

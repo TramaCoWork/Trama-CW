@@ -167,6 +167,13 @@ export class SubscriptionsService {
       );
     }
 
+    // El profesional pasa de "onboarding" (free) a "waiting_payment" recién al
+    // elegir un plan / generar el link de pago. No toca otros estados.
+    await this.prisma.professionalProfile.updateMany({
+      where: withoutDeleted({ userId, profileStatus: 'onboarding' }),
+      data: { profileStatus: 'waiting_payment' },
+    });
+
     return { initPoint, subscriptionId: subscription.id };
   }
 

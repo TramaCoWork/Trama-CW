@@ -21,30 +21,38 @@ export class SubscriptionsCronService {
    * (initPoint) y llevan mas de N dias sin abonarse. Usa updatedAt como proxy
    * de "cuando se genero/refresco el link" (para no matar renovaciones nuevas).
    */
-  async cancelStalePending(): Promise<number> {
+  async cancelStalePending(): Promise<{ count: number; userIds: string[] }> {
     const maxAgeDays = this.config.get<number>(
       'PENDING_SUBSCRIPTION_MAX_AGE_DAYS',
       2,
     );
     const threshold = new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000);
 
-    const { count } = await this.prisma.subscription.updateMany({
+    const stale = await this.prisma.subscription.findMany({
       where: {
         status: 'pending',
         initPoint: { not: null },
         updatedAt: { lt: threshold },
       },
+      select: { id: true, userId: true },
+    });
+
+    if (stale.length === 0) {
+      return { count: 0, userIds: [] };
+    }
+
+    await this.prisma.subscription.updateMany({
+      where: { id: { in: stale.map((sub) => sub.id) } },
       data: {
         status: 'cancelled',
         cancellationReason: `Cancelada automaticamente: link de pago sin abonar por mas de ${maxAgeDays} dias`,
       },
     });
 
-    if (count > 0) {
-      this.logger.log(`Cancelled ${count} stale pending subscriptions`);
-    }
+    const userIds = [...new Set(stale.map((sub) => sub.userId))];
+    this.logger.log(`Cancelled ${stale.length} stale pending subscriptions`);
 
-    return count;
+    return { count: stale.length, userIds };
   }
 
   /**

@@ -2,7 +2,7 @@ import { SubscriptionsCronService } from './subscriptions-cron.service';
 
 describe('SubscriptionsCronService.cancelStalePending', () => {
   const prisma = {
-    subscription: { updateMany: jest.fn() },
+    subscription: { findMany: jest.fn(), updateMany: jest.fn() },
   };
   const config = {
     get: jest.fn((_k: string, d: unknown) => d),
@@ -18,19 +18,30 @@ describe('SubscriptionsCronService.cancelStalePending', () => {
       {} as any,
       {} as any,
     );
+    prisma.subscription.findMany.mockResolvedValue([
+      { id: 's-1', userId: 'u-1' },
+      { id: 's-2', userId: 'u-2' },
+      { id: 's-3', userId: 'u-1' }, // mismo user, para probar dedupe
+    ]);
     prisma.subscription.updateMany.mockResolvedValue({ count: 3 });
   });
 
   it('cancela pendientes con link y updatedAt anterior al umbral (default 2 dias)', async () => {
     const res = await service.cancelStalePending();
 
-    const call = prisma.subscription.updateMany.mock.calls[0][0];
-    expect(call.where.status).toBe('pending');
-    expect(call.where.initPoint).toEqual({ not: null });
-    expect(call.where.updatedAt.lt).toBeInstanceOf(Date);
-    expect(call.data.status).toBe('cancelled');
-    expect(call.data.cancellationReason).toContain('2 dias');
-    expect(res).toBe(3);
+    const findCall = prisma.subscription.findMany.mock.calls[0][0];
+    expect(findCall.where.status).toBe('pending');
+    expect(findCall.where.initPoint).toEqual({ not: null });
+    expect(findCall.where.updatedAt.lt).toBeInstanceOf(Date);
+
+    const updateCall = prisma.subscription.updateMany.mock.calls[0][0];
+    expect(updateCall.where.id).toEqual({ in: ['s-1', 's-2', 's-3'] });
+    expect(updateCall.data.status).toBe('cancelled');
+    expect(updateCall.data.cancellationReason).toContain('2 dias');
+
+    expect(res.count).toBe(3);
+    // userIds deduplicados
+    expect(res.userIds).toEqual(['u-1', 'u-2']);
   });
 
   it('respeta PENDING_SUBSCRIPTION_MAX_AGE_DAYS configurable', async () => {
@@ -40,15 +51,18 @@ describe('SubscriptionsCronService.cancelStalePending', () => {
     await service.cancelStalePending();
     const after = Date.now() - 5 * 24 * 60 * 60 * 1000;
 
-    const threshold: Date = prisma.subscription.updateMany.mock.calls[0][0].where
-      .updatedAt.lt;
-    // el umbral es ~ ahora - 5 dias
+    const threshold: Date =
+      prisma.subscription.findMany.mock.calls[0][0].where.updatedAt.lt;
     expect(threshold.getTime()).toBeGreaterThanOrEqual(before - 1000);
     expect(threshold.getTime()).toBeLessThanOrEqual(after + 1000);
   });
 
-  it('devuelve 0 si no hay pendientes viejos', async () => {
-    prisma.subscription.updateMany.mockResolvedValue({ count: 0 });
-    await expect(service.cancelStalePending()).resolves.toBe(0);
+  it('no hace update ni devuelve userIds si no hay pendientes viejos', async () => {
+    prisma.subscription.findMany.mockResolvedValue([]);
+
+    const res = await service.cancelStalePending();
+
+    expect(prisma.subscription.updateMany).not.toHaveBeenCalled();
+    expect(res).toEqual({ count: 0, userIds: [] });
   });
 });

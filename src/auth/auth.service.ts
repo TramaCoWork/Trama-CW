@@ -324,6 +324,10 @@ export class AuthService {
       where: withoutDeleted({ userId: payload.sub }),
     });
 
+    // Al verificar el email el perfil QUEDA en "onboarding" = plan free por
+    // defecto (acceso a comunidad general, no público). El paso a
+    // "waiting_payment" ocurre recién cuando elige un plan / inicia el pago.
+    // Si hay trial configurado, se otorga aquí sin cambiar el estado.
     if (profile && profile.profileStatus === ProfileStatus.onboarding) {
       const trialDays = this.configService.get<number>('TRIAL_DAYS', 0);
 
@@ -333,14 +337,6 @@ export class AuthService {
           data: {
             trialEndDate: new Date(Date.now() + trialDays * 86400000),
             isActive: true,
-          },
-        });
-      } else {
-        await this.prisma.professionalProfile.update({
-          where: withoutDeleted({ id: profile.id }),
-          data: {
-            profileStatus: ProfileStatus.waiting_payment,
-            isActive: false,
           },
         });
       }
