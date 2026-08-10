@@ -59,6 +59,9 @@ export class ReactionsQueryService {
     userId: string,
   ): Promise<{ reactions: ReactionCounts; myReaction: ReactionType | null }> {
     const [item] = await this.attach(targetType, [{ id: targetId }], userId);
+    if (!item) {
+      return { reactions: emptyReactionCounts(), myReaction: null };
+    }
     return { reactions: item.reactions, myReaction: item.myReaction };
   }
 }
