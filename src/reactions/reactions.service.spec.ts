@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ReactionTargetType, ReactionType } from '@prisma/client';
 import { ReactionsService } from './reactions.service';
 
@@ -87,5 +87,48 @@ describe('ReactionsService', () => {
       select: { accepted: true },
     });
     expect(prisma.reaction.upsert).toHaveBeenCalled();
+  });
+
+  it('community_comment 404 when parent post is soft-deleted', async () => {
+    prisma.communityComment.findFirst.mockResolvedValue({
+      post: { channelSlug: 'general', deletedAt: new Date() },
+    });
+
+    await expect(
+      service.setReaction(ReactionTargetType.community_comment, 'c1', ReactionType.LIKE, user),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.reaction.upsert).not.toHaveBeenCalled();
+  });
+
+  it('community_channel_comment 404 when parent channel post is soft-deleted', async () => {
+    prisma.communityChannelComment.findFirst.mockResolvedValue({
+      post: { channelId: 'g1', deletedAt: new Date() },
+    });
+
+    await expect(
+      service.setReaction(ReactionTargetType.community_channel_comment, 'cc1', ReactionType.LIKE, user),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.reaction.upsert).not.toHaveBeenCalled();
+  });
+
+  it('channel target rejects unpaid non-admin', async () => {
+    prisma.communityChannelPost.findFirst.mockResolvedValue({ id: 'cp1', channelId: 'g1' });
+    entitlements.isPaid.mockResolvedValue(false);
+
+    await expect(
+      service.setReaction(ReactionTargetType.community_channel_post, 'cp1', ReactionType.LOVE, user),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.reaction.upsert).not.toHaveBeenCalled();
+  });
+
+  it('removeReaction checks access before deleting', async () => {
+    prisma.communityPost.findFirst.mockResolvedValue({ id: 'p1', channelSlug: 'general' });
+
+    await service.removeReaction(ReactionTargetType.community_post, 'p1', user);
+
+    expect(community.checkChannelAccess).toHaveBeenCalledWith('me', user.roles, 'general');
+    expect(prisma.reaction.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'me', targetType: ReactionTargetType.community_post, targetId: 'p1' },
+    });
   });
 });
