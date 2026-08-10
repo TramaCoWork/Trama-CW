@@ -3,12 +3,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PostStatus } from '@prisma/client';
+import { PostStatus, ReactionTargetType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { sanitizeMarkdown } from '../community/utils/sanitize-markdown';
 import { buildPhotoUrl } from '../common/utils/author';
 import { PushNotificationsService } from '../onesignal/push-notifications.service';
 import { EntitlementsService } from '../entitlements/entitlements.service';
+import { ReactionsQueryService } from '../reactions/reactions-query.service';
 
 type UserRolePayload = { name: string; type: string };
 
@@ -18,6 +19,7 @@ export class CommunityChannelsService {
     private readonly prisma: PrismaService,
     private readonly pushNotifications: PushNotificationsService,
     private readonly entitlements: EntitlementsService,
+    private readonly reactions: ReactionsQueryService,
   ) {}
 
   private isAdmin(roles: UserRolePayload[]): boolean {
@@ -72,7 +74,7 @@ export class CommunityChannelsService {
     });
   }
 
-  async getChannelPosts(channelId: string, page: number, limit: number) {
+  async getChannelPosts(channelId: string, page: number, limit: number, userId: string) {
     const [posts, total] = await Promise.all([
       this.prisma.communityChannelPost.findMany({
         where: {
@@ -137,8 +139,14 @@ export class CommunityChannelsService {
       };
     });
 
-    return {
+    const withReactions = await this.reactions.attach(
+      ReactionTargetType.community_channel_post,
       data,
+      userId,
+    );
+
+    return {
+      data: withReactions,
       meta: {
         page,
         limit,
@@ -148,7 +156,7 @@ export class CommunityChannelsService {
     };
   }
 
-  async getPost(channelId: string, postId: string) {
+  async getPost(channelId: string, postId: string, userId: string) {
     const post = await this.prisma.communityChannelPost.findFirst({
       where: {
         id: postId,
@@ -166,7 +174,13 @@ export class CommunityChannelsService {
 
     const { _count, ...postData } = post;
 
-    return { ...postData, commentCount: _count.comments };
+    const [withReactions] = await this.reactions.attach(
+      ReactionTargetType.community_channel_post,
+      [{ ...postData, commentCount: _count.comments }],
+      userId,
+    );
+
+    return withReactions;
   }
 
   async getPostComments(
@@ -174,6 +188,7 @@ export class CommunityChannelsService {
     postId: string,
     page: number,
     limit: number,
+    userId: string,
   ) {
     const post = await this.prisma.communityChannelPost.findFirst({
       where: {
@@ -247,8 +262,14 @@ export class CommunityChannelsService {
       };
     });
 
-    return {
+    const withReactions = await this.reactions.attach(
+      ReactionTargetType.community_channel_comment,
       data,
+      userId,
+    );
+
+    return {
+      data: withReactions,
       meta: {
         page,
         limit,
