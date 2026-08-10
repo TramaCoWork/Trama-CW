@@ -111,6 +111,28 @@ describe('ReactionsService', () => {
     expect(prisma.reaction.upsert).not.toHaveBeenCalled();
   });
 
+  it('community_comment 404 when parent post is paused', async () => {
+    prisma.communityComment.findFirst.mockResolvedValue({
+      post: { channelSlug: 'general', deletedAt: null, status: 'paused' },
+    });
+
+    await expect(
+      service.setReaction(ReactionTargetType.community_comment, 'c2', ReactionType.LIKE, user),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.reaction.upsert).not.toHaveBeenCalled();
+  });
+
+  it('community_channel_comment 404 when parent channel post is paused', async () => {
+    prisma.communityChannelComment.findFirst.mockResolvedValue({
+      post: { channelId: 'g1', deletedAt: null, status: 'paused' },
+    });
+
+    await expect(
+      service.setReaction(ReactionTargetType.community_channel_comment, 'cc2', ReactionType.LIKE, user),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.reaction.upsert).not.toHaveBeenCalled();
+  });
+
   it('channel target rejects unpaid non-admin', async () => {
     prisma.communityChannelPost.findFirst.mockResolvedValue({ id: 'cp1', channelId: 'g1' });
     entitlements.isPaid.mockResolvedValue(false);

@@ -684,9 +684,9 @@ export class CommunityService {
       ),
     ]);
     const byId = new Map(
-      [...communityWithR, ...channelWithR].map((item) => [item.id, item]),
+      [...communityWithR, ...channelWithR].map((item) => [`${item.type}:${item.id}`, item]),
     );
-    const data = page.map((item) => byId.get(item.id)!);
+    const data = page.map((item) => byId.get(`${item.type}:${item.id}`)!);
 
     const last = data[data.length - 1];
     const nextCursor = hasMore && last ? this.encodeCursor(last) : null;

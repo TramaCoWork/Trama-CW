@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ReactionTargetType, ReactionType } from '@prisma/client';
+import { PostStatus, ReactionTargetType, ReactionType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EntitlementsService } from '../entitlements/entitlements.service';
 import { CommunityService } from '../community/community.service';
@@ -73,7 +73,7 @@ export class ReactionsService {
     switch (targetType) {
       case ReactionTargetType.community_post: {
         const post = await this.prisma.communityPost.findFirst({
-          where: withoutDeleted({ id: targetId }),
+          where: withoutDeleted({ id: targetId, status: PostStatus.published }),
           select: { channelSlug: true },
         });
         if (!post) throw notFound();
@@ -83,9 +83,10 @@ export class ReactionsService {
       case ReactionTargetType.community_comment: {
         const comment = await this.prisma.communityComment.findFirst({
           where: withoutDeleted({ id: targetId }),
-          select: { post: { select: { channelSlug: true, deletedAt: true } } },
+          select: { post: { select: { channelSlug: true, deletedAt: true, status: true } } },
         });
-        if (!comment || comment.post.deletedAt) throw notFound();
+        if (!comment || comment.post.deletedAt || comment.post.status !== PostStatus.published)
+          throw notFound();
         await this.community.checkChannelAccess(
           user.userId, user.roles, comment.post.channelSlug,
         );
@@ -93,7 +94,7 @@ export class ReactionsService {
       }
       case ReactionTargetType.community_channel_post: {
         const post = await this.prisma.communityChannelPost.findFirst({
-          where: withoutDeleted({ id: targetId }),
+          where: withoutDeleted({ id: targetId, status: PostStatus.published }),
           select: { channelId: true },
         });
         if (!post) throw notFound();
@@ -103,9 +104,10 @@ export class ReactionsService {
       case ReactionTargetType.community_channel_comment: {
         const comment = await this.prisma.communityChannelComment.findFirst({
           where: withoutDeleted({ id: targetId }),
-          select: { post: { select: { channelId: true, deletedAt: true } } },
+          select: { post: { select: { channelId: true, deletedAt: true, status: true } } },
         });
-        if (!comment || comment.post.deletedAt) throw notFound();
+        if (!comment || comment.post.deletedAt || comment.post.status !== PostStatus.published)
+          throw notFound();
         await this.assertChannelMember(comment.post.channelId, user);
         return;
       }
