@@ -10,5 +10,6 @@ import { CommunityImagesService } from './community-images.service';
   imports: [PrismaModule, UploadsModule],
   controllers: [CommunityController, CommunityUploadsController],
   providers: [CommunityService, CommunityImagesService],
+  exports: [CommunityService],
 })
 export class CommunityModule {}
