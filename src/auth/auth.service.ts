@@ -81,8 +81,11 @@ export class AuthService {
   }
 
   async login(dto: LoginDto): Promise<TokenResponse> {
-    const user = await this.prisma.user.findUnique({
-      where: withoutDeleted({ email: dto.email }),
+    // Login case-insensitive: una mayúscula en el email no afecta.
+    const user = await this.prisma.user.findFirst({
+      where: withoutDeleted({
+        email: { equals: dto.email, mode: 'insensitive' },
+      }),
     });
 
     if (!user) {
