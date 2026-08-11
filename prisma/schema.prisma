@@ -143,6 +143,22 @@ enum NotifSourceType {
   channel
 }
 
+enum ReactionTargetType {
+  community_post
+  community_channel_post
+  community_comment
+  community_channel_comment
+}
+
+enum ReactionType {
+  LIKE
+  LOVE
+  LAUGH
+  WOW
+  SAD
+  DISLIKE
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model User {
@@ -177,6 +193,7 @@ model User {
   referrals         User[]  @relation("UserReferrals")
   userRoles         UserRole[]
   pushSubscriptions PushSubscription[]
+  reactions         Reaction[]
 
   @@index([deletedAt])
   @@map("users")
@@ -541,6 +558,22 @@ model CommunityImage {
   @@index([userId], name: "community_images_user")
   @@index([entityType, entityId], name: "community_images_entity")
   @@map("community_images")
+}
+
+model Reaction {
+  id         String             @id @default(uuid())
+  userId     String             @map("user_id")
+  targetType ReactionTargetType @map("target_type")
+  targetId   String             @map("target_id")
+  type       ReactionType
+  createdAt  DateTime           @default(now()) @map("created_at")
+  updatedAt  DateTime           @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, targetType, targetId])
+  @@index([targetType, targetId])
+  @@map("reactions")
 }
 
 model ContactLog {

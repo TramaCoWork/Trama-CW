@@ -5,10 +5,12 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { UploadsModule } from '../uploads/uploads.module';
 import { CommunityUploadsController } from './community-uploads.controller';
 import { CommunityImagesService } from './community-images.service';
+import { ReactionsQueryModule } from '../reactions/reactions-query.module';
 
 @Module({
-  imports: [PrismaModule, UploadsModule],
+  imports: [PrismaModule, UploadsModule, ReactionsQueryModule],
   controllers: [CommunityController, CommunityUploadsController],
   providers: [CommunityService, CommunityImagesService],
+  exports: [CommunityService],
 })
 export class CommunityModule {}

@@ -16,6 +16,17 @@ describe('CommunityService.updatePostContent', () => {
 
   const entitlements = { isPaid: jest.fn().mockResolvedValue(true) };
   const configService = { get: jest.fn((_key: string, def: unknown) => def) };
+  const reactionsQuery = {
+    attach: jest.fn((_t: any, items: any[]) =>
+      Promise.resolve(
+        items.map((i) => ({
+          ...i,
+          reactions: { LIKE: 0, LOVE: 0, LAUGH: 0, WOW: 0, SAD: 0, DISLIKE: 0 },
+          myReaction: null,
+        })),
+      ),
+    ),
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -23,6 +34,7 @@ describe('CommunityService.updatePostContent', () => {
       prisma as any,
       entitlements as any,
       configService as any,
+      reactionsQuery as any,
     );
   });
 

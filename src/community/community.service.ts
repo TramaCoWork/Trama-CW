@@ -8,11 +8,12 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
-import { PostStatus } from '@prisma/client';
+import { PostStatus, ReactionTargetType } from '@prisma/client';
 import { sanitizeMarkdown } from './utils/sanitize-markdown';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
 import { buildPhotoUrl, mapAuthorUser } from '../common/utils/author';
 import { EntitlementsService } from '../entitlements/entitlements.service';
+import { ReactionsQueryService } from '../reactions/reactions-query.service';
 
 const GENERAL_CHANNEL = 'general';
 const DEFAULT_FREE_VISIBLE_POSTS = 5;
@@ -26,6 +27,7 @@ export class CommunityService {
     private readonly prisma: PrismaService,
     private readonly entitlements: EntitlementsService,
     private readonly configService: ConfigService,
+    private readonly reactions: ReactionsQueryService,
   ) {}
 
   private get freeVisiblePosts(): number {
@@ -301,11 +303,17 @@ export class CommunityService {
       this.prisma.communityPost.count({ where }),
     ]);
 
-    const data = posts.map(({ _count, user, ...post }) => ({
+    const mapped = posts.map(({ _count, user, ...post }) => ({
       ...post,
       user: mapAuthorUser(user),
       commentCount: _count.comments,
     }));
+
+    const data = await this.reactions.attach(
+      ReactionTargetType.community_post,
+      mapped,
+      userId,
+    );
 
     // Para el free el total visible queda topeado a lo que puede ver.
     const effectiveTotal = isPaid ? total : Math.min(total, effectiveLimit);
@@ -347,11 +355,12 @@ export class CommunityService {
 
     const { _count, user, ...postData } = post;
 
-    return {
-      ...postData,
-      user: mapAuthorUser(user),
-      commentCount: _count.comments,
-    };
+    const [withReactions] = await this.reactions.attach(
+      ReactionTargetType.community_post,
+      [{ ...postData, user: mapAuthorUser(user), commentCount: _count.comments }],
+      userId,
+    );
+    return withReactions;
   }
 
   async getPosts(
@@ -436,7 +445,16 @@ export class CommunityService {
 
     const total = communityCount + channelCount;
     const start = (page - 1) * limit;
-    const data = [...communityData, ...channelData]
+
+    const [communityWithR, channelWithR] = await Promise.all([
+      this.reactions.attach(ReactionTargetType.community_post, communityData, userId),
+      this.reactions.attach(
+        ReactionTargetType.community_channel_post,
+        channelData,
+        userId,
+      ),
+    ]);
+    const data = [...communityWithR, ...channelWithR]
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(start, start + limit);
 
@@ -653,7 +671,23 @@ export class CommunityService {
     });
 
     const hasMore = merged.length > limit;
-    const data = merged.slice(0, limit);
+    const page = merged.slice(0, limit);
+
+    const communityPage = page.filter((item) => item.type === 'community');
+    const channelPage = page.filter((item) => item.type === 'channel');
+    const [communityWithR, channelWithR] = await Promise.all([
+      this.reactions.attach(ReactionTargetType.community_post, communityPage, userId),
+      this.reactions.attach(
+        ReactionTargetType.community_channel_post,
+        channelPage,
+        userId,
+      ),
+    ]);
+    const byId = new Map(
+      [...communityWithR, ...channelWithR].map((item) => [`${item.type}:${item.id}`, item]),
+    );
+    const data = page.map((item) => byId.get(`${item.type}:${item.id}`)!);
+
     const last = data[data.length - 1];
     const nextCursor = hasMore && last ? this.encodeCursor(last) : null;
 
@@ -841,13 +875,19 @@ export class CommunityService {
       this.prisma.communityComment.count({ where }),
     ]);
 
-    const data = comments.map(({ user, ...comment }) => ({
+    const mapped = comments.map(({ user, ...comment }) => ({
       ...comment,
       user: mapAuthorUser(user),
     }));
 
+    const withReactions = await this.reactions.attach(
+      ReactionTargetType.community_comment,
+      mapped,
+      userId,
+    );
+
     return {
-      data,
+      data: withReactions,
       meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
   }

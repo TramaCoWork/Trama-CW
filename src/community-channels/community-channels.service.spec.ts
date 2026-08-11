@@ -26,6 +26,17 @@ describe('CommunityChannelsService (gestion de posts)', () => {
 
   const pushNotifications = { notifyNewChannelPost: jest.fn() };
   const entitlements = { isPaid: jest.fn().mockResolvedValue(true) };
+  const reactionsQuery = {
+    attach: jest.fn((_t: any, items: any[]) =>
+      Promise.resolve(
+        items.map((i) => ({
+          ...i,
+          reactions: { LIKE: 0, LOVE: 0, LAUGH: 0, WOW: 0, SAD: 0, DISLIKE: 0 },
+          myReaction: null,
+        })),
+      ),
+    ),
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -34,6 +45,7 @@ describe('CommunityChannelsService (gestion de posts)', () => {
       prisma as any,
       pushNotifications as any,
       entitlements as any,
+      reactionsQuery as any,
     );
   });
 
@@ -53,7 +65,7 @@ describe('CommunityChannelsService (gestion de posts)', () => {
         { id: 'u-1', email: 'a@x.com', profile: { id: 'p-1', name: 'Ana', photo: null } },
       ]);
 
-      const res = await service.getChannelPosts('ch-1', 1, 20);
+      const res = await service.getChannelPosts('ch-1', 1, 20, 'u-1');
 
       expect(prisma.communityChannelPost.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -70,6 +82,25 @@ describe('CommunityChannelsService (gestion de posts)', () => {
       // no filtra el _count crudo
       expect(res.data[0]).not.toHaveProperty('_count');
     });
+
+    it('los posts de canal incluyen reactions', async () => {
+      prisma.communityChannelPost.findMany.mockResolvedValue([
+        {
+          id: 'post-1',
+          channelId: 'ch-1',
+          userId: 'u-1',
+          content: 'hola',
+          _count: { comments: 0 },
+        },
+      ]);
+      prisma.communityChannelPost.count.mockResolvedValue(1);
+      prisma.user.findMany.mockResolvedValue([]);
+
+      const res = await service.getChannelPosts('ch-1', 1, 20, 'u-1');
+
+      expect(res.data[0]).toHaveProperty('reactions');
+      expect(res.data[0]).toHaveProperty('myReaction');
+    });
   });
 
   describe('getPost', () => {
@@ -82,7 +113,7 @@ describe('CommunityChannelsService (gestion de posts)', () => {
         _count: { comments: 5 },
       });
 
-      const res = await service.getPost('ch-1', 'post-1');
+      const res = await service.getPost('ch-1', 'post-1', 'u-1');
 
       expect(res).toMatchObject({ id: 'post-1', commentCount: 5 });
       expect(res).not.toHaveProperty('_count');

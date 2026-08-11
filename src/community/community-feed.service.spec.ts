@@ -46,14 +46,35 @@ describe('CommunityService.getFeed', () => {
 
   const entitlements = { isPaid: jest.fn().mockResolvedValue(true) };
   const configService = { get: jest.fn((_key: string, def: unknown) => def) };
+  const reactionsQuery = {
+    attach: jest.fn((_t: any, items: any[]) =>
+      Promise.resolve(
+        items.map((i) => ({
+          ...i,
+          reactions: { LIKE: 0, LOVE: 0, LAUGH: 0, WOW: 0, SAD: 0, DISLIKE: 0 },
+          myReaction: null,
+        })),
+      ),
+    ),
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
     entitlements.isPaid.mockResolvedValue(true);
+    reactionsQuery.attach.mockImplementation((_t: any, items: any[]) =>
+      Promise.resolve(
+        items.map((i) => ({
+          ...i,
+          reactions: { LIKE: 0, LOVE: 0, LAUGH: 0, WOW: 0, SAD: 0, DISLIKE: 0 },
+          myReaction: null,
+        })),
+      ),
+    );
     service = new CommunityService(
       prisma as any,
       entitlements as any,
       configService as any,
+      reactionsQuery as any,
     );
 
     // Default: usuario con rubro "abogacia" y membresia aceptada en "group-1".
@@ -189,5 +210,12 @@ describe('CommunityService.getFeed', () => {
     const res = await service.getFeed('me', undefined, 20);
 
     expect(res.data.map((p) => p.id)).toEqual(['zzz', 'aaa']);
+  });
+
+  it('cada item del feed incluye reactions y myReaction', async () => {
+    prisma.communityPost.findMany.mockResolvedValue([communityPost()]);
+    const res = await service.getFeed('me', undefined, 20);
+    expect(res.data[0]).toHaveProperty('reactions');
+    expect(res.data[0]).toHaveProperty('myReaction', null);
   });
 });

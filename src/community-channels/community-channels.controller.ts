@@ -66,6 +66,7 @@ export class CommunityChannelsController {
     description: 'Usuario sin membresía aceptada en el canal',
   })
   getPosts(
+    @CurrentUser() user: CurrentUserType,
     @Param('id', ParseUUIDPipe) id: string,
     @Query() pagination: PaginationDto,
   ) {
@@ -73,6 +74,7 @@ export class CommunityChannelsController {
       id,
       pagination.page,
       pagination.limit,
+      user.userId,
     );
   }
 
@@ -88,10 +90,11 @@ export class CommunityChannelsController {
   })
   @ApiResponse({ status: 404, description: 'Post no encontrado en el canal' })
   getPost(
+    @CurrentUser() user: CurrentUserType,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('postId', ParseUUIDPipe) postId: string,
   ) {
-    return this.communityChannelsService.getPost(id, postId);
+    return this.communityChannelsService.getPost(id, postId, user.userId);
   }
 
   @Get(':id/posts/:postId/comments')
@@ -106,6 +109,7 @@ export class CommunityChannelsController {
   })
   @ApiResponse({ status: 404, description: 'Post no encontrado en el canal' })
   getPostComments(
+    @CurrentUser() user: CurrentUserType,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('postId', ParseUUIDPipe) postId: string,
     @Query() pagination: PaginationDto,
@@ -115,6 +119,7 @@ export class CommunityChannelsController {
       postId,
       pagination.page,
       pagination.limit,
+      user.userId,
     );
   }
 
