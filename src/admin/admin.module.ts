@@ -16,6 +16,7 @@ import { UploadsModule } from '../uploads/uploads.module';
 import { MercadoPagoModule } from '../mercadopago/mercadopago.module';
 import { CommunityService } from '../community/community.service';
 import { BackgroundJobsModule } from '../background-jobs/background-jobs.module';
+import { ReactionsQueryModule } from '../reactions/reactions-query.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { BackgroundJobsModule } from '../background-jobs/background-jobs.module'
     UploadsModule,
     MercadoPagoModule,
     BackgroundJobsModule,
+    ReactionsQueryModule,
   ],
   controllers: [
     AdminController,
