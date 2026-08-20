@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common';
+import { DiscoveryModule } from '@nestjs/core';
 import { DiscountsModule } from '../discounts/discounts.module';
 import { MailModule } from '../mail/mail.module';
 import { MercadoPagoModule } from '../mercadopago/mercadopago.module';
@@ -12,10 +13,12 @@ import { TrialReminderCronService } from './trial-reminder-cron.service';
 import { DailyDigestCronService } from './daily-digest-cron.service';
 import { CommunityDigestPushCronService } from './community-digest-push-cron.service';
 import { OnboardingReminderCronService } from './onboarding-reminder-cron.service';
+import { CronAdminService } from './cron-admin.service';
 
 @Global()
 @Module({
   imports: [
+    DiscoveryModule,
     DiscountsModule,
     MailModule,
     MercadoPagoModule,
@@ -31,6 +34,7 @@ import { OnboardingReminderCronService } from './onboarding-reminder-cron.servic
     DailyDigestCronService,
     CommunityDigestPushCronService,
     OnboardingReminderCronService,
+    CronAdminService,
   ],
   exports: [
     ProfessionalsCronService,
@@ -39,6 +43,7 @@ import { OnboardingReminderCronService } from './onboarding-reminder-cron.servic
     TrialReminderCronService,
     DailyDigestCronService,
     SubscriptionsModule,
+    CronAdminService,
   ],
 })
 export class BackgroundJobsModule {}

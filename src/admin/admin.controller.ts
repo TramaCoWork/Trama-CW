@@ -24,6 +24,7 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
+import { CronAdminService } from '../background-jobs/cron-admin.service';
 import { CreateWorkDto } from '../work/dto/create-work.dto';
 import { ValidateProfileDto } from './dto/validate-profile.dto';
 import { VerifyDocumentDto } from './dto/verify-document.dto';
@@ -53,7 +54,10 @@ import { UpdateReferralCodeDto } from '../auth/dto/update-referral-code.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly cronAdminService: CronAdminService,
+  ) {}
 
   private assertCanMutateUser(user: CurrentUserType, targetUserId: string) {
     if (user.userId === targetUserId) {
@@ -325,19 +329,19 @@ export class AdminController {
   @Get('cron-jobs/active')
   @ApiOperation({ summary: 'Listar cron jobs activos' })
   getActiveCronJobs() {
-    return this.adminService.getCronJobs(true);
+    return this.cronAdminService.getCronJobs(true);
   }
 
   @Get('cron-jobs/running')
   @ApiOperation({ summary: 'Listar cron jobs registrados en memoria' })
   getRunningCronJobs() {
-    return this.adminService.getRunningCronJobs();
+    return this.cronAdminService.getRunningCronJobs();
   }
 
   @Get('cron-jobs')
   @ApiOperation({ summary: 'Listar cron jobs configurados en base de datos' })
   getCronJobs() {
-    return this.adminService.getCronJobs();
+    return this.cronAdminService.getCronJobs();
   }
 
   @Patch('cron-jobs/:id')
@@ -348,7 +352,7 @@ export class AdminController {
     @Body()
     data: { key?: string; name?: string; schedule?: string; active?: boolean },
   ) {
-    return this.adminService.updateCronJob(id, data);
+    return this.cronAdminService.updateCronJob(id, data);
   }
 
   @Get('jobs')
@@ -377,7 +381,7 @@ export class AdminController {
     @Query('sizePage') sizePage = 20,
     @Query('jobName') jobName?: string,
   ) {
-    return this.adminService.getJobExecutions({
+    return this.cronAdminService.getJobExecutions({
       page: Number(page),
       sizePage: Number(sizePage),
       jobName,
@@ -387,7 +391,7 @@ export class AdminController {
   @Post('jobs/:key/restart')
   @ApiOperation({ summary: 'Reiniciar un job con el schedule actual de la DB' })
   async restartJob(@Param('key') key: string) {
-    return this.adminService.restartJob(key);
+    return this.cronAdminService.restartJob(key);
   }
 
   @Post('jobs/:jobName/run')
@@ -400,7 +404,7 @@ export class AdminController {
   })
   @ApiResponse({ status: 404, description: 'Job no encontrado' })
   async triggerJob(@Param('jobName') jobName: string) {
-    return this.adminService.triggerJob(jobName);
+    return this.cronAdminService.triggerJob(jobName);
   }
 
   @Get('subscription-payments')

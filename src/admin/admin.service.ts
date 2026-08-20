@@ -16,7 +16,6 @@ import {
   FrequencyType,
   SubscriptionStatus,
 } from '@prisma/client';
-import { SchedulerRegistry } from '@nestjs/schedule';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
@@ -34,13 +33,6 @@ import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
 import { withoutDeleted } from '../common/filters/soft-delete.filter';
 import type { StorageService } from '../uploads/storage.interface';
 import { STORAGE_SERVICE } from '../uploads/storage.interface';
-import { ProfessionalsCronService } from '../background-jobs/professionals-cron.service';
-import { DiscountsCronService } from '../background-jobs/discounts-cron.service';
-import { TrialReminderCronService } from '../background-jobs/trial-reminder-cron.service';
-import { BaseCronService } from '../background-jobs/base-cron.service';
-import { SubscriptionsCronBridge } from '../background-jobs/subscriptions-cron-bridge.service';
-import { DailyDigestCronService } from '../background-jobs/daily-digest-cron.service';
-import { ExternalJobPostingsCronService } from '../external-job-postings/services/external-job-postings-cron.service';
 
 @Injectable()
 export class AdminService {
@@ -50,13 +42,6 @@ export class AdminService {
     private readonly configService: ConfigService,
     private readonly authService: AuthService,
     private readonly mercadopago: MercadoPagoService,
-    private readonly professionalsCronService: ProfessionalsCronService,
-    private readonly discountsCronService: DiscountsCronService,
-    private readonly trialReminderCronService: TrialReminderCronService,
-    private readonly subscriptionsCronBridge: SubscriptionsCronBridge,
-    private readonly dailyDigestCronService: DailyDigestCronService,
-    private readonly externalJobPostingsCronService: ExternalJobPostingsCronService,
-    private readonly schedulerRegistry: SchedulerRegistry,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
 
@@ -759,32 +744,6 @@ export class AdminService {
 
   // ─── Jobs ────────────────────────────────────────────────────────────────
 
-  async getCronJobs(onlyActive?: boolean) {
-    return this.prisma.cronJob.findMany({
-      where: onlyActive ? { active: true } : undefined,
-      orderBy: { key: 'asc' },
-    });
-  }
-
-  getRunningCronJobs() {
-    const jobs = this.schedulerRegistry.getCronJobs();
-    return Array.from(jobs.entries()).map(([key, job]) => ({
-      key,
-      running: true,
-      nextRun: job.nextDate(),
-    }));
-  }
-
-  async updateCronJob(
-    id: string,
-    data: Prisma.CronJobUpdateInput,
-  ) {
-    return this.prisma.cronJob.update({
-      where: { id },
-      data,
-    });
-  }
-
   async createJob(dto: CreateWorkDto) {
     return this.prisma.job.create({
       data: {
@@ -794,93 +753,6 @@ export class AdminService {
         status: dto.status ?? JobStatus.active,
       },
     });
-  }
-
-  async getJobExecutions(filters: {
-    page: number;
-    sizePage: number;
-    jobName?: string;
-  }) {
-    const where = filters.jobName ? { jobName: filters.jobName } : {};
-    const [data, total] = await Promise.all([
-      this.prisma.jobExecution.findMany({
-        where,
-        orderBy: { startedAt: 'desc' },
-        skip: (filters.page - 1) * filters.sizePage,
-        take: filters.sizePage,
-      }),
-      this.prisma.jobExecution.count({ where }),
-    ]);
-
-    return {
-      data,
-      total,
-      page: filters.page,
-      sizePage: filters.sizePage,
-    };
-  }
-
-  async triggerJob(
-    jobName: string,
-  ): Promise<{ message: string; jobName: string }> {
-    const services: BaseCronService[] = [
-      this.professionalsCronService,
-      this.discountsCronService,
-      this.trialReminderCronService,
-      this.subscriptionsCronBridge,
-      this.externalJobPostingsCronService,
-    ];
-
-    const owner = services.find((service) => service.hasJob(jobName));
-    if (!owner) throw new NotFoundException(`Job "${jobName}" no encontrado`);
-
-    owner.triggerManually(jobName).catch(() => {});
-
-    return { message: 'Job iniciado en background', jobName };
-  }
-
-  async restartJob(
-    key: string,
-  ): Promise<{ message: string; key: string; schedule: string }> {
-    const cronJob = await this.prisma.cronJob.findUnique({ where: { key } });
-    if (!cronJob) {
-      throw new NotFoundException(`Job "${key}" not found in cron_jobs table`);
-    }
-    if (!cronJob.active) {
-      throw new BadRequestException(
-        `Job "${key}" is inactive — activate it first`,
-      );
-    }
-
-    const services: BaseCronService[] = [
-      this.professionalsCronService,
-      this.discountsCronService,
-      this.trialReminderCronService,
-      this.subscriptionsCronBridge,
-      this.dailyDigestCronService,
-      this.externalJobPostingsCronService,
-    ];
-
-    const owner = services.find((service) => service.hasJob(key));
-    if (!owner) {
-      throw new NotFoundException(`Job "${key}" not registered in any service`);
-    }
-
-    try {
-      const existing = this.schedulerRegistry.getCronJob(key);
-      existing.stop();
-      this.schedulerRegistry.deleteCronJob(key);
-    } catch {
-      // job may not be running
-    }
-
-    await owner.restartJob(key, cronJob.schedule);
-
-    return {
-      message: `Job "${key}" reiniciado con schedule "${cronJob.schedule}"`,
-      key,
-      schedule: cronJob.schedule,
-    };
   }
 
   // ─── Payments ────────────────────────────────────────────────────────────
