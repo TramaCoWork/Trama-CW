@@ -11,18 +11,23 @@ const GOB_API_URL = 'https://www.getonbrd.com/api/v0/search/jobs';
 const GOB_PER_PAGE = 120;
 const WINDOW_DAYS = 7;
 
-type GobJob = {
-  id: string | number;
+type GobJobAttributes = {
   title?: string;
   published_at?: number;
-  link?: string;
   category_name?: string;
   [key: string]: unknown;
 };
 
+type GobJob = {
+  id: string | number;
+  type?: string;
+  attributes: GobJobAttributes;
+  links?: { public_url?: string };
+};
+
 type GobApiResponse = {
   data?: GobJob[];
-  meta?: { total_count?: number };
+  meta?: { total_count?: number; total_pages?: number };
 };
 
 @Injectable()
@@ -48,13 +53,19 @@ export class GetOnBoardStrategy implements ExternalJobSourceStrategy {
     }
 
     const rawJobs = response.data?.data ?? [];
+    const totalPages = response.data?.meta?.total_pages;
+    this.logger.log(
+      `[GOB page ${page}] fetched ${rawJobs.length} items (meta: total_pages=${totalPages})`,
+    );
+
     const cutoff = new Date(Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000);
     const jobs: ExternalJobDto[] = [];
     let skipped = 0;
     let oldestInWindow = true;
 
     for (const item of rawJobs) {
-      const epoch = item.published_at ?? 0;
+      const attrs = item.attributes;
+      const epoch = attrs.published_at ?? 0;
       const publishedAt = new Date(epoch * 1000);
 
       if (epoch <= 0) {
@@ -65,7 +76,8 @@ export class GetOnBoardStrategy implements ExternalJobSourceStrategy {
         continue;
       }
 
-      if (!item.link) {
+      const link = item.links?.public_url ?? '';
+      if (!link) {
         skipped++;
         this.logger.warn(
           `[GOB page ${page}] Skipped job id=${item.id}: empty link`,
@@ -73,7 +85,7 @@ export class GetOnBoardStrategy implements ExternalJobSourceStrategy {
         continue;
       }
 
-      const title = (item.title ?? '').trim();
+      const title = (attrs.title ?? '').trim();
       if (!title) {
         skipped++;
         this.logger.warn(
@@ -91,8 +103,8 @@ export class GetOnBoardStrategy implements ExternalJobSourceStrategy {
       jobs.push({
         externalId: String(item.id),
         title,
-        link: item.link,
-        categoryName: item.category_name ?? null,
+        link,
+        categoryName: attrs.category_name ?? null,
         publishedAt,
         raw: item as unknown as Prisma.InputJsonObject,
       });
@@ -101,6 +113,9 @@ export class GetOnBoardStrategy implements ExternalJobSourceStrategy {
     if (skipped > 0) {
       this.logger.warn(`[GOB page ${page}] Total skipped items: ${skipped}`);
     }
+    this.logger.log(
+      `[GOB page ${page}] kept=${jobs.length}, skipped=${skipped}, total=${rawJobs.length}`,
+    );
 
     // hasMore: there are more pages only if the current page was full
     // AND all jobs were within the window.

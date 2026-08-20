@@ -6,14 +6,22 @@ const makeJob = (overrides: Partial<{
   published_at: number;
   link: string;
   category_name: string;
-}> = {}) => ({
-  id: 'gob-1',
-  title: 'Developer',
-  published_at: Math.floor(Date.now() / 1000) - 60, // 1 minute ago
-  link: 'https://getonbrd.com/jobs/1',
-  category_name: 'Programming',
-  ...overrides,
-});
+}> = {}) => {
+  const {
+    id = 'gob-1',
+    title = 'Developer',
+    published_at = Math.floor(Date.now() / 1000) - 60, // 1 minute ago
+    link = 'https://getonbrd.com/jobs/1',
+    category_name = 'Programming',
+  } = overrides;
+
+  return {
+    id,
+    type: 'job',
+    attributes: { title, published_at, category_name },
+    links: { public_url: link },
+  };
+};
 
 describe('GetOnBoardStrategy', () => {
   const httpMock = { get: jest.fn() };
