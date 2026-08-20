@@ -40,6 +40,7 @@ import { TrialReminderCronService } from '../background-jobs/trial-reminder-cron
 import { BaseCronService } from '../background-jobs/base-cron.service';
 import { SubscriptionsCronBridge } from '../background-jobs/subscriptions-cron-bridge.service';
 import { DailyDigestCronService } from '../background-jobs/daily-digest-cron.service';
+import { ExternalJobPostingsCronService } from '../external-job-postings/services/external-job-postings-cron.service';
 
 @Injectable()
 export class AdminService {
@@ -54,6 +55,7 @@ export class AdminService {
     private readonly trialReminderCronService: TrialReminderCronService,
     private readonly subscriptionsCronBridge: SubscriptionsCronBridge,
     private readonly dailyDigestCronService: DailyDigestCronService,
+    private readonly externalJobPostingsCronService: ExternalJobPostingsCronService,
     private readonly schedulerRegistry: SchedulerRegistry,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
@@ -826,6 +828,7 @@ export class AdminService {
       this.discountsCronService,
       this.trialReminderCronService,
       this.subscriptionsCronBridge,
+      this.externalJobPostingsCronService,
     ];
 
     const owner = services.find((service) => service.hasJob(jobName));
@@ -855,6 +858,7 @@ export class AdminService {
       this.trialReminderCronService,
       this.subscriptionsCronBridge,
       this.dailyDigestCronService,
+      this.externalJobPostingsCronService,
     ];
 
     const owner = services.find((service) => service.hasJob(key));

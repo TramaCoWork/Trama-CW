@@ -21,5 +21,6 @@ import { EXTERNAL_JOB_SOURCE_STRATEGIES } from './strategies/external-job-source
       inject: [GetOnBoardStrategy],
     },
   ],
+  exports: [ExternalJobPostingsCronService],
 })
 export class ExternalJobPostingsModule {}

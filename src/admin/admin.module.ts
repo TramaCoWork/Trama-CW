@@ -17,6 +17,7 @@ import { MercadoPagoModule } from '../mercadopago/mercadopago.module';
 import { CommunityService } from '../community/community.service';
 import { BackgroundJobsModule } from '../background-jobs/background-jobs.module';
 import { ReactionsQueryModule } from '../reactions/reactions-query.module';
+import { ExternalJobPostingsModule } from '../external-job-postings/external-job-postings.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { ReactionsQueryModule } from '../reactions/reactions-query.module';
     MercadoPagoModule,
     BackgroundJobsModule,
     ReactionsQueryModule,
+    ExternalJobPostingsModule,
   ],
   controllers: [
     AdminController,
