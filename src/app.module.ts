@@ -39,6 +39,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { LandingsModule } from './landings/landings.module';
 import { PushModule } from './push/push.module';
 import { ReactionsModule } from './reactions/reactions.module';
+import { ExternalJobPostingsModule } from './external-job-postings';
 import { AppController } from './app.controller';
 
 @Module({
@@ -117,6 +118,7 @@ import { AppController } from './app.controller';
     CommunityModule,
     CommunityChannelsModule,
     ReactionsModule,
+    ExternalJobPostingsModule,
     WorkModule,
     AdminModule,
     ProfessionCategoriesModule,

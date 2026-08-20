@@ -1025,3 +1025,72 @@ model LandingPageSubmission {
   @@index([landingId, createdAt])
   @@map("landing_page_submissions")
 }
+
+model ExternalJobPosting {
+  /// Primary key — UUID v4, consistent with all other models in this repo.
+  id          String    @id @default(uuid())
+
+  /// Identifies the data source. Hardcoded per strategy (e.g. "getonboard").
+  /// Used as part of both unique constraints.
+  source      String    @map("source")
+
+  /// Provider-assigned job ID (nullable — some future sources may lack one).
+  /// When present, used as the primary dedup key together with `source`.
+  /// See partial unique index @@index below.
+  externalId  String?   @map("external_id")
+
+  /// Canonical URL to the job posting. Used as fallback dedup key when externalId is null.
+  link        String    @map("link")
+
+  /// Job title as returned by the source.
+  title       String    @map("title")
+
+  /// Free-form category string from the source (e.g. "Programming", "Design").
+  /// NOT a FK to ProfessionCategory — mapping is out of scope.
+  categoryName String?  @map("category_name")
+
+  /// Publication date of the job as reported by the source.
+  /// GOB provides Unix epoch (seconds); the strategy converts via `new Date(epoch * 1000)`.
+  /// Stored as DateTime (not BigInt) for ergonomic querying and sorting.
+  publishedAt DateTime  @map("published_at")
+
+  /// Full raw payload from the source API (JSONB in Postgres).
+  /// Stored for audit and to avoid repeated API calls.
+  /// Non-nullable: every ingestion run must supply the original response object.
+  raw         Json      @map("raw")
+
+  // --- Audit timestamps (standard repo pattern) ---
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt      @map("updated_at")
+
+  /// Soft-delete timestamp. null = active. Non-null = logically deleted.
+  /// Use withoutDeleted() helper on all reads that should exclude deleted records.
+  deletedAt   DateTime? @map("deleted_at")
+
+  // --- Table name ---
+  @@map("external_job_postings")
+
+  // --- Unique constraints (partial — enforced at DB level via raw migration SQL) ---
+  // Prisma 7 does not support partial unique indexes in the schema DSL.
+  // These must be added as raw SQL in the migration file:
+  //
+  //   CREATE UNIQUE INDEX uq_ejp_source_external_id
+  //     ON external_job_postings (source, external_id)
+  //     WHERE external_id IS NOT NULL;
+  //
+  //   CREATE UNIQUE INDEX uq_ejp_source_link
+  //     ON external_job_postings (source, link)
+  //     WHERE external_id IS NULL;
+  //
+  // The application layer (bulk writer) must check existence before insert/update
+  // using the same conditional logic.
+
+  // --- Indexes for listing endpoint queries ---
+  @@index([deletedAt])
+  @@index([publishedAt(sort: Desc)])
+  @@index([source])
+  @@index([categoryName])
+  @@index([source, deletedAt])
+  @@index([publishedAt(sort: Desc), deletedAt])
+}
