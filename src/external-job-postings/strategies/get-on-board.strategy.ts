@@ -35,9 +35,10 @@ export class GetOnBoardStrategy implements ExternalJobSourceStrategy {
 
   async fetchJobs(page: number): Promise<ExternalJobBatch> {
     // GOB requires at least one of: query, companies, featured, remote, country_code, board_host.
-    // country_code=AR + remote=true covers AR-local jobs and global-remote roles.
+    // remote=true covers global remote jobs. Do NOT combine with country_code — GOB
+    // rejects that combo with 422 "Localization conflict" (see task fix-getonboard-localization-conflict).
     const response = await this.http.get<GobApiResponse>(GOB_API_URL, {
-      query: { per_page: GOB_PER_PAGE, page, country_code: 'AR', remote: true },
+      query: { per_page: GOB_PER_PAGE, page, remote: true },
     });
 
     if (!response.ok) {
