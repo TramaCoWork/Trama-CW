@@ -27,9 +27,9 @@ export class ExternalJobPostingsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listPostings(filters: ListExternalJobPostingsDto) {
-    const { page, limit, source, categoryName } = filters;
+    const { page, limit, source, categoryName, q } = filters;
 
-    const where = this.buildWhere(source, categoryName);
+    const where = this.buildWhere(source, categoryName, q);
 
     const [data, total] = await Promise.all([
       this.prisma.externalJobPosting.findMany({
@@ -55,7 +55,9 @@ export class ExternalJobPostingsService {
   private buildWhere(
     source?: string,
     categoryName?: string,
+    q?: string,
   ): Prisma.ExternalJobPostingWhereInput {
+    // Soft-deleted jobs excluded via withoutDeleted() helper
     const base = withoutDeleted();
 
     if (source) {
@@ -69,6 +71,30 @@ export class ExternalJobPostingsService {
       };
     }
 
+    const searchTerm = q?.trim();
+    if (searchTerm) {
+      base.OR = [
+        { title: { contains: searchTerm, mode: 'insensitive' } },
+        { categoryName: { contains: searchTerm, mode: 'insensitive' } },
+      ];
+    }
+
     return base;
+  }
+
+  async getCategoryCounts(): Promise<Array<{ categoryName: string; count: number }>> {
+    const results = await this.prisma.externalJobPosting.groupBy({
+      by: ['categoryName'],
+      // Soft-deleted jobs excluded via withoutDeleted() helper
+      where: { ...withoutDeleted(), categoryName: { not: null } },
+      // TODO(review): Prisma 7 CountOrderByAggregateInput has no _all field; ordered by categoryName count field instead
+      _count: { categoryName: true },
+      orderBy: [{ _count: { categoryName: 'desc' } }],
+    });
+
+    return results.map((r) => ({
+      categoryName: r.categoryName as string,
+      count: r._count.categoryName,
+    }));
   }
 }

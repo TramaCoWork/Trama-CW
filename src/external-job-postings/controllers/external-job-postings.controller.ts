@@ -17,6 +17,17 @@ export class ExternalJobPostingsController {
     private readonly externalJobPostingsService: ExternalJobPostingsService,
   ) {}
 
+  // Note: /categories must come before any :id wildcard route to avoid NestJS shadowing
+  @Get('categories')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Obtener categorías de ofertas externas con conteo (ordenadas por conteo desc)' })
+  @ApiResponse({ status: 200, description: 'Array de categorías con conteo' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  getCategories(): Promise<Array<{ categoryName: string; count: number }>> {
+    return this.externalJobPostingsService.getCategoryCounts();
+  }
+
   @Get()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -25,6 +36,7 @@ export class ExternalJobPostingsController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'source', required: false, type: String })
   @ApiQuery({ name: 'categoryName', required: false, type: String })
+  @ApiQuery({ name: 'q', required: false, type: String })
   @ApiResponse({ status: 200, description: 'Lista paginada de ofertas externas' })
   @ApiResponse({ status: 401, description: 'No autorizado' })
   list(@Query() filters: ListExternalJobPostingsDto) {
