@@ -33,7 +33,7 @@ describe('GetOnBoardStrategy', () => {
   });
 
   describe('fetchJobs — happy path', () => {
-    it('returns jobs from within the 7-day window and hasMore=false when page is not full', async () => {
+    it('returns jobs and hasMore=false when page is not full', async () => {
       httpMock.get.mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -48,7 +48,7 @@ describe('GetOnBoardStrategy', () => {
       expect(result.jobs[0].externalId).toBe('gob-1');
     });
 
-    it('sets hasMore=true when page has 120 items and all within window', async () => {
+    it('sets hasMore=true when page has 120 items (full page)', async () => {
       const jobs = Array.from({ length: 120 }, (_, i) =>
         makeJob({ id: `gob-${i}`, link: `https://getonbrd.com/jobs/${i}` }),
       );
@@ -65,7 +65,7 @@ describe('GetOnBoardStrategy', () => {
       expect(result.hasMore).toBe(true);
     });
 
-    it('stops pagination and sets hasMore=false when oldest job exceeds 7-day cutoff', async () => {
+    it('includes jobs older than 7 days — no date-window filter', async () => {
       const oldEpoch = Math.floor(Date.now() / 1000) - 8 * 24 * 60 * 60; // 8 days ago
       const recentJob = makeJob({ id: 'recent' });
       const oldJob = makeJob({ id: 'old', published_at: oldEpoch, link: 'https://getonbrd.com/jobs/old' });
@@ -79,9 +79,10 @@ describe('GetOnBoardStrategy', () => {
 
       const result = await strategy.fetchJobs(1);
 
-      // Only the recent job should be included; old job breaks out of loop
+      // Both jobs pass — no early-stop by date; kept + skipped = total
       expect(result.jobs.find((j) => j.externalId === 'recent')).toBeDefined();
-      expect(result.jobs.find((j) => j.externalId === 'old')).toBeUndefined();
+      expect(result.jobs.find((j) => j.externalId === 'old')).toBeDefined();
+      expect(result.jobs).toHaveLength(2);
       expect(result.hasMore).toBe(false);
     });
 
@@ -93,10 +94,7 @@ describe('GetOnBoardStrategy', () => {
         data: {
           data: [
             makeJob({
-              published_at: epochSeconds,
-              // Make it recent so it's within 7-day window
-              // Use current - 1 day
-              ...{ published_at: Math.floor(Date.now() / 1000) - 24 * 60 * 60 },
+              published_at: Math.floor(Date.now() / 1000) - 24 * 60 * 60,
             }),
           ],
         },

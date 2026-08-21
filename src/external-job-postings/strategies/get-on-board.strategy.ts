@@ -9,7 +9,6 @@ import type {
 
 const GOB_API_URL = 'https://www.getonbrd.com/api/v0/search/jobs';
 const GOB_PER_PAGE = 120;
-const WINDOW_DAYS = 7;
 
 type GobJobAttributes = {
   title?: string;
@@ -58,10 +57,8 @@ export class GetOnBoardStrategy implements ExternalJobSourceStrategy {
       `[GOB page ${page}] fetched ${rawJobs.length} items (meta: total_pages=${totalPages})`,
     );
 
-    const cutoff = new Date(Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000);
     const jobs: ExternalJobDto[] = [];
     let skipped = 0;
-    let oldestInWindow = true;
 
     for (const item of rawJobs) {
       const attrs = item.attributes;
@@ -94,12 +91,6 @@ export class GetOnBoardStrategy implements ExternalJobSourceStrategy {
         continue;
       }
 
-      if (publishedAt < cutoff) {
-        // Once we hit a job outside the window, pagination should stop.
-        oldestInWindow = false;
-        break;
-      }
-
       jobs.push({
         externalId: String(item.id),
         title,
@@ -117,9 +108,8 @@ export class GetOnBoardStrategy implements ExternalJobSourceStrategy {
       `[GOB page ${page}] kept=${jobs.length}, skipped=${skipped}, total=${rawJobs.length}`,
     );
 
-    // hasMore: there are more pages only if the current page was full
-    // AND all jobs were within the window.
-    const hasMore = rawJobs.length === GOB_PER_PAGE && oldestInWindow;
+    // hasMore: there are more pages only if the current page was full (GOB_PER_PAGE items returned).
+    const hasMore = rawJobs.length === GOB_PER_PAGE;
 
     return { jobs, hasMore };
   }
